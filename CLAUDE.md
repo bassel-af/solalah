@@ -27,3 +27,6 @@ The `.ged` file follows the GEDCOM standard:
 - Records identified by tags like `INDI` (individual), `FAM` (family), `BIRT` (birth), `DEAT` (death)
 - Cross-references use `@ID@` format (e.g., `@28283063@`)
 - Dates and places are structured with specific tags and formatting
+
+## Read files instructions
+Do not read .ged files
