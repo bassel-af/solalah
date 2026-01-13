@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { GedcomData, RootAncestor, TreeConfig } from '@/lib/gedcom/types';
-import { findRootAncestors, getDisplayName } from '@/lib/gedcom/parser';
+import { findRootAncestors, findDefaultRoot, getDisplayName } from '@/lib/gedcom/parser';
 
 interface TreeState {
   data: GedcomData | null;
@@ -50,9 +50,10 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     setRootsList(roots);
     setIsLoading(false);
 
-    // Auto-select first root if available
-    if (roots.length > 0) {
-      setSelectedRootIdState(roots[0].id);
+    // Auto-select the default root (oldest ancestor with no parents)
+    const defaultRoot = findDefaultRoot(newData);
+    if (defaultRoot) {
+      setSelectedRootIdState(defaultRoot.id);
     }
   }, []);
 
