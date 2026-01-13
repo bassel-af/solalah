@@ -5,8 +5,8 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { GedcomData, RootAncestor, TreeConfig } from '@/lib/gedcom/types';
-import { findRootAncestors, findDefaultRoot, getDisplayName } from '@/lib/gedcom/parser';
+import type { GedcomData, RootAncestor, TreeConfig } from '@/lib/gedcom';
+import { findRootAncestors, findDefaultRoot, getDisplayName } from '@/lib/gedcom';
 
 interface TreeState {
   data: GedcomData | null;

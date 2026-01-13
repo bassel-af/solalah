@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { GedcomData } from '@/lib/gedcom/types';
+import type { GedcomData } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
 import { CoupleRow } from './CoupleRow';
 import { PersonCard } from './PersonCard';

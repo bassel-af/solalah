@@ -1,4 +1,4 @@
-import type { Individual, GedcomData } from '@/lib/gedcom/types';
+import type { Individual, GedcomData } from '@/lib/gedcom';
 import { PersonCard } from './PersonCard';
 
 interface CoupleRowProps {

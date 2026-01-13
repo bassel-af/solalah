@@ -1,5 +1,5 @@
-import type { Individual } from '@/lib/gedcom/types';
-import { getDisplayName } from '@/lib/gedcom/parser';
+import type { Individual } from '@/lib/gedcom';
+import { getDisplayName } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
 
 interface PersonCardProps {
