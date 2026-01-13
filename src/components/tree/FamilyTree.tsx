@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import type { GedcomData } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
 import { CoupleRow } from './CoupleRow';
@@ -78,6 +78,7 @@ function TreeNode({ personId, data, depth, maxDepth, visited }: TreeNodeProps) {
 
 export function FamilyTree() {
   const { data, selectedRootId, config } = useTree();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const treeContent = useMemo(() => {
     if (!data || !selectedRootId) {
@@ -101,5 +102,28 @@ export function FamilyTree() {
     );
   }, [data, selectedRootId, config.maxDepth]);
 
-  return <div id="tree-container">{treeContent}</div>;
+  // Center on root when tree loads or root changes
+  useEffect(() => {
+    if (!containerRef.current || !selectedRootId) return;
+
+    const container = containerRef.current;
+    const rootElement = container.querySelector('.person.root');
+
+    if (rootElement) {
+      const containerRect = container.getBoundingClientRect();
+      const rootRect = rootElement.getBoundingClientRect();
+
+      // Calculate scroll position to center the root horizontally
+      const scrollLeft =
+        rootRect.left -
+        containerRect.left +
+        container.scrollLeft -
+        containerRect.width / 2 +
+        rootRect.width / 2;
+
+      container.scrollLeft = Math.max(0, scrollLeft);
+    }
+  }, [selectedRootId, data]);
+
+  return <div id="tree-container" ref={containerRef}>{treeContent}</div>;
 }

@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: max-content;
+  min-width: 100%;
 }
 
 .tree ul {
