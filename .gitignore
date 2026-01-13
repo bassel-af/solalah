@@ -45,3 +45,4 @@ temp/
 .nuxt/
 
 CLAUDE.local.md
+.playwright-mcp

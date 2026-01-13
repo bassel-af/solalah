@@ -1,0 +1,134 @@
+/* Tree structure */
+.tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tree ul {
+  padding-top: 20px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+.tree li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 20px 5px 0 5px;
+}
+
+/* Vertical line from parent */
+.tree li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 20px;
+  background: #ccc;
+}
+
+/* Horizontal line connecting siblings */
+.tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 2px;
+  background: #ccc;
+  right: 50%;
+}
+
+.tree li:first-child::after {
+  width: 50%;
+  right: 0;
+  left: 50%;
+}
+
+.tree li:last-child::after {
+  width: 50%;
+  right: 50%;
+}
+
+.tree li:only-child::after,
+.tree li:only-child::before {
+  display: none;
+}
+
+.tree > li::before,
+.tree > li::after {
+  display: none;
+}
+
+/* Line down to children */
+.tree ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 20px;
+  background: #ccc;
+}
+
+/* Person card */
+.person {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 15px;
+  min-width: 140px;
+  max-width: 180px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.person.male {
+  border-top: 4px solid #4a90d9;
+}
+
+.person.female {
+  border-top: 4px solid #e91e8c;
+}
+
+.person-name {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+}
+
+.person-dates {
+  color: #666;
+  font-size: 12px;
+}
+
+/* Couple display */
+.couple {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.spouse-connector {
+  width: 20px;
+  height: 2px;
+  background: #e91e8c;
+}
+
+/* Root selector highlight */
+.person.root {
+  box-shadow: 0 0 0 3px #4a90d9;
+}
+
+/* Search highlight */
+.person.search-match {
+  box-shadow: 0 0 0 3px #f5a623;
+  background: #fff8e6;
+}
