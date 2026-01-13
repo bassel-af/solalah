@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+            min-width: 350px;
+        }
+        .dropdown-search {
+            width: 100%;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .dropdown-search:focus {
+            outline: none;
+            border-color: #4a90d9;
+        }
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: none;
+        }
+        .dropdown-list.open {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        .dropdown-item:hover {
+            background: #f0f0f0;
+        }
+        .dropdown-item.selected {
+            background: #e8f0fe;
+        }
+        .no-results {
+            padding: 10px 15px;
+            color: #666;
+            font-style: italic;
+        }
+        .stats {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        #tree-container {
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        /* Tree structure */
+        .tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .tree ul {
+            padding-top: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            margin: 0;
+            padding-left: 0;
+        }
+        .tree li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 20px 5px 0 5px;
+        }
+
+        /* Vertical line from parent */
+        .tree li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 20px;
+            background: #ccc;
+        }
+
+        /* Horizontal line connecting siblings */
+        .tree li::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 2px;
+            background: #ccc;
+            right: 50%;
+        }
+        .tree li:first-child::after {
+            width: 50%;
+            right: 0;
+            left: 50%;
+        }
+        .tree li:last-child::after {
+            width: 50%;
+            right: 50%;
+        }
+        .tree li:only-child::after,
+        .tree li:only-child::before {
+            display: none;
+        }
+        .tree > li::before,
+        .tree > li::after {
+            display: none;
+        }
+
+        /* Line down to children */
+        .tree ul::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: #ccc;
+        }
+
+        /* Person card */
+        .person {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 15px;
+            min-width: 140px;
+            max-width: 180px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .person.male {
+            border-top: 4px solid #4a90d9;
+        }
+        .person.female {
+            border-top: 4px solid #e91e8c;
+        }
+        .person-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+            word-wrap: break-word;
+        }
+        .person-dates {
+            color: #666;
+            font-size: 12px;
+        }
+        .couple {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .spouse-connector {
+            width: 20px;
+            height: 2px;
+            background: #e91e8c;
+        }
+
+        /* Root selector highlight */
+        .person.root {
+            box-shadow: 0 0 0 3px #4a90d9;
+        }
+
+        /* Search highlight */
+        .person.search-match {
+            box-shadow: 0 0 0 3px #f5a623;
+            background: #fff8e6;
+        }
+
+        /* Search box */
+        .search-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: 300px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #f5a623;
+        }
+        .search-results {
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Family Tree</h1>
+
+    <div class="controls">
+        <label>Select root ancestor: </label>
+        <div class="dropdown-container">
+            <input type="text" id="root-search" class="dropdown-search" placeholder="Type to search...">
+            <div id="dropdown-list" class="dropdown-list"></div>
+        </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="search-container">
+        <input type="text" id="tree-search" class="search-input" placeholder="Search in tree...">
+        <div class="search-results" id="search-results"></div>
+    </div>
+
+    <div id="tree-container"></div>
+
+    <script>
+        let gedcomData = null;
+
+        // GEDCOM Parser
+        function parseGedcom(text) {
+            const lines = text.split(/\r\n|\r|\n/);
+            const individuals = {};
+            const families = {};
+            let currentRecord = null;
+            let currentSubRecord = null;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+
+                const parts = trimmed.split(/\s+/);
+                const level = parseInt(parts[0]);
+
+                if (isNaN(level)) continue;
+
+                let id = null;
+                let tag = null;
+                let value = null;
+
+                if (parts[1] && parts[1].startsWith('@') && parts[1].endsWith('@')) {
+                    id = parts[1];
+                    tag = parts[2];
+                    value = parts.slice(3).join(' ');
+                } else {
+                    tag = parts[1];
+                    value = parts.slice(2).join(' ');
+                }
+
+                if (level === 0) {
+                    currentSubRecord = null;
+                    if (tag === 'INDI') {
+                        currentRecord = { id, type: 'INDI', name: '', givenName: '', surname: '', sex: '', birth: '', death: '', familiesAsSpouse: [], familyAsChild: null };
+                        individuals[id] = currentRecord;
+                    } else if (tag === 'FAM') {
+                        currentRecord = { id, type: 'FAM', husband: null, wife: null, children: [] };
+                        families[id] = currentRecord;
+                    } else {
+                        currentRecord = null;
+                    }
+                } else if (currentRecord) {
+                    if (level === 1) {
+                        currentSubRecord = tag;
+                        if (currentRecord.type === 'INDI') {
+                            if (tag === 'NAME') {
+                                currentRecord.name = (value || '').replace(/\//g, '').trim();
+                            } else if (tag === 'SEX') {
+                                currentRecord.sex = value;
+                            } else if (tag === 'FAMS') {
+                                currentRecord.familiesAsSpouse.push(value);
+                            } else if (tag === 'FAMC') {
+                                currentRecord.familyAsChild = value;
+                            }
+                        } else if (currentRecord.type === 'FAM') {
+                            if (tag === 'HUSB') {
+                                currentRecord.husband = value;
+                            } else if (tag === 'WIFE') {
+                                currentRecord.wife = value;
+                            } else if (tag === 'CHIL') {
+                                currentRecord.children.push(value);
+                            }
+                        }
+                    } else if (level === 2) {
+                        if (currentRecord.type === 'INDI') {
+                            if (currentSubRecord === 'NAME') {
+                                if (tag === 'GIVN') {
+                                    currentRecord.givenName = value || '';
+                                } else if (tag === 'SURN') {
+                                    currentRecord.surname = value || '';
+                                }
+                            } else if (tag === 'DATE') {
+                                if (currentSubRecord === 'BIRT') {
+                                    currentRecord.birth = value;
+                                } else if (currentSubRecord === 'DEAT') {
+                                    currentRecord.death = value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return { individuals, families };
+        }
+
+        // Get best display name for a person
+        function getDisplayName(person) {
+            if (!person) return 'Unknown';
+
+            // If name has both parts (not just surname), use it
+            const nameParts = person.name.split(' ').filter(p => p);
+            if (nameParts.length > 1) {
+                return person.name;
+            }
+
+            // Otherwise, try to build from GIVN + SURN
+            if (person.givenName && person.surname) {
+                return `${person.givenName} ${person.surname}`;
+            }
+            if (person.givenName) {
+                return person.givenName;
+            }
+            if (person.name) {
+                return person.name;
+            }
+            if (person.surname) {
+                return person.surname;
+            }
+
+            return 'Unknown';
+        }
+
+        // Find root ancestors (people with no parents in the data)
+        function findRootAncestors(data) {
+            const { individuals, families } = data;
+            const roots = [];
+
+            for (const id in individuals) {
+                const person = individuals[id];
+                // No parent family = potential root
+                if (!person.familyAsChild) {
+                    // Prefer people who have descendants
+                    if (person.familiesAsSpouse.length > 0) {
+                        roots.push(person);
+                    }
+                }
+            }
+
+            // Sort by name
+            roots.sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b)));
+            return roots;
+        }
+
+        // Render person HTML
+        function renderPerson(person, isRoot = false) {
+            if (!person) return '';
+            const sexClass = person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : '';
+            const rootClass = isRoot ? 'root' : '';
+            const displayName = getDisplayName(person);
+            let dates = '';
+            if (person.birth || person.death) {
+                dates = `${person.birth || '?'} - ${person.death || ''}`;
+            }
+            return `
+                <div class="person ${sexClass} ${rootClass}">
+                    <div class="person-name">${displayName}</div>
+                    ${dates ? `<div class="person-dates">${dates}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Render couple (person + spouse)
+        function renderCouple(person, spouseId, data, isRoot = false) {
+            const spouse = spouseId ? data.individuals[spouseId] : null;
+            if (spouse) {
+                return `
+                    <div class="couple">
+                        ${renderPerson(person, isRoot)}
+                        <div class="spouse-connector"></div>
+                        ${renderPerson(spouse)}
+                    </div>
+                `;
+            }
+            return renderPerson(person, isRoot);
+        }
+
+        // Recursively build tree HTML
+        function buildTree(personId, data, depth = 0, maxDepth = 10, visited = new Set()) {
+            if (depth > maxDepth || visited.has(personId)) return '';
+            visited.add(personId);
+
+            const person = data.individuals[personId];
+            if (!person) return '';
+
+            const { families } = data;
+            let html = '<li>';
+
+            // Get families where this person is a spouse
+            const personFamilies = person.familiesAsSpouse.map(fid => families[fid]).filter(Boolean);
+
+            if (personFamilies.length === 0) {
+                // No family - just show person
+                html += renderPerson(person, depth === 0);
+            } else {
+                // Show person with first spouse, then children
+                const mainFamily = personFamilies[0];
+                const spouseId = mainFamily.husband === personId ? mainFamily.wife : mainFamily.husband;
+
+                html += renderCouple(person, spouseId, data, depth === 0);
+
+                // Collect all children from all families
+                const allChildren = [];
+                for (const fam of personFamilies) {
+                    for (const childId of fam.children) {
+                        if (!allChildren.includes(childId)) {
+                            allChildren.push(childId);
+                        }
+                    }
+                }
+
+                if (allChildren.length > 0) {
+                    html += '<ul>';
+                    for (const childId of allChildren) {
+                        html += buildTree(childId, data, depth + 1, maxDepth, visited);
+                    }
+                    html += '</ul>';
+                }
+            }
+
+            html += '</li>';
+            return html;
+        }
+
+        // Render the tree from a root person
+        function renderTree(rootId, data) {
+            const container = document.getElementById('tree-container');
+
+            if (!rootId) {
+                container.innerHTML = '<p style="text-align:center;color:#666;">Select a root ancestor to view the tree</p>';
+                return;
+            }
+
+            const html = `<ul class="tree">${buildTree(rootId, data, 0, 8)}</ul>`;
+            container.innerHTML = html;
+        }
+
+        // Searchable dropdown
+        let rootsList = [];
+        let selectedRootId = null;
+
+        function populateRootSelector(data) {
+            rootsList = findRootAncestors(data).map(person => ({
+                id: person.id,
+                text: getDisplayName(person) + (person.birth ? ` (${person.birth})` : '')
+            }));
+
+            renderDropdownItems('');
+
+            // Show stats
+            const indCount = Object.keys(data.individuals).length;
+            const famCount = Object.keys(data.families).length;
+            document.getElementById('stats').textContent = `${indCount} individuals, ${famCount} families, ${rootsList.length} root ancestors`;
+        }
+
+        function renderDropdownItems(filter) {
+            const list = document.getElementById('dropdown-list');
+            const lowerFilter = filter.toLowerCase();
+            const filtered = rootsList.filter(r => r.text.toLowerCase().includes(lowerFilter));
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="no-results">No results found</div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(r =>
+                `<div class="dropdown-item ${r.id === selectedRootId ? 'selected' : ''}" data-id="${r.id}">${r.text}</div>`
+            ).join('');
+
+            // Add click handlers
+            list.querySelectorAll('.dropdown-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectRoot(this.dataset.id, this.textContent);
+                });
+            });
+        }
+
+        function selectRoot(id, text) {
+            selectedRootId = id;
+            document.getElementById('root-search').value = text;
+            document.getElementById('dropdown-list').classList.remove('open');
+            renderTree(id, gedcomData);
+        }
+
+        // Dropdown event handlers
+        const searchInput = document.getElementById('root-search');
+        const dropdownList = document.getElementById('dropdown-list');
+
+        searchInput.addEventListener('focus', function() {
+            this.select(); // Select all text so user can type to search
+            renderDropdownItems(''); // Show all items
+            dropdownList.classList.add('open');
+        });
+
+        searchInput.addEventListener('input', function() {
+            renderDropdownItems(this.value);
+            dropdownList.classList.add('open');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown-container')) {
+                dropdownList.classList.remove('open');
+            }
+        });
+
+        // Tree search functionality
+        const treeSearchInput = document.getElementById('tree-search');
+        const searchResultsDiv = document.getElementById('search-results');
+
+        treeSearchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+
+            // Remove previous highlights
+            document.querySelectorAll('.person.search-match').forEach(el => {
+                el.classList.remove('search-match');
+            });
+            searchResultsDiv.textContent = '';
+
+            if (!query) return;
+
+            // Find and highlight matching persons
+            const personElements = document.querySelectorAll('.person');
+            let matchCount = 0;
+            let firstMatch = null;
+
+            personElements.forEach(el => {
+                const name = el.querySelector('.person-name')?.textContent?.toLowerCase() || '';
+                if (name.includes(query)) {
+                    el.classList.add('search-match');
+                    matchCount++;
+                    if (!firstMatch) firstMatch = el;
+                }
+            });
+
+            // Show result count
+            if (matchCount > 0) {
+                searchResultsDiv.textContent = `Found ${matchCount} match${matchCount > 1 ? 'es' : ''}`;
+                // Scroll to first match
+                firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                searchResultsDiv.textContent = 'No matches found';
+            }
+        });
+
+        // Load and initialize
+        fetch('saeed-family.ged')
+            .then(response => response.text())
+            .then(text => {
+                gedcomData = parseGedcom(text);
+                populateRootSelector(gedcomData);
+
+                // Auto-select first root if available
+                if (rootsList.length > 0) {
+                    selectRoot(rootsList[0].id, rootsList[0].text);
+                }
+            })
+            .catch(err => {
+                document.getElementById('tree-container').innerHTML =
+                    '<p style="text-align:center;color:red;">Error loading family tree: ' + err.message + '</p>';
+            });
+    </script>
+</body>
+</html>
