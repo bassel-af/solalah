@@ -16,8 +16,6 @@ export function Sidebar() {
     rootsList,
     selectedRootId,
     setSelectedRootId,
-    initialRootId,
-    rootFilterStrategy,
     focusPersonId,
     setFocusPersonId,
   } = useTree();
@@ -80,14 +78,14 @@ export function Sidebar() {
     return individuals;
   }, [data]);
 
-  // Filter individuals based on search and root filter strategy
+  // Filter individuals based on search and selected root
   const filteredIndividuals = useMemo(() => {
     let filtered = allIndividuals;
 
-    // Apply root filter strategy
-    if (rootFilterStrategy === 'descendants' && initialRootId && data) {
-      const descendantIds = getAllDescendants(data, initialRootId);
-      descendantIds.add(initialRootId);
+    // Filter to show only descendants of the selected root
+    if (selectedRootId && data) {
+      const descendantIds = getAllDescendants(data, selectedRootId);
+      descendantIds.add(selectedRootId);
       filtered = filtered.filter((p) => descendantIds.has(p.id));
     }
 
@@ -98,21 +96,14 @@ export function Sidebar() {
     }
 
     return filtered;
-  }, [allIndividuals, searchFilter, rootFilterStrategy, initialRootId, data]);
+  }, [allIndividuals, searchFilter, selectedRootId, data]);
 
-  // Stats
+  // Stats based on selected root's descendants
   const { indCount, famCount } = useMemo(() => {
-    if (!data) return { indCount: 0, famCount: 0 };
+    if (!data || !selectedRootId) return { indCount: 0, famCount: 0 };
 
-    if (rootFilterStrategy === 'all' || !initialRootId) {
-      return {
-        indCount: Object.keys(data.individuals).length,
-        famCount: Object.keys(data.families).length,
-      };
-    }
-
-    const descendantIds = getAllDescendants(data, initialRootId);
-    descendantIds.add(initialRootId);
+    const descendantIds = getAllDescendants(data, selectedRootId);
+    descendantIds.add(selectedRootId);
 
     let familyCount = 0;
     for (const famId in data.families) {
@@ -129,7 +120,7 @@ export function Sidebar() {
       indCount: descendantIds.size,
       famCount: familyCount,
     };
-  }, [data, rootFilterStrategy, initialRootId]);
+  }, [data, selectedRootId]);
 
   const handleRootSelect = (id: string, text: string) => {
     setSelectedRootId(id);
