@@ -135,10 +135,18 @@ export function Sidebar() {
     setSelectedRootId(id);
     setRootFilter(text);
     setRootDropdownOpen(false);
+    // Close sidebar on mobile after selecting root
+    if (window.innerWidth <= 768) {
+      setIsMobileOpen(false);
+    }
   };
 
   const handlePersonClick = (id: string) => {
     setFocusPersonId(id);
+    // Close sidebar on mobile after selecting person
+    if (window.innerWidth <= 768) {
+      setIsMobileOpen(false);
+    }
   };
 
   return (
@@ -225,13 +233,26 @@ export function Sidebar() {
       </div>
 
       <div className="sidebar-section sidebar-search-section">
-        <input
-          type="text"
-          className="sidebar-search"
-          placeholder="ابحث عن شخص..."
-          value={searchFilter}
-          onChange={(e) => setSearchFilter(e.target.value)}
-        />
+        <div className="sidebar-search-wrapper">
+          <input
+            type="text"
+            className="sidebar-search"
+            placeholder="ابحث عن شخص..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+          />
+          {searchFilter && (
+            <button
+              className="sidebar-search-clear"
+              onClick={() => setSearchFilter('')}
+              aria-label="مسح البحث"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M11 3L3 11M3 3L11 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
         <span className="sidebar-search-count">
           {filteredIndividuals.length} نتيجة
         </span>

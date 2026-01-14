@@ -292,6 +292,44 @@ function FamilyTreeInner() {
   const { setViewport, setCenter, getZoom } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const prevRootIdRef = useRef<string | null>(null);
+
+  // Reusable function to center viewport on a node (at top or centered)
+  const scrollToNode = useCallback(
+    (nodeId: string, nodes: Node[], position: 'top' | 'center' = 'center', animate = true) => {
+      const targetNode = nodes.find((n) => n.id === nodeId);
+      if (!targetNode || !containerRef.current) return;
+
+      const nodeData = targetNode.data as PersonNodeData;
+      const spouseCount = nodeData.spouses?.length || 0;
+      const nodeWidth = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
+
+      if (position === 'top') {
+        // Position node at top, centered horizontally
+        const { width } = containerRef.current.getBoundingClientRect();
+        const zoom = 0.85;
+        const topPadding = 40;
+
+        const nodeCenterX = targetNode.position.x + nodeWidth / 2;
+        const nodeTopY = targetNode.position.y;
+
+        const x = width / 2 - nodeCenterX * zoom;
+        const y = topPadding - nodeTopY * zoom;
+
+        setViewport({ x, y, zoom }, { duration: animate ? 500 : 0 });
+      } else {
+        // Center node in viewport
+        const centerX = targetNode.position.x + nodeWidth / 2;
+        const centerY = targetNode.position.y + NODE_HEIGHT / 2;
+
+        const currentZoom = getZoom();
+        const zoom = currentZoom > 0.5 ? currentZoom : 0.85;
+
+        setCenter(centerX, centerY, { zoom, duration: animate ? 500 : 0 });
+      }
+    },
+    [setViewport, setCenter, getZoom]
+  );
 
   const { initialNodes, initialEdges } = useMemo(() => {
     if (!data || !selectedRootId) {
@@ -320,49 +358,34 @@ function FamilyTreeInner() {
   // Center viewport on focused person
   useEffect(() => {
     if (!focusPersonId || !isReady) return;
+    scrollToNode(focusPersonId, nodes, 'center', true);
+  }, [focusPersonId, nodes, isReady, scrollToNode]);
 
-    const targetNode = nodes.find((n) => n.id === focusPersonId);
-    if (!targetNode) return;
+  // Scroll to root when selectedRootId changes (not on initial load)
+  useEffect(() => {
+    if (!selectedRootId || !isReady) return;
 
-    const nodeData = targetNode.data as PersonNodeData;
-    const spouseCount = nodeData.spouses?.length || 0;
-    const nodeWidth = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
+    // Skip initial load (handled by onInit)
+    if (prevRootIdRef.current === null) {
+      prevRootIdRef.current = selectedRootId;
+      return;
+    }
 
-    // Calculate center of the node
-    const centerX = targetNode.position.x + nodeWidth / 2;
-    const centerY = targetNode.position.y + NODE_HEIGHT / 2;
-
-    // Keep current zoom or use a reasonable default
-    const currentZoom = getZoom();
-    const zoom = currentZoom > 0.5 ? currentZoom : 0.85;
-
-    setCenter(centerX, centerY, { zoom, duration: 500 });
-  }, [focusPersonId, nodes, isReady, setCenter, getZoom]);
+    // Only scroll if root actually changed
+    if (prevRootIdRef.current !== selectedRootId) {
+      prevRootIdRef.current = selectedRootId;
+      scrollToNode(selectedRootId, nodes, 'top', true);
+    }
+  }, [selectedRootId, nodes, isReady, scrollToNode]);
 
   // Position root at top, centered horizontally
   const onInit = useCallback(() => {
-    const rootNode = initialNodes.find(
-      (n) => (n.data as PersonNodeData).isRoot
-    );
-    if (rootNode && containerRef.current) {
-      const { width } = containerRef.current.getBoundingClientRect();
-      const spouseCount = (rootNode.data as PersonNodeData).spouses?.length || 0;
-      const nodeWidth = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
-      const zoom = 0.85;
-      const topPadding = 40;
-
-      // Center of the root node in flow coordinates
-      const rootCenterX = rootNode.position.x + nodeWidth / 2;
-      const rootTopY = rootNode.position.y;
-
-      // Calculate viewport: center horizontally, root at top with padding
-      const x = width / 2 - rootCenterX * zoom;
-      const y = topPadding - rootTopY * zoom;
-
-      setViewport({ x, y, zoom }, { duration: 0 });
+    const rootNode = initialNodes.find((n) => (n.data as PersonNodeData).isRoot);
+    if (rootNode) {
+      scrollToNode(rootNode.id, initialNodes, 'top', false);
     }
     requestAnimationFrame(() => setIsReady(true));
-  }, [initialNodes, setViewport]);
+  }, [initialNodes, scrollToNode]);
 
   if (!data || !selectedRootId) {
     return (
