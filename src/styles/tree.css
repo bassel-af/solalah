@@ -35,31 +35,49 @@
   background: #ccc;
 }
 
-/* Horizontal line connecting siblings */
-.tree li::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 50%;
-  height: 2px;
-  background: #ccc;
-  right: 50%;
-}
-
-.tree li:first-child::after {
-  width: 50%;
-  right: 0;
-  left: 50%;
-}
-
-.tree li:last-child::after {
-  width: 50%;
-  right: 50%;
-}
-
-.tree li:only-child::after,
+/* Hide vertical line for only children */
 .tree li:only-child::before {
   display: none;
+}
+
+/* Horizontal bar spanning all children - drawn by ul::after */
+.tree ul::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ccc;
+  pointer-events: none;
+}
+
+/* Hide horizontal bar for single-child containers */
+.tree ul:has(> li:only-child)::after {
+  display: none;
+}
+
+/* Mask the horizontal bar ends at first and last child */
+/* First child masks the left side of the bar */
+.tree li:first-child:not(:only-child)::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  right: 50%;
+  left: 0;
+  height: 2px;
+  background: #f5f5f5; /* Match body background color */
+}
+
+/* Last child masks the right side of the bar */
+.tree li:last-child:not(:only-child)::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  right: 0;
+  height: 2px;
+  background: #f5f5f5; /* Match body background color */
 }
 
 .tree > li::before,
