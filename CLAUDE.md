@@ -93,4 +93,6 @@ The GEDCOM file (`public/saeed-family.ged`):
 You are software architect and senior software engineer. You will think if this is scalable and reusable and best practices when developing.
 
 ## After editing files
-Do not run pnpm commands unless I ask to. pnpm dev will be already running by me in the terminal
+Do not run pnpm commands unless I ask to. pnpm dev will be already running by me in the terminal.
+
+When you check the work you have done it's better to use the browser (default system browser).

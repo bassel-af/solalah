@@ -112,12 +112,7 @@ h1 {
   color: #666;
 }
 
-/* Tree container */
-#tree-container {
-  position: relative;
-  overflow-x: auto;
-  padding: 20px;
-}
+/* Tree container - handled in tree.css for React Flow */
 
 /* Loading and error states */
 .loading {

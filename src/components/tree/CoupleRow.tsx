@@ -3,23 +3,41 @@ import { PersonCard } from './PersonCard';
 
 interface CoupleRowProps {
   person: Individual;
-  spouseId: string | null;
+  spouseIds: string[];
   data: GedcomData;
   isRoot?: boolean;
+  nodeRef?: (el: HTMLElement | null) => void;
 }
 
-export function CoupleRow({ person, spouseId, data, isRoot = false }: CoupleRowProps) {
-  const spouse = spouseId ? data.individuals[spouseId] : null;
+export function CoupleRow({ person, spouseIds, data, isRoot = false, nodeRef }: CoupleRowProps) {
+  const spouses = spouseIds
+    .map((id) => data.individuals[id])
+    .filter(Boolean);
 
-  if (spouse) {
+  if (spouses.length > 0) {
+    // Offset to center the main person instead of the whole couple
+    // Each spouse group: connector (20px) + card (~170px with padding/border) = ~190px
+    const spouseGroupWidth = 190;
+    const offset = (spouses.length * spouseGroupWidth) / 2;
+
     return (
-      <div className="couple">
-        <PersonCard person={person} isRoot={isRoot} />
-        <div className="spouse-connector" />
-        <PersonCard person={spouse} />
+      <div className="couple" style={{ marginLeft: offset }}>
+        <div ref={nodeRef} className="main-person">
+          <PersonCard person={person} isRoot={isRoot} />
+        </div>
+        {spouses.map((spouse) => (
+          <div key={spouse.id} className="spouse-group">
+            <div className="spouse-connector" />
+            <PersonCard person={spouse} />
+          </div>
+        ))}
       </div>
     );
   }
 
-  return <PersonCard person={person} isRoot={isRoot} />;
+  return (
+    <div ref={nodeRef} className="main-person">
+      <PersonCard person={person} isRoot={isRoot} />
+    </div>
+  );
 }
