@@ -8,4 +8,7 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  server: {
+    host: true, // Expose on local network
+  },
 })

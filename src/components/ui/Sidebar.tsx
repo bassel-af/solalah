@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTree } from '@/context/TreeContext';
 import { getDisplayName, getAllDescendants } from '@/lib/gedcom';
 
@@ -25,6 +25,26 @@ export function Sidebar() {
   const [searchFilter, setSearchFilter] = useState('');
   const [rootDropdownOpen, setRootDropdownOpen] = useState(false);
   const [rootFilter, setRootFilter] = useState('');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Close sidebar when clicking on a person (mobile UX improvement)
+  useEffect(() => {
+    if (focusPersonId && window.innerWidth <= 768) {
+      setIsMobileOpen(false);
+    }
+  }, [focusPersonId]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (isMobileOpen && window.innerWidth <= 768) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileOpen]);
 
   // Get selected root display text
   const selectedRoot = rootsList.find((r) => r.id === selectedRootId);
@@ -122,10 +142,37 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <h2>شجرة العائلة</h2>
-      </div>
+    <>
+      {/* Mobile Toggle Button */}
+      <button
+        className={`sidebar-toggle ${isMobileOpen ? 'is-open' : ''}`}
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        aria-label={isMobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+      >
+        <span className="sidebar-toggle-bar" />
+        <span className="sidebar-toggle-bar" />
+        <span className="sidebar-toggle-bar" />
+      </button>
+
+      {/* Mobile Overlay */}
+      <div
+        className={`sidebar-overlay ${isMobileOpen ? 'is-visible' : ''}`}
+        onClick={() => setIsMobileOpen(false)}
+      />
+
+      <aside className={`sidebar ${isMobileOpen ? 'is-open' : ''}`}>
+        <div className="sidebar-header">
+          <h2>شجرة العائلة</h2>
+          <button
+            className="sidebar-close"
+            onClick={() => setIsMobileOpen(false)}
+            aria-label="إغلاق القائمة"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
 
       <div className="sidebar-section">
         <label className="sidebar-label">الجد الأعلى</label>
@@ -203,5 +250,6 @@ export function Sidebar() {
         ))}
       </ul>
     </aside>
+    </>
   );
 }

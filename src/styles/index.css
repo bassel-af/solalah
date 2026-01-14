@@ -540,3 +540,250 @@ body {
   color: #e53e3e;
   font-size: 18px;
 }
+
+/* ============================================
+   SIDEBAR RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile Toggle Button - Hidden on Desktop */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1100;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  background: linear-gradient(135deg, #1a1f36 0%, #252b48 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+.sidebar-toggle:active {
+  transform: scale(0.98);
+}
+
+.sidebar-toggle-bar {
+  display: block;
+  width: 22px;
+  height: 2.5px;
+  background: linear-gradient(90deg, #63b3ed 0%, #4a90d9 100%);
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+/* Animated hamburger to X transformation */
+.sidebar-toggle.is-open .sidebar-toggle-bar:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.sidebar-toggle.is-open .sidebar-toggle-bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.sidebar-toggle.is-open .sidebar-toggle-bar:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* Mobile Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  z-index: 900;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-overlay.is-visible {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+/* Sidebar Close Button - Hidden on Desktop */
+.sidebar-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.sidebar-close:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   MOBILE BREAKPOINT (768px and below)
+   ============================================ */
+@media (max-width: 768px) {
+  /* Show toggle button on mobile */
+  .sidebar-toggle {
+    display: flex;
+  }
+
+  /* Show overlay on mobile */
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* Sidebar transforms to slide-in drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(320px, 85vw);
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Show close button on mobile */
+  .sidebar-close {
+    display: flex;
+  }
+
+  /* Update header to include close button */
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 16px;
+  }
+
+  .sidebar-header h2 {
+    font-size: 20px;
+  }
+
+  /* Adjust section padding for mobile */
+  .sidebar-section {
+    padding: 14px 16px;
+  }
+
+  /* Adjust stats for mobile */
+  .sidebar-stats {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .stat-item {
+    padding: 14px 10px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  /* Adjust people list for mobile */
+  .sidebar-people-list {
+    padding: 6px;
+  }
+
+  .sidebar-person {
+    padding: 10px 12px;
+  }
+
+  /* Improve touch targets */
+  .sidebar-dropdown-input,
+  .sidebar-search {
+    padding: 12px 14px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .sidebar-dropdown-item {
+    padding: 12px 14px;
+  }
+}
+
+/* ============================================
+   SMALL MOBILE BREAKPOINT (480px and below)
+   ============================================ */
+@media (max-width: 480px) {
+  .sidebar-toggle {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .sidebar-toggle-bar {
+    width: 20px;
+  }
+
+  .sidebar {
+    width: 100vw;
+    border-radius: 0;
+  }
+
+  .sidebar-header {
+    padding: 16px 14px;
+  }
+
+  .sidebar-header h2 {
+    font-size: 18px;
+  }
+
+  .sidebar-section {
+    padding: 12px 14px;
+  }
+
+  .sidebar-stats {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 12px 8px;
+    border-radius: 10px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+}
