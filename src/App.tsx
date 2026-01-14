@@ -2,8 +2,12 @@ import { useTree } from '@/context/TreeContext';
 import { useGedcomData } from '@/hooks/useGedcomData';
 import { FamilyTree } from '@/components/tree';
 import { RootSelector, SearchBar, Stats } from '@/components/ui';
+import { Playground } from '@/components/Playground';
 
-function App() {
+// Check once at module level to avoid hook issues
+const isPlayground = new URLSearchParams(window.location.search).has('playground');
+
+function MainApp() {
   const { isLoading, error } = useTree();
 
   // Load GEDCOM data
@@ -30,6 +34,13 @@ function App() {
       <FamilyTree />
     </>
   );
+}
+
+function App() {
+  if (isPlayground) {
+    return <Playground />;
+  }
+  return <MainApp />;
 }
 
 export default App;

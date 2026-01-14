@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useRef } from 'react';
 import type { GedcomData } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
+import { useTreeLines } from '@/hooks/useTreeLines';
 import { CoupleRow } from './CoupleRow';
 import { PersonCard } from './PersonCard';
 
@@ -10,9 +11,19 @@ interface TreeNodeProps {
   depth: number;
   maxDepth: number;
   visited: Set<string>;
+  registerNode: (id: string, el: HTMLElement | null) => void;
+  registerRelation: (parentId: string, childIds: string[]) => void;
 }
 
-function TreeNode({ personId, data, depth, maxDepth, visited }: TreeNodeProps) {
+function TreeNode({
+  personId,
+  data,
+  depth,
+  maxDepth,
+  visited,
+  registerNode,
+  registerRelation,
+}: TreeNodeProps) {
   if (depth > maxDepth || visited.has(personId)) return null;
 
   const person = data.individuals[personId];
@@ -38,10 +49,19 @@ function TreeNode({ personId, data, depth, maxDepth, visited }: TreeNodeProps) {
 
   const isRoot = depth === 0;
 
+  // Register parent-children relation for line drawing
+  useEffect(() => {
+    if (allChildren.length > 0) {
+      registerRelation(personId, allChildren);
+    }
+  }, [personId, allChildren, registerRelation]);
+
   if (personFamilies.length === 0) {
     return (
       <li>
-        <PersonCard person={person} isRoot={isRoot} />
+        <div className="tree-node-content" ref={(el) => registerNode(personId, el)}>
+          <PersonCard person={person} isRoot={isRoot} />
+        </div>
       </li>
     );
   }
@@ -52,12 +72,14 @@ function TreeNode({ personId, data, depth, maxDepth, visited }: TreeNodeProps) {
 
   return (
     <li>
-      <CoupleRow
-        person={person}
-        spouseId={spouseId}
-        data={data}
-        isRoot={isRoot}
-      />
+      <div className="tree-node-content" ref={(el) => registerNode(personId, el)}>
+        <CoupleRow
+          person={person}
+          spouseId={spouseId}
+          data={data}
+          isRoot={isRoot}
+        />
+      </div>
       {allChildren.length > 0 && (
         <ul>
           {allChildren.map((childId) => (
@@ -68,6 +90,8 @@ function TreeNode({ personId, data, depth, maxDepth, visited }: TreeNodeProps) {
               depth={depth + 1}
               maxDepth={maxDepth}
               visited={newVisited}
+              registerNode={registerNode}
+              registerRelation={registerRelation}
             />
           ))}
         </ul>
@@ -79,6 +103,17 @@ function TreeNode({ personId, data, depth, maxDepth, visited }: TreeNodeProps) {
 export function FamilyTree() {
   const { data, selectedRootId, config } = useTree();
   const containerRef = useRef<HTMLDivElement>(null);
+  const { lines, registerNode, registerRelation, calculateLines } =
+    useTreeLines(containerRef);
+
+  // Calculate lines after all effects have run
+  useEffect(() => {
+    // Delay to ensure all TreeNode useEffects have registered relations
+    const timer = setTimeout(() => {
+      calculateLines();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [data, selectedRootId, config.maxDepth, calculateLines]);
 
   const treeContent = useMemo(() => {
     if (!data || !selectedRootId) {
@@ -97,10 +132,12 @@ export function FamilyTree() {
           depth={0}
           maxDepth={config.maxDepth}
           visited={new Set()}
+          registerNode={registerNode}
+          registerRelation={registerRelation}
         />
       </ul>
     );
-  }, [data, selectedRootId, config.maxDepth]);
+  }, [data, selectedRootId, config.maxDepth, registerNode, registerRelation]);
 
   // Center on root when tree loads or root changes
   useEffect(() => {
@@ -125,5 +162,22 @@ export function FamilyTree() {
     }
   }, [selectedRootId, data]);
 
-  return <div id="tree-container" ref={containerRef}>{treeContent}</div>;
+  return (
+    <div id="tree-container" ref={containerRef}>
+      <svg className="tree-lines">
+        {lines.map((line, i) => (
+          <line
+            key={i}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            stroke="#ccc"
+            strokeWidth="2"
+          />
+        ))}
+      </svg>
+      {treeContent}
+    </div>
+  );
 }

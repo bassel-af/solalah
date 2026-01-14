@@ -114,6 +114,7 @@ h1 {
 
 /* Tree container */
 #tree-container {
+  position: relative;
   overflow-x: auto;
   padding: 20px;
 }
