@@ -88,3 +88,25 @@
   box-shadow: 0 0 0 3px #f5a623;
   background: #fff8e6;
 }
+
+/* Deceased person styling */
+.person.deceased {
+  background: #f0f0f0;
+  opacity: 0.75;
+}
+
+.person.deceased .person-name {
+  color: #888;
+}
+
+.person.deceased .person-dates {
+  color: #999;
+}
+
+.person.deceased.male {
+  border-top-color: #9ec5e8;
+}
+
+.person.deceased.female {
+  border-top-color: #f2a7cf;
+}

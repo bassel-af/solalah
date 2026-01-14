@@ -318,6 +318,27 @@ body {
   margin-top: 4px;
 }
 
+/* Deceased person in sidebar */
+.sidebar-person.deceased {
+  opacity: 0.6;
+}
+
+.sidebar-person.deceased .person-name {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar-person.deceased .person-dates {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-person.deceased.male {
+  border-right-color: rgba(99, 179, 237, 0.2);
+}
+
+.sidebar-person.deceased.female {
+  border-right-color: rgba(237, 100, 166, 0.2);
+}
+
 /* Legacy styles (for backwards compatibility) */
 .controls {
   text-align: center;

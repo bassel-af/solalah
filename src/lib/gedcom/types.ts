@@ -7,6 +7,7 @@ export interface Individual {
   sex: 'M' | 'F' | null;
   birth: string;
   death: string;
+  isDeceased: boolean;
   familiesAsSpouse: string[];
   familyAsChild: string | null;
 }

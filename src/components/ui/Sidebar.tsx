@@ -7,6 +7,7 @@ interface PersonItem {
   name: string;
   dates: string;
   sex: string;
+  deceased: boolean;
 }
 
 export function Sidebar() {
@@ -51,6 +52,7 @@ export function Sidebar() {
         name,
         dates,
         sex: person.sex || 'U',
+        deceased: person.isDeceased,
       });
     }
 
@@ -193,7 +195,7 @@ export function Sidebar() {
         {filteredIndividuals.map((person) => (
           <li
             key={person.id}
-            className={`sidebar-person ${focusPersonId === person.id ? 'active' : ''} ${person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : ''}`}
+            className={`sidebar-person ${focusPersonId === person.id ? 'active' : ''} ${person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : ''} ${person.deceased ? 'deceased' : ''}`}
             onClick={() => handlePersonClick(person.id)}
           >
             <span className="person-name">{person.name}</span>

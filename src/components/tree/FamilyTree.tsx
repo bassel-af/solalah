@@ -40,6 +40,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     const displayName = getDisplayName(p);
     const sexClass = p.sex === 'M' ? 'male' : p.sex === 'F' ? 'female' : '';
     const rootClass = isMainPerson && isRoot ? 'root' : '';
+    const deceasedClass = p.isDeceased ? 'deceased' : '';
     const isMatch =
       searchQuery && displayName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchClass = isMatch ? 'search-match' : '';
@@ -50,7 +51,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     }
 
     return (
-      <div className={`person ${sexClass} ${rootClass} ${matchClass}`.trim()}>
+      <div className={`person ${sexClass} ${rootClass} ${deceasedClass} ${matchClass}`.trim()}>
         <div className="person-name">{displayName}</div>
         {dates && <div className="person-dates">{dates}</div>}
       </div>

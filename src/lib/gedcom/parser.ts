@@ -41,6 +41,7 @@ export function parseGedcom(text: string): GedcomData {
           sex: null,
           birth: '',
           death: '',
+          isDeceased: false,
           familiesAsSpouse: [],
           familyAsChild: null,
         };
@@ -66,6 +67,8 @@ export function parseGedcom(text: string): GedcomData {
             indi.name = (value || '').replace(/\//g, '').trim();
           } else if (tag === 'SEX') {
             indi.sex = value === 'M' ? 'M' : value === 'F' ? 'F' : null;
+          } else if (tag === 'DEAT') {
+            indi.isDeceased = true;
           } else if (tag === 'FAMS' && value) {
             indi.familiesAsSpouse.push(value);
           } else if (tag === 'FAMC' && value) {
