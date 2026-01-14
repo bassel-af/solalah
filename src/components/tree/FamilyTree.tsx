@@ -113,6 +113,8 @@ function PersonNode({ data }: { data: PersonNodeData }) {
                     opacity: 0,
                     // Position under each wife: husband(140) + gap(20) + index*160 + halfCard(70)
                     left: 140 + 20 + index * 160 + 70,
+                    // Offset vertically so edges don't overlap when going down
+                    bottom: -(index * 8),
                   }}
                 />
               ))}
@@ -262,6 +264,8 @@ function buildTreeData(
       for (const childId of fam.children) {
         if (!visitedChildren.has(childId)) {
           visitedChildren.add(childId);
+          // Offset the vertical drop for each spouse so lines don't overlap
+          const edgeOffset = 20 + spouseIndex * 15;
           edges.push({
             id: `${personId}-${childId}`,
             source: personId,
@@ -269,6 +273,7 @@ function buildTreeData(
             target: childId,
             type: 'smoothstep',
             style: { stroke: edgeColor, strokeWidth: 2 },
+            pathOptions: { offset: edgeOffset },
           });
           traverse(childId, depth + 1);
         }
