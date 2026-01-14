@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useTree } from '@/context/TreeContext';
-import { getDisplayName, getAllDescendants } from '@/lib/gedcom';
+import { getDisplayName, getTreeVisibleIndividuals } from '@/lib/gedcom';
 
 interface PersonItem {
   id: string;
@@ -86,11 +86,10 @@ export function Sidebar() {
   const filteredIndividuals = useMemo(() => {
     let filtered = allIndividuals;
 
-    // Filter to show only descendants of the selected root
+    // Filter to show only individuals visible in the tree (root + descendants + spouses)
     if (selectedRootId && data) {
-      const descendantIds = getAllDescendants(data, selectedRootId);
-      descendantIds.add(selectedRootId);
-      filtered = filtered.filter((p) => descendantIds.has(p.id));
+      const visibleIds = getTreeVisibleIndividuals(data, selectedRootId);
+      filtered = filtered.filter((p) => visibleIds.has(p.id));
     }
 
     // Apply search filter
@@ -102,16 +101,15 @@ export function Sidebar() {
     return filtered;
   }, [allIndividuals, searchFilter, selectedRootId, data]);
 
-  // Stats based on selected root's descendants (excluding private)
+  // Stats based on individuals visible in the tree (excluding private)
   const { indCount, famCount } = useMemo(() => {
     if (!data || !selectedRootId) return { indCount: 0, famCount: 0 };
 
-    const descendantIds = getAllDescendants(data, selectedRootId);
-    descendantIds.add(selectedRootId);
+    const visibleIds = getTreeVisibleIndividuals(data, selectedRootId);
 
     // Filter out private individuals from count
     let nonPrivateCount = 0;
-    for (const id of descendantIds) {
+    for (const id of visibleIds) {
       const person = data.individuals[id];
       if (person && !person.isPrivate) {
         nonPrivateCount++;
@@ -123,10 +121,10 @@ export function Sidebar() {
       const fam = data.families[famId];
       const husband = fam.husband ? data.individuals[fam.husband] : null;
       const wife = fam.wife ? data.individuals[fam.wife] : null;
-      // Only count families where at least one non-private spouse is a descendant
+      // Only count families where at least one non-private spouse is visible
       if (
-        (husband && !husband.isPrivate && descendantIds.has(fam.husband!)) ||
-        (wife && !wife.isPrivate && descendantIds.has(fam.wife!))
+        (husband && !husband.isPrivate && visibleIds.has(fam.husband!)) ||
+        (wife && !wife.isPrivate && visibleIds.has(fam.wife!))
       ) {
         familyCount++;
       }

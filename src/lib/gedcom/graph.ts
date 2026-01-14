@@ -31,6 +31,43 @@ export function getAllDescendants(data: GedcomData, rootId: string): Set<string>
 }
 
 /**
+ * Get all individuals visible in the tree: root + descendants + their spouses
+ * This matches what FamilyTree.tsx displays in the canvas
+ */
+export function getTreeVisibleIndividuals(data: GedcomData, rootId: string): Set<string> {
+  const visible = new Set<string>();
+  const { individuals, families } = data;
+
+  // Add root
+  visible.add(rootId);
+
+  // Get all descendants
+  const descendants = getAllDescendants(data, rootId);
+  for (const id of descendants) {
+    visible.add(id);
+  }
+
+  // Add spouses of the root and all descendants
+  for (const personId of visible) {
+    const person = individuals[personId];
+    if (!person) continue;
+
+    for (const familyId of person.familiesAsSpouse) {
+      const family = families[familyId];
+      if (!family) continue;
+
+      // Add spouse (husband or wife, whichever is not the current person)
+      const spouseId = family.husband === personId ? family.wife : family.husband;
+      if (spouseId && individuals[spouseId]) {
+        visible.add(spouseId);
+      }
+    }
+  }
+
+  return visible;
+}
+
+/**
  * Build adjacency list: personId -> [childIds]
  */
 export function buildChildrenGraph(data: GedcomData): Map<string, string[]> {

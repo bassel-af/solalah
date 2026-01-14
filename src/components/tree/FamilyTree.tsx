@@ -362,10 +362,26 @@ function FamilyTreeInner() {
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
-  // Center viewport on focused person
+  // Center viewport on focused person (including spouses who are part of another node)
   useEffect(() => {
     if (!focusPersonId || !isReady) return;
-    scrollToNode(focusPersonId, nodes, 'center', true);
+
+    // First try to find a node with this ID directly
+    let targetNodeId = focusPersonId;
+    const directNode = nodes.find((n) => n.id === focusPersonId);
+
+    // If not found, search for a node that contains this person as a spouse
+    if (!directNode) {
+      const nodeWithSpouse = nodes.find((n) => {
+        const nodeData = n.data as PersonNodeData;
+        return nodeData.spouses?.some((s) => s.spouse.id === focusPersonId);
+      });
+      if (nodeWithSpouse) {
+        targetNodeId = nodeWithSpouse.id;
+      }
+    }
+
+    scrollToNode(targetNodeId, nodes, 'center', true);
   }, [focusPersonId, nodes, isReady, scrollToNode]);
 
   // Scroll to root when selectedRootId changes (not on initial load)
