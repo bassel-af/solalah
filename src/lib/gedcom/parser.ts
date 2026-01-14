@@ -42,6 +42,7 @@ export function parseGedcom(text: string): GedcomData {
           birth: '',
           death: '',
           isDeceased: false,
+          isPrivate: false,
           familiesAsSpouse: [],
           familyAsChild: null,
         };
@@ -64,7 +65,12 @@ export function parseGedcom(text: string): GedcomData {
         if (currentRecord.type === 'INDI') {
           const indi = currentRecord as Individual;
           if (tag === 'NAME') {
-            indi.name = (value || '').replace(/\//g, '').trim();
+            const parsedName = (value || '').replace(/\//g, '').trim();
+            indi.name = parsedName;
+            // Check if name indicates a private individual
+            if (parsedName.toUpperCase() === 'PRIVATE' || parsedName.toLowerCase() === 'private') {
+              indi.isPrivate = true;
+            }
           } else if (tag === 'SEX') {
             indi.sex = value === 'M' ? 'M' : value === 'F' ? 'F' : null;
           } else if (tag === 'DEAT') {

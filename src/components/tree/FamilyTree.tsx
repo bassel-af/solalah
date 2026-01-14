@@ -207,7 +207,7 @@ function buildTreeData(
     if (depth > maxDepth || visited.has(personId)) return;
 
     const person = data.individuals[personId];
-    if (!person) return;
+    if (!person || person.isPrivate) return;
 
     visited.add(personId);
 
@@ -225,11 +225,11 @@ function buildTreeData(
       }
     }
 
-    // Create spouses array with colors
+    // Create spouses array with colors (excluding private spouses)
     const spousesWithColors: SpouseWithColor[] = spouseIds
       .map((id, index) => {
         const spouse = data.individuals[id];
-        if (!spouse) return null;
+        if (!spouse || spouse.isPrivate) return null;
         return {
           spouse,
           color: SPOUSE_EDGE_COLORS[index % SPOUSE_EDGE_COLORS.length],
@@ -263,6 +263,10 @@ function buildTreeData(
       const sourceHandle = spouseIndex >= 0 ? `spouse-${spouseIndex}` : 'default';
 
       for (const childId of fam.children) {
+        const child = data.individuals[childId];
+        // Skip private children
+        if (!child || child.isPrivate) continue;
+
         if (!visitedChildren.has(childId)) {
           visitedChildren.add(childId);
           // Offset the vertical drop for each spouse so lines don't overlap

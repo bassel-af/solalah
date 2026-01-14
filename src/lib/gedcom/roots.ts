@@ -6,9 +6,12 @@ export function findRootAncestors(data: GedcomData): Individual[] {
   const { individuals } = data;
   const roots: Individual[] = [];
 
-  // Include all individuals as potential roots
+  // Include all non-private individuals as potential roots
   for (const id in individuals) {
-    roots.push(individuals[id]);
+    const person = individuals[id];
+    if (!person.isPrivate) {
+      roots.push(person);
+    }
   }
 
   roots.sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b)));
@@ -18,17 +21,17 @@ export function findRootAncestors(data: GedcomData): Individual[] {
 export function findDefaultRoot(data: GedcomData): Individual | null {
   const { individuals } = data;
 
-  // Find all individuals with no parents (true roots at top level)
+  // Find all non-private individuals with no parents (true roots at top level)
   const trueRoots: Individual[] = [];
   for (const id in individuals) {
     const person = individuals[id];
-    if (!person.familyAsChild) {
+    if (!person.familyAsChild && !person.isPrivate) {
       trueRoots.push(person);
     }
   }
 
   if (trueRoots.length === 0) {
-    const allIndividuals = Object.values(individuals);
+    const allIndividuals = Object.values(individuals).filter((p) => !p.isPrivate);
     allIndividuals.sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b)));
     return allIndividuals[0] || null;
   }

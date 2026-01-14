@@ -53,12 +53,15 @@ export function Sidebar() {
     r.text.toLowerCase().includes(rootFilter.toLowerCase())
   );
 
-  // Build list of all individuals with their info
+  // Build list of all individuals with their info (excluding private)
   const allIndividuals = useMemo<PersonItem[]>(() => {
     if (!data) return [];
 
     const individuals: PersonItem[] = [];
     for (const person of Object.values(data.individuals)) {
+      // Skip private individuals
+      if (person.isPrivate) continue;
+
       const name = getDisplayName(person);
       let dates = '';
       if (person.birth || person.death) {
@@ -98,26 +101,38 @@ export function Sidebar() {
     return filtered;
   }, [allIndividuals, searchFilter, selectedRootId, data]);
 
-  // Stats based on selected root's descendants
+  // Stats based on selected root's descendants (excluding private)
   const { indCount, famCount } = useMemo(() => {
     if (!data || !selectedRootId) return { indCount: 0, famCount: 0 };
 
     const descendantIds = getAllDescendants(data, selectedRootId);
     descendantIds.add(selectedRootId);
 
+    // Filter out private individuals from count
+    let nonPrivateCount = 0;
+    for (const id of descendantIds) {
+      const person = data.individuals[id];
+      if (person && !person.isPrivate) {
+        nonPrivateCount++;
+      }
+    }
+
     let familyCount = 0;
     for (const famId in data.families) {
       const fam = data.families[famId];
+      const husband = fam.husband ? data.individuals[fam.husband] : null;
+      const wife = fam.wife ? data.individuals[fam.wife] : null;
+      // Only count families where at least one non-private spouse is a descendant
       if (
-        (fam.husband && descendantIds.has(fam.husband)) ||
-        (fam.wife && descendantIds.has(fam.wife))
+        (husband && !husband.isPrivate && descendantIds.has(fam.husband!)) ||
+        (wife && !wife.isPrivate && descendantIds.has(fam.wife!))
       ) {
         familyCount++;
       }
     }
 
     return {
-      indCount: descendantIds.size,
+      indCount: nonPrivateCount,
       famCount: familyCount,
     };
   }, [data, selectedRootId]);
