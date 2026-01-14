@@ -216,20 +216,23 @@ function buildTreeData(
       .map((fid) => data.families[fid])
       .filter(Boolean);
 
-    // Collect all unique spouses
+    // Collect all unique non-private spouses
     const spouseIds: string[] = [];
     for (const fam of personFamilies) {
       const spouseId = fam.husband === personId ? fam.wife : fam.husband;
       if (spouseId && !spouseIds.includes(spouseId)) {
-        spouseIds.push(spouseId);
+        const spouse = data.individuals[spouseId];
+        if (spouse && !spouse.isPrivate) {
+          spouseIds.push(spouseId);
+        }
       }
     }
 
-    // Create spouses array with colors (excluding private spouses)
+    // Create spouses array with colors
     const spousesWithColors: SpouseWithColor[] = spouseIds
       .map((id, index) => {
         const spouse = data.individuals[id];
-        if (!spouse || spouse.isPrivate) return null;
+        if (!spouse) return null;
         return {
           spouse,
           color: SPOUSE_EDGE_COLORS[index % SPOUSE_EDGE_COLORS.length],
