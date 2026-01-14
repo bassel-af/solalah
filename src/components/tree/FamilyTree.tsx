@@ -21,9 +21,14 @@ import { getDisplayName } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
 
 // Custom node component for a person (with spouses)
+interface SpouseWithColor {
+  spouse: Individual;
+  color: string;
+}
+
 interface PersonNodeData {
   person: Individual;
-  spouses: Individual[];
+  spouses: SpouseWithColor[];
   isRoot: boolean;
   searchQuery: string;
 }
@@ -60,9 +65,9 @@ function PersonNode({ data }: { data: PersonNodeData }) {
       ) : (
         <div className="couple">
           {renderPersonCard(person, true)}
-          {spouses.map((spouse) => (
+          {spouses.map(({ spouse, color }) => (
             <div key={spouse.id} className="spouse-group">
-              <div className="spouse-connector" />
+              <div className="spouse-connector" style={{ backgroundColor: color }} />
               {renderPersonCard(spouse, false)}
             </div>
           ))}
@@ -84,6 +89,16 @@ dagreGraph.setDefaultEdgeLabel(() => ({}));
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 60;
 const SPOUSE_WIDTH = 200; // Additional width per spouse
+
+// Colors for different spouse edges (to distinguish children by mother)
+const SPOUSE_EDGE_COLORS = [
+  '#6366f1', // indigo
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f59e0b', // amber
+  '#8b5cf6', // violet
+  '#10b981', // emerald
+];
 
 function getLayoutedElements(
   nodes: Node[],
@@ -155,9 +170,17 @@ function buildTreeData(
       }
     }
 
-    const spouses = spouseIds
-      .map((id) => data.individuals[id])
-      .filter(Boolean);
+    // Create spouses array with colors
+    const spousesWithColors: SpouseWithColor[] = spouseIds
+      .map((id, index) => {
+        const spouse = data.individuals[id];
+        if (!spouse) return null;
+        return {
+          spouse,
+          color: SPOUSE_EDGE_COLORS[index % SPOUSE_EDGE_COLORS.length],
+        };
+      })
+      .filter((s): s is SpouseWithColor => s !== null);
 
     // Create node for this person
     nodes.push({
@@ -166,32 +189,34 @@ function buildTreeData(
       position: { x: 0, y: 0 }, // Will be set by dagre
       data: {
         person,
-        spouses,
+        spouses: spousesWithColors,
         isRoot: depth === 0,
         searchQuery,
       } as PersonNodeData,
     });
 
-    // Collect all children from all families
-    const allChildren: string[] = [];
-    for (const fam of personFamilies) {
+    // Create edges for children, colored by which spouse/family they belong to
+    const visitedChildren = new Set<string>();
+    for (let i = 0; i < personFamilies.length; i++) {
+      const fam = personFamilies[i];
+      const spouseId = fam.husband === personId ? fam.wife : fam.husband;
+      // Find spouse index for color (based on order in spouseIds array)
+      const spouseIndex = spouseId ? spouseIds.indexOf(spouseId) : 0;
+      const edgeColor = SPOUSE_EDGE_COLORS[spouseIndex % SPOUSE_EDGE_COLORS.length];
+
       for (const childId of fam.children) {
-        if (!allChildren.includes(childId)) {
-          allChildren.push(childId);
+        if (!visitedChildren.has(childId)) {
+          visitedChildren.add(childId);
+          edges.push({
+            id: `${personId}-${childId}`,
+            source: personId,
+            target: childId,
+            type: 'smoothstep',
+            style: { stroke: edgeColor, strokeWidth: 2 },
+          });
+          traverse(childId, depth + 1);
         }
       }
-    }
-
-    // Create edges and traverse children
-    for (const childId of allChildren) {
-      edges.push({
-        id: `${personId}-${childId}`,
-        source: personId,
-        target: childId,
-        type: 'smoothstep',
-        style: { stroke: '#ccc', strokeWidth: 2 },
-      });
-      traverse(childId, depth + 1);
     }
   }
 

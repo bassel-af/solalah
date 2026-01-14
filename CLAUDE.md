@@ -95,4 +95,4 @@ You are software architect and senior software engineer. You will think if this 
 ## After editing files
 Do not run pnpm commands unless I ask to. pnpm dev will be already running by me in the terminal.
 
-When you check the work you have done it's better to use the browser (default system browser).
+Check the browser when you have a done a work related to the frontend. It's better to use the default browser. Do not specify a browser.
