@@ -7,6 +7,7 @@ body {
   margin: 0;
   padding: 20px;
   background: #f5f5f5;
+  direction: rtl;
 }
 
 h1 {
@@ -128,6 +129,7 @@ h1 {
 
 /* Search */
 .search-container {
+  position: relative;
   text-align: center;
   margin-bottom: 20px;
 }
@@ -148,6 +150,57 @@ h1 {
 .search-results {
   margin-top: 10px;
   color: #666;
+}
+
+.search-matches-list {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  list-style: none;
+  margin: 5px 0 0 0;
+  padding: 0;
+}
+
+.search-match-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.15s ease;
+}
+
+.search-match-item:last-child {
+  border-bottom: none;
+}
+
+.search-match-item:hover {
+  background: #f5f5f5;
+}
+
+.search-match-item.active {
+  background: #fff8e6;
+  border-right: 3px solid #f5a623;
+}
+
+.match-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.match-dates {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
 }
 
 /* Tree container - handled in tree.css for React Flow */

@@ -1,45 +1,96 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTree } from '@/context/TreeContext';
+import { getDisplayName } from '@/lib/gedcom';
+
+interface SearchMatch {
+  id: string;
+  name: string;
+  dates: string;
+}
 
 export function SearchBar() {
-  const { searchQuery, setSearchQuery } = useTree();
-  const [matchCount, setMatchCount] = useState(0);
+  const { data, searchQuery, setSearchQuery, focusPersonId, setFocusPersonId } = useTree();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!searchQuery) {
-      setMatchCount(0);
-      return;
+  // Compute matches from GEDCOM data
+  const matches = useMemo<SearchMatch[]>(() => {
+    if (!data || !searchQuery.trim()) return [];
+
+    const query = searchQuery.toLowerCase();
+    const results: SearchMatch[] = [];
+
+    for (const person of Object.values(data.individuals)) {
+      const name = getDisplayName(person);
+      if (name.toLowerCase().includes(query)) {
+        let dates = '';
+        if (person.birth || person.death) {
+          dates = `${person.birth || '?'} - ${person.death || ''}`;
+        }
+        results.push({ id: person.id, name, dates });
+      }
     }
 
-    // Count matches after DOM updates
-    const timer = setTimeout(() => {
-      const matches = document.querySelectorAll('.person.search-match');
-      setMatchCount(matches.length);
+    return results;
+  }, [data, searchQuery]);
 
-      // Scroll to first match
-      if (matches.length > 0) {
-        matches[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Auto-focus first match when search query changes
+  useEffect(() => {
+    if (matches.length > 0) {
+      setFocusPersonId(matches[0].id);
+      setIsExpanded(true);
+    } else {
+      setFocusPersonId(null);
+      setIsExpanded(false);
+    }
+  }, [matches, setFocusPersonId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
       }
-    }, 100);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const handleMatchClick = (id: string) => {
+    setFocusPersonId(id);
+  };
 
   return (
-    <div className="search-container">
+    <div className="search-container" ref={containerRef}>
       <input
         type="text"
         className="search-input"
         placeholder="ابحث في الشجرة..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
+        onFocus={() => matches.length > 0 && setIsExpanded(true)}
       />
-      <div className="search-results">
-        {searchQuery &&
-          (matchCount > 0
-            ? `تم العثور على ${matchCount} نتيجة`
-            : 'لا توجد نتائج')}
-      </div>
+      {searchQuery && (
+        <div className="search-results">
+          {matches.length > 0
+            ? `تم العثور على ${matches.length} نتيجة`
+            : 'لا توجد نتائج'}
+        </div>
+      )}
+      {isExpanded && matches.length > 0 && (
+        <ul className="search-matches-list">
+          {matches.map((match) => (
+            <li
+              key={match.id}
+              className={`search-match-item ${focusPersonId === match.id ? 'active' : ''}`}
+              onClick={() => handleMatchClick(match.id)}
+            >
+              <span className="match-name">{match.name}</span>
+              {match.dates && <span className="match-dates">{match.dates}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

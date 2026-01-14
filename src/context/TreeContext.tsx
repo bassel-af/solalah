@@ -17,6 +17,7 @@ interface TreeState {
   rootsList: RootAncestor[];
   rootFilterStrategy: RootFilterStrategy;
   searchQuery: string;
+  focusPersonId: string | null;
   config: TreeConfig;
   isLoading: boolean;
   error: string | null;
@@ -27,6 +28,7 @@ interface TreeContextValue extends TreeState {
   setSelectedRootId: (id: string | null) => void;
   setRootFilterStrategy: (strategy: RootFilterStrategy) => void;
   setSearchQuery: (query: string) => void;
+  setFocusPersonId: (id: string | null) => void;
   setConfig: (config: Partial<TreeConfig>) => void;
   setError: (error: string | null) => void;
 }
@@ -45,6 +47,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
   const [descendantsRootsList, setDescendantsRootsList] = useState<RootAncestor[]>([]);
   const [rootFilterStrategy, setRootFilterStrategyState] = useState<RootFilterStrategy>('descendants');
   const [searchQuery, setSearchQuery] = useState('');
+  const [focusPersonId, setFocusPersonId] = useState<string | null>(null);
   const [config, setConfigState] = useState<TreeConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setErrorState] = useState<string | null>(null);
@@ -106,6 +109,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     rootsList,
     rootFilterStrategy,
     searchQuery,
+    focusPersonId,
     config,
     isLoading,
     error,
@@ -113,6 +117,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     setSelectedRootId,
     setRootFilterStrategy,
     setSearchQuery,
+    setFocusPersonId,
     setConfig,
     setError,
   };

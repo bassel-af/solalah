@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   Node,
@@ -287,8 +287,8 @@ function buildTreeData(
 }
 
 function FamilyTreeInner() {
-  const { data, selectedRootId, config, searchQuery } = useTree();
-  const { setViewport } = useReactFlow();
+  const { data, selectedRootId, config, searchQuery, focusPersonId } = useTree();
+  const { setViewport, setCenter, getZoom } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -315,6 +315,28 @@ function FamilyTreeInner() {
     setNodes(initialNodes);
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
+
+  // Center viewport on focused person
+  useEffect(() => {
+    if (!focusPersonId || !isReady) return;
+
+    const targetNode = nodes.find((n) => n.id === focusPersonId);
+    if (!targetNode) return;
+
+    const nodeData = targetNode.data as PersonNodeData;
+    const spouseCount = nodeData.spouses?.length || 0;
+    const nodeWidth = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
+
+    // Calculate center of the node
+    const centerX = targetNode.position.x + nodeWidth / 2;
+    const centerY = targetNode.position.y + NODE_HEIGHT / 2;
+
+    // Keep current zoom or use a reasonable default
+    const currentZoom = getZoom();
+    const zoom = currentZoom > 0.5 ? currentZoom : 0.85;
+
+    setCenter(centerX, centerY, { zoom, duration: 500 });
+  }, [focusPersonId, nodes, isReady, setCenter, getZoom]);
 
   // Position root at top, centered horizontally
   const onInit = useCallback(() => {
