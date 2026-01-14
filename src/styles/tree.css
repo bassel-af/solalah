@@ -1,8 +1,7 @@
 /* React Flow container */
 #tree-container {
   width: 100%;
-  height: calc(100vh - 200px);
-  min-height: 500px;
+  height: 100%;
 }
 
 /* React Flow customizations */

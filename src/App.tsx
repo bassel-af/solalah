@@ -1,7 +1,7 @@
 import { useTree } from '@/context/TreeContext';
 import { useGedcomData } from '@/hooks/useGedcomData';
 import { FamilyTree } from '@/components/tree';
-import { RootSelector, SearchBar, Stats } from '@/components/ui';
+import { Sidebar } from '@/components/ui';
 import { Playground } from '@/components/Playground';
 
 // Check once at module level to avoid hook issues
@@ -26,13 +26,12 @@ function MainApp() {
   }
 
   return (
-    <>
-      <h1>شجرة العائلة</h1>
-      <RootSelector />
-      <Stats />
-      <SearchBar />
-      <FamilyTree />
-    </>
+    <div className="app-layout">
+      <Sidebar />
+      <main className="main-content">
+        <FamilyTree />
+      </main>
+    </div>
   );
 }
 
