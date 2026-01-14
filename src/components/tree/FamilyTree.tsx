@@ -61,19 +61,71 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     <>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       {spouses.length === 0 ? (
-        renderPersonCard(person, true)
-      ) : (
-        <div className="couple">
+        <>
           {renderPersonCard(person, true)}
-          {spouses.map(({ spouse, color }) => (
-            <div key={spouse.id} className="spouse-group">
-              <div className="spouse-connector" style={{ backgroundColor: color }} />
+          <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+        </>
+      ) : (
+        <div className="couple" style={{ position: 'relative' }}>
+          {renderPersonCard(person, true)}
+          {/* Connector lines from husband to each wife */}
+          {spouses.map(({ color }, index) => {
+            const lineWidth = 20 + index * 160;
+            return (
+              <div
+                key={`line-${index}`}
+                className="spouse-line"
+                style={{
+                  position: 'absolute',
+                  left: 140,
+                  top: `calc(50% + ${index * 4}px)`,
+                  width: lineWidth,
+                  height: 2,
+                  backgroundColor: color,
+                }}
+              />
+            );
+          })}
+          {/* Wife cards */}
+          {spouses.map(({ spouse }) => (
+            <div key={spouse.id} className="spouse-card-wrapper" style={{ marginLeft: 20 }}>
               {renderPersonCard(spouse, false)}
             </div>
           ))}
+          {/* If only one spouse: centered handle between couple */}
+          {/* If multiple spouses: handles under each wife */}
+          {spouses.length === 1 ? (
+            <Handle
+              type="source"
+              position={Position.Bottom}
+              id="spouse-0"
+              style={{ opacity: 0 }}
+            />
+          ) : (
+            <>
+              {spouses.map((_, index) => (
+                <Handle
+                  key={`handle-${index}`}
+                  type="source"
+                  position={Position.Bottom}
+                  id={`spouse-${index}`}
+                  style={{
+                    opacity: 0,
+                    // Position under each wife: husband(140) + gap(20) + index*160 + halfCard(70)
+                    left: 140 + 20 + index * 160 + 70,
+                  }}
+                />
+              ))}
+              <Handle
+                type="source"
+                position={Position.Bottom}
+                id="default"
+                style={{ opacity: 0, left: 70 }}
+              />
+            </>
+          )}
         </div>
       )}
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </>
   );
 }
@@ -196,13 +248,16 @@ function buildTreeData(
     });
 
     // Create edges for children, colored by which spouse/family they belong to
+    // Route edges through the handle under the respective spouse
     const visitedChildren = new Set<string>();
     for (let i = 0; i < personFamilies.length; i++) {
       const fam = personFamilies[i];
       const spouseId = fam.husband === personId ? fam.wife : fam.husband;
-      // Find spouse index for color (based on order in spouseIds array)
-      const spouseIndex = spouseId ? spouseIds.indexOf(spouseId) : 0;
-      const edgeColor = SPOUSE_EDGE_COLORS[spouseIndex % SPOUSE_EDGE_COLORS.length];
+      // Find spouse index for color and handle (based on order in spouseIds array)
+      const spouseIndex = spouseId ? spouseIds.indexOf(spouseId) : -1;
+      const edgeColor = SPOUSE_EDGE_COLORS[Math.max(0, spouseIndex) % SPOUSE_EDGE_COLORS.length];
+      // Use spouse-specific handle if spouse exists, otherwise use default
+      const sourceHandle = spouseIndex >= 0 ? `spouse-${spouseIndex}` : 'default';
 
       for (const childId of fam.children) {
         if (!visitedChildren.has(childId)) {
@@ -210,6 +265,7 @@ function buildTreeData(
           edges.push({
             id: `${personId}-${childId}`,
             source: personId,
+            sourceHandle,
             target: childId,
             type: 'smoothstep',
             style: { stroke: edgeColor, strokeWidth: 2 },
