@@ -138,13 +138,10 @@ const nodeTypes = {
   person: PersonNode,
 };
 
-// Dagre layout configuration
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-const NODE_WIDTH = 180;
+// Layout configuration
+const NODE_WIDTH = 140;
 const NODE_HEIGHT = 60;
-const SPOUSE_WIDTH = 200; // Additional width per spouse
+const SPOUSE_WIDTH = 160; // Additional width per spouse (card + gap)
 
 // Colors for different spouse edges (to distinguish children by mother)
 const SPOUSE_EDGE_COLORS = [
@@ -156,36 +153,114 @@ const SPOUSE_EDGE_COLORS = [
   '#10b981', // emerald
 ];
 
+// Custom tree layout that keeps siblings together
+// Uses bottom-up width calculation + top-down positioning
 function getLayoutedElements(
   nodes: Node[],
-  edges: Edge[],
-  direction = 'TB'
+  edges: Edge[]
 ): { nodes: Node[]; edges: Edge[] } {
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 80 });
+  if (nodes.length === 0) return { nodes: [], edges };
 
+  const HORIZONTAL_GAP = 30; // Gap between siblings
+  const VERTICAL_GAP = 80; // Gap between generations
+
+  // Build node width map
+  const nodeWidths = new Map<string, number>();
+  const nodeMap = new Map<string, Node>();
   nodes.forEach((node) => {
     const spouseCount = (node.data as PersonNodeData).spouses?.length || 0;
     const width = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
-    dagreGraph.setNode(node.id, { width, height: NODE_HEIGHT });
+    nodeWidths.set(node.id, width);
+    nodeMap.set(node.id, node);
   });
 
+  // Build parent -> children map (preserving edge order for consistent sibling order)
+  const childrenOf = new Map<string, string[]>();
+  const hasParent = new Set<string>();
   edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    const children = childrenOf.get(edge.source) || [];
+    children.push(edge.target);
+    childrenOf.set(edge.source, children);
+    hasParent.add(edge.target);
   });
 
-  dagre.layout(dagreGraph);
+  // Find root (node with no parent)
+  const rootId = nodes.find((n) => !hasParent.has(n.id))?.id;
+  if (!rootId) return { nodes, edges };
 
+  // Calculate subtree widths bottom-up (post-order traversal)
+  const subtreeWidths = new Map<string, number>();
+
+  function calculateSubtreeWidth(nodeId: string): number {
+    const children = childrenOf.get(nodeId) || [];
+    const nodeWidth = nodeWidths.get(nodeId) || NODE_WIDTH;
+
+    if (children.length === 0) {
+      // Leaf node - subtree width is just the node width
+      subtreeWidths.set(nodeId, nodeWidth);
+      return nodeWidth;
+    }
+
+    // Sum of all children's subtree widths + gaps between them
+    let childrenTotalWidth = 0;
+    children.forEach((childId, index) => {
+      childrenTotalWidth += calculateSubtreeWidth(childId);
+      if (index < children.length - 1) {
+        childrenTotalWidth += HORIZONTAL_GAP;
+      }
+    });
+
+    // Subtree width is the larger of: node width or children total width
+    const subtreeWidth = Math.max(nodeWidth, childrenTotalWidth);
+    subtreeWidths.set(nodeId, subtreeWidth);
+    return subtreeWidth;
+  }
+
+  calculateSubtreeWidth(rootId);
+
+  // Assign positions top-down (pre-order traversal)
+  const positions = new Map<string, { x: number; y: number }>();
+
+  function assignPositions(nodeId: string, x: number, y: number) {
+    const nodeWidth = nodeWidths.get(nodeId) || NODE_WIDTH;
+    const subtreeWidth = subtreeWidths.get(nodeId) || nodeWidth;
+
+    // Center the node within its allocated subtree space
+    const nodeX = x + (subtreeWidth - nodeWidth) / 2;
+    positions.set(nodeId, { x: nodeX, y });
+
+    // Position children
+    const children = childrenOf.get(nodeId) || [];
+    if (children.length === 0) return;
+
+    // Calculate total children width
+    let childrenTotalWidth = 0;
+    children.forEach((childId, index) => {
+      childrenTotalWidth += subtreeWidths.get(childId) || NODE_WIDTH;
+      if (index < children.length - 1) {
+        childrenTotalWidth += HORIZONTAL_GAP;
+      }
+    });
+
+    // Start position for children (centered under this subtree's space)
+    let childX = x + (subtreeWidth - childrenTotalWidth) / 2;
+    const childY = y + NODE_HEIGHT + VERTICAL_GAP;
+
+    children.forEach((childId) => {
+      const childSubtreeWidth = subtreeWidths.get(childId) || NODE_WIDTH;
+      assignPositions(childId, childX, childY);
+      childX += childSubtreeWidth + HORIZONTAL_GAP;
+    });
+  }
+
+  assignPositions(rootId, 0, 0);
+
+  // Create final positioned nodes
   const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    const spouseCount = (node.data as PersonNodeData).spouses?.length || 0;
-    const width = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
-
+    const pos = positions.get(node.id) || { x: 0, y: 0 };
     return {
       ...node,
-      position: {
-        x: nodeWithPosition.x - width / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
-      },
+      position: pos,
     };
   });
 
@@ -193,6 +268,7 @@ function getLayoutedElements(
 }
 
 // Convert GEDCOM tree data to React Flow nodes and edges
+// Uses breadth-first traversal to keep siblings together in the layout
 function buildTreeData(
   data: GedcomData,
   rootId: string,
@@ -203,11 +279,16 @@ function buildTreeData(
   const edges: Edge[] = [];
   const visited = new Set<string>();
 
-  function traverse(personId: string, depth: number) {
-    if (depth > maxDepth || visited.has(personId)) return;
+  // Queue for breadth-first traversal: [personId, depth]
+  const queue: Array<[string, number]> = [[rootId, 0]];
+
+  while (queue.length > 0) {
+    const [personId, depth] = queue.shift()!;
+
+    if (depth > maxDepth || visited.has(personId)) continue;
 
     const person = data.individuals[personId];
-    if (!person || person.isPrivate) return;
+    if (!person || person.isPrivate) continue;
 
     visited.add(personId);
 
@@ -253,43 +334,59 @@ function buildTreeData(
       } as PersonNodeData,
     });
 
-    // Create edges for children, colored by which spouse/family they belong to
-    // Route edges through the handle under the respective spouse
+    // Collect all children with their family info
+    const allChildren: Array<{
+      childId: string;
+      spouseIndex: number;
+      edgeColor: string;
+      sourceHandle: string;
+    }> = [];
+
     const visitedChildren = new Set<string>();
     for (let i = 0; i < personFamilies.length; i++) {
       const fam = personFamilies[i];
       const spouseId = fam.husband === personId ? fam.wife : fam.husband;
-      // Find spouse index for color and handle (based on order in spouseIds array)
       const spouseIndex = spouseId ? spouseIds.indexOf(spouseId) : -1;
       const edgeColor = SPOUSE_EDGE_COLORS[Math.max(0, spouseIndex) % SPOUSE_EDGE_COLORS.length];
-      // Use spouse-specific handle if spouse exists, otherwise use default
       const sourceHandle = spouseIndex >= 0 ? `spouse-${spouseIndex}` : 'default';
 
       for (const childId of fam.children) {
         const child = data.individuals[childId];
-        // Skip private children
         if (!child || child.isPrivate) continue;
 
         if (!visitedChildren.has(childId)) {
           visitedChildren.add(childId);
-          // Offset the vertical drop for each spouse so lines don't overlap
-          const edgeOffset = 20 + spouseIndex * 15;
-          edges.push({
-            id: `${personId}-${childId}`,
-            source: personId,
-            sourceHandle,
-            target: childId,
-            type: 'smoothstep',
-            style: { stroke: edgeColor, strokeWidth: 2 },
-            data: { pathOptions: { offset: edgeOffset } },
-          });
-          traverse(childId, depth + 1);
+          allChildren.push({ childId, spouseIndex, edgeColor, sourceHandle });
         }
       }
     }
-  }
 
-  traverse(rootId, 0);
+    // Sort children by spouse index first, then by birth year
+    allChildren.sort((a, b) => {
+      if (a.spouseIndex !== b.spouseIndex) return a.spouseIndex - b.spouseIndex;
+      const childA = data.individuals[a.childId];
+      const childB = data.individuals[b.childId];
+      const yearA = childA?.birth ? parseInt(childA.birth.match(/\d{4}/)?.[0] || '9999') : 9999;
+      const yearB = childB?.birth ? parseInt(childB.birth.match(/\d{4}/)?.[0] || '9999') : 9999;
+      return yearA - yearB;
+    });
+
+    // Create edges and add children to queue (BFS)
+    for (const { childId, spouseIndex, edgeColor, sourceHandle } of allChildren) {
+      const edgeOffset = 20 + spouseIndex * 15;
+      edges.push({
+        id: `${personId}-${childId}`,
+        source: personId,
+        sourceHandle,
+        target: childId,
+        type: 'smoothstep',
+        style: { stroke: edgeColor, strokeWidth: 2 },
+        data: { pathOptions: { offset: edgeOffset } },
+      });
+      // Add to queue for BFS traversal
+      queue.push([childId, depth + 1]);
+    }
+  }
 
   return getLayoutedElements(nodes, edges);
 }
