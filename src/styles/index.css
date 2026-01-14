@@ -623,18 +623,11 @@ body {
   transform-origin: center;
 }
 
-/* Animated hamburger to X transformation */
-.sidebar-toggle.is-open .sidebar-toggle-bar:nth-child(1) {
-  transform: translateY(7.5px) rotate(45deg);
-}
-
-.sidebar-toggle.is-open .sidebar-toggle-bar:nth-child(2) {
+/* Hide toggle when sidebar is open (use dedicated close button inside) */
+.sidebar-toggle.is-open {
   opacity: 0;
-  transform: scaleX(0);
-}
-
-.sidebar-toggle.is-open .sidebar-toggle-bar:nth-child(3) {
-  transform: translateY(-7.5px) rotate(-45deg);
+  pointer-events: none;
+  transform: scale(0.8);
 }
 
 /* Mobile Overlay */
