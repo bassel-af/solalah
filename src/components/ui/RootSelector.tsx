@@ -48,19 +48,19 @@ export function RootSelector() {
 
   return (
     <div className="controls">
-      <label>Select root ancestor: </label>
+      <label>اختر الجد الأعلى: </label>
       <div className="dropdown-container" ref={containerRef}>
         <input
           type="text"
           className="dropdown-search"
-          placeholder="Type to search..."
+          placeholder="اكتب للبحث..."
           value={isOpen ? filter : displayText}
           onFocus={handleFocus}
           onChange={handleInputChange}
         />
         <div className={`dropdown-list ${isOpen ? 'open' : ''}`}>
           {filteredRoots.length === 0 ? (
-            <div className="no-results">No results found</div>
+            <div className="no-results">لا توجد نتائج</div>
           ) : (
             filteredRoots.map((root) => (
               <div

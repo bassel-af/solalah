@@ -81,6 +81,44 @@ h1 {
   font-style: italic;
 }
 
+/* Filter Radio Buttons */
+.filter-radio-group {
+  display: inline-flex;
+  margin-left: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.filter-radio {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: #fff;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-radio:not(:last-child) {
+  border-right: 1px solid #ddd;
+}
+
+.filter-radio:hover:not(.active) {
+  background: #f5f5f5;
+  color: #4a90d9;
+}
+
+.filter-radio.active {
+  background: #4a90d9;
+  color: #fff;
+}
+
+.filter-radio.active:hover {
+  background: #3a7bc8;
+}
+
 /* Stats */
 .stats {
   text-align: center;

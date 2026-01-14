@@ -30,15 +30,15 @@ export function SearchBar() {
       <input
         type="text"
         className="search-input"
-        placeholder="Search in tree..."
+        placeholder="ابحث في الشجرة..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
       />
       <div className="search-results">
         {searchQuery &&
           (matchCount > 0
-            ? `Found ${matchCount} match${matchCount > 1 ? 'es' : ''}`
-            : 'No matches found')}
+            ? `تم العثور على ${matchCount} نتيجة`
+            : 'لا توجد نتائج')}
       </div>
     </div>
   );

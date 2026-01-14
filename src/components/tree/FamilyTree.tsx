@@ -345,7 +345,7 @@ function FamilyTreeInner() {
     return (
       <div id="tree-container">
         <p style={{ textAlign: 'center', color: '#666' }}>
-          Select a root ancestor to view the tree
+          اختر الجد الأعلى لعرض الشجرة
         </p>
       </div>
     );

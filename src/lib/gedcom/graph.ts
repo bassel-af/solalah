@@ -1,6 +1,36 @@
 import type { Individual, GedcomData } from './types';
 
 /**
+ * Get all descendants of a person (children, grandchildren, etc.)
+ * Returns a Set of individual IDs
+ */
+export function getAllDescendants(data: GedcomData, rootId: string): Set<string> {
+  const descendants = new Set<string>();
+  const { individuals, families } = data;
+
+  function traverse(personId: string) {
+    const person = individuals[personId];
+    if (!person) return;
+
+    // Get all families where this person is a spouse
+    for (const familyId of person.familiesAsSpouse) {
+      const family = families[familyId];
+      if (!family) continue;
+
+      for (const childId of family.children) {
+        if (!descendants.has(childId)) {
+          descendants.add(childId);
+          traverse(childId);
+        }
+      }
+    }
+  }
+
+  traverse(rootId);
+  return descendants;
+}
+
+/**
  * Build adjacency list: personId -> [childIds]
  */
 export function buildChildrenGraph(data: GedcomData): Map<string, string[]> {

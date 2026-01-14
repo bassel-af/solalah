@@ -16,18 +16,18 @@ function MainApp() {
   if (error) {
     return (
       <div className="error">
-        Error loading family tree: {error}
+        خطأ في تحميل شجرة العائلة: {error}
       </div>
     );
   }
 
   if (isLoading) {
-    return <div className="loading">Loading family tree...</div>;
+    return <div className="loading">جاري تحميل شجرة العائلة...</div>;
   }
 
   return (
     <>
-      <h1>Family Tree</h1>
+      <h1>شجرة العائلة</h1>
       <RootSelector />
       <Stats />
       <SearchBar />
