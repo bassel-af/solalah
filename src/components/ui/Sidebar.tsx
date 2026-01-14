@@ -18,7 +18,6 @@ export function Sidebar() {
     setSelectedRootId,
     initialRootId,
     rootFilterStrategy,
-    setRootFilterStrategy,
     focusPersonId,
     setFocusPersonId,
   } = useTree();

@@ -31,6 +31,7 @@ interface PersonNodeData {
   spouses: SpouseWithColor[];
   isRoot: boolean;
   searchQuery: string;
+  [key: string]: unknown;
 }
 
 function PersonNode({ data }: { data: PersonNodeData }) {
@@ -160,7 +161,6 @@ function getLayoutedElements(
   edges: Edge[],
   direction = 'TB'
 ): { nodes: Node[]; edges: Edge[] } {
-  const isHorizontal = direction === 'LR';
   dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 80 });
 
   nodes.forEach((node) => {
@@ -274,7 +274,7 @@ function buildTreeData(
             target: childId,
             type: 'smoothstep',
             style: { stroke: edgeColor, strokeWidth: 2 },
-            pathOptions: { offset: edgeOffset },
+            data: { pathOptions: { offset: edgeOffset } },
           });
           traverse(childId, depth + 1);
         }
