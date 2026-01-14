@@ -63,7 +63,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
       {spouses.length === 0 ? (
         <>
           {renderPersonCard(person, true)}
-          <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+          <Handle type="source" position={Position.Bottom} id="default" style={{ opacity: 0 }} />
         </>
       ) : (
         <div className="couple" style={{ position: 'relative' }}>
