@@ -77,4 +77,14 @@
   --gradient-toggle-bar: linear-gradient(90deg, #63b3ed 0%, #4a90d9 100%);
   --gradient-stat: linear-gradient(135deg, #63b3ed 0%, #4a90d9 100%);
   --gradient-search-hero: linear-gradient(135deg, rgba(99, 179, 237, 0.1) 0%, rgba(66, 153, 225, 0.06) 100%);
+
+  /* Lineage Highlight Colors */
+  --color-lineage-selected: var(--color-accent-dark);
+  --color-lineage-selected-bg: var(--color-accent-light);
+  --color-lineage-path: var(--color-accent);
+  --color-lineage-path-bg: rgba(246, 173, 85, 0.08);
+
+  /* Dimmed State */
+  --opacity-dimmed-node: 0.35;
+  --opacity-dimmed-edge: 0.20;
 }

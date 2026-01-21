@@ -18,6 +18,7 @@ interface TreeState {
   rootFilterStrategy: RootFilterStrategy;
   searchQuery: string;
   focusPersonId: string | null;
+  highlightedPersonId: string | null;
   config: TreeConfig;
   isLoading: boolean;
   error: string | null;
@@ -29,6 +30,7 @@ interface TreeContextValue extends TreeState {
   setRootFilterStrategy: (strategy: RootFilterStrategy) => void;
   setSearchQuery: (query: string) => void;
   setFocusPersonId: (id: string | null) => void;
+  setHighlightedPersonId: (id: string | null) => void;
   setConfig: (config: Partial<TreeConfig>) => void;
   setError: (error: string | null) => void;
 }
@@ -48,6 +50,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
   const [rootFilterStrategy, setRootFilterStrategyState] = useState<RootFilterStrategy>('descendants');
   const [searchQuery, setSearchQuery] = useState('');
   const [focusPersonId, setFocusPersonId] = useState<string | null>(null);
+  const [highlightedPersonId, setHighlightedPersonIdState] = useState<string | null>(null);
   const [config, setConfigState] = useState<TreeConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setErrorState] = useState<string | null>(null);
@@ -97,6 +100,10 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     setConfigState((prev) => ({ ...prev, ...newConfig }));
   }, []);
 
+  const setHighlightedPersonId = useCallback((id: string | null) => {
+    setHighlightedPersonIdState(id);
+  }, []);
+
   const setError = useCallback((err: string | null) => {
     setErrorState(err);
     setIsLoading(false);
@@ -110,6 +117,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     rootFilterStrategy,
     searchQuery,
     focusPersonId,
+    highlightedPersonId,
     config,
     isLoading,
     error,
@@ -118,6 +126,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     setRootFilterStrategy,
     setSearchQuery,
     setFocusPersonId,
+    setHighlightedPersonId,
     setConfig,
     setError,
   };

@@ -127,3 +127,56 @@
   height: 2px;
   background: var(--color-female);
 }
+
+/* ============================================
+   LINEAGE HIGHLIGHT STYLES
+   ============================================ */
+
+/* Clickable person cards */
+.person-clickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-base);
+}
+
+.person-clickable:hover {
+  transform: translateY(-1px);
+}
+
+/* Selected person (the clicked one) - stronger gold ring */
+.person.lineage-selected {
+  box-shadow: 0 0 0 4px var(--color-lineage-selected), var(--shadow-md);
+  background: var(--color-lineage-selected-bg);
+}
+
+/* Ancestor styling - lighter gold */
+.person.lineage-ancestor {
+  box-shadow: 0 0 0 2px var(--color-lineage-path), var(--shadow-md);
+  background: var(--color-lineage-path-bg);
+}
+
+/* Descendant styling - lighter gold (same as ancestor) */
+.person.lineage-descendant {
+  box-shadow: 0 0 0 2px var(--color-lineage-path), var(--shadow-md);
+  background: var(--color-lineage-path-bg);
+}
+
+/* Dimmed state for non-lineage nodes when highlighting is active */
+.person.lineage-dimmed {
+  opacity: var(--opacity-dimmed-node);
+  filter: grayscale(30%);
+  transition: opacity var(--transition-base), filter var(--transition-base);
+}
+
+/* Dimmed edges */
+.react-flow__edge.lineage-dimmed .react-flow__edge-path {
+  opacity: var(--opacity-dimmed-edge);
+  transition: opacity var(--transition-base);
+}
+
+/* Highlighted lineage edges (both ancestor and descendant) */
+.react-flow__edge.lineage-ancestor-edge .react-flow__edge-path,
+.react-flow__edge.lineage-descendant-edge .react-flow__edge-path {
+  stroke: var(--color-lineage-path) !important;
+  stroke-width: 3 !important;
+  transition: stroke var(--transition-base), stroke-width var(--transition-base);
+}

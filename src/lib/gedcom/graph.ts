@@ -1,6 +1,39 @@
 import type { Individual, GedcomData } from './types';
 
 /**
+ * Get all ancestors of a person (parents, grandparents, etc.)
+ * Returns a Set of individual IDs (does not include the person themselves)
+ */
+export function getAllAncestors(data: GedcomData, personId: string): Set<string> {
+  const ancestors = new Set<string>();
+  const { individuals, families } = data;
+
+  function traverse(currentId: string) {
+    const person = individuals[currentId];
+    if (!person) return;
+
+    // Get the family where this person is a child
+    const familyId = person.familyAsChild;
+    if (!familyId) return;
+
+    const family = families[familyId];
+    if (!family) return;
+
+    // Add both parents and recursively traverse
+    const parentIds = [family.husband, family.wife].filter(Boolean) as string[];
+    for (const parentId of parentIds) {
+      if (!ancestors.has(parentId) && individuals[parentId]) {
+        ancestors.add(parentId);
+        traverse(parentId);
+      }
+    }
+  }
+
+  traverse(personId);
+  return ancestors;
+}
+
+/**
  * Get all descendants of a person (children, grandchildren, etc.)
  * Returns a Set of individual IDs
  */
