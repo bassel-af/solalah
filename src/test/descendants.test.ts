@@ -1,8 +1,26 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { parseGedcom } from '@/lib/gedcom/parser'
-import { getAllDescendants } from '@/lib/gedcom/graph'
+import { getAllDescendants, getTreeVisibleIndividuals } from '@/lib/gedcom/graph'
+import { findDefaultRoot } from '@/lib/gedcom/roots'
+import type { GedcomData } from '@/lib/gedcom/types'
 
 describe('getAllDescendants', () => {
+  let realData: GedcomData
+
+  beforeAll(() => {
+    const gedcomPath = join(__dirname, 'fixtures/saeed-family.ged')
+    const gedcomText = readFileSync(gedcomPath, 'utf-8')
+    realData = parseGedcom(gedcomText)
+  })
+
+  it('real GEDCOM tree shows 177 visible individuals from default root', () => {
+    const root = findDefaultRoot(realData)
+    const visible = getTreeVisibleIndividuals(realData, root!.id, true)
+    expect(visible.size).toBe(177)
+  })
+
   it('finds direct children', () => {
     const gedcom = `
 0 @I1@ INDI
