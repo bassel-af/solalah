@@ -16,6 +16,7 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - `pnpm dev` - Start development server (Vite)
 - `pnpm build` - Build for production (TypeScript compilation + Vite build)
 - `pnpm preview` - Preview production build locally
+- `pnpm test` - Run tests
 
 ## Technology Stack
 
@@ -94,5 +95,7 @@ You are software architect and senior software engineer. You will think if this 
 
 ## After editing files
 Do not run pnpm commands unless I ask to. pnpm dev will be already running by me in the terminal.
+
+Run `pnpm test` after logic changes (skip for trivial changes like print statements or comments).
 
 Check the browser when you have a done a work related to the frontend. It's better to use the default browser. Do not specify a browser.
