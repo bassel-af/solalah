@@ -16,14 +16,16 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - `pnpm dev` - Start development server (Vite)
 - `pnpm build` - Build for production (TypeScript compilation + Vite build)
 - `pnpm preview` - Preview production build locally
-- `pnpm test` - Run tests
+- `pnpm test` - Run tests once
+- `pnpm test:watch` - Run tests in watch mode (interactive development)
 
 ## Technology Stack
 
 - **Build Tool**: Vite 7.x
 - **Framework**: React 19.x with TypeScript 5.x
-- **Styling**: CSS (index.css, tree.css)
-- **Dev Tools**: Vite's HMR for fast development
+- **Tree Visualization**: @xyflow/react (React Flow) with custom tree layout algorithm
+- **Styling**: CSS with design tokens (`src/styles/tokens/`)
+- **Testing**: Vitest with @testing-library/react and jsdom
 
 ## Code Architecture
 
@@ -49,9 +51,14 @@ The app wraps the entire application in `<TreeProvider>` at `src/main.tsx`.
 - `getDisplayName(person)` - Formats person names for display
 
 **Types** (`src/lib/gedcom/types.ts`):
-- `Individual` - Person record with name, birth/death dates, sex, family references
+- `Individual` - Person record with name, birth/death dates, sex, family references, `isPrivate` flag
 - `Family` - Family unit with husband, wife, and children references
 - `GedcomData` - Container for individuals and families records (keyed by ID)
+
+**Graph utilities** (`src/lib/gedcom/graph.ts`):
+- `getAllDescendants()` - Get all descendants of a person
+- `getTreeVisibleIndividuals()` - Get individuals visible in the tree (with optional privacy filtering)
+- `calculateDescendantCounts()` - Uses Kahn's algorithm (topological sort) for efficient O(V+E) counting
 
 ### Data Flow
 
@@ -61,27 +68,32 @@ The app wraps the entire application in `<TreeProvider>` at `src/main.tsx`.
 4. TreeContext auto-selects the first root ancestor
 5. UI components (`FamilyTree`, `RootSelector`, `SearchBar`, `Stats`) consume data via `useTree()`
 
-### Component Structure
+### Tree Visualization
 
-- **tree/** - Family tree visualization components
-  - `FamilyTree.tsx` - Main tree renderer
-  - `PersonCard.tsx` - Individual person display card
-  - `CoupleRow.tsx` - Displays married couples
-- **ui/** - UI control components
-  - `RootSelector.tsx` - Dropdown to choose root ancestor
-  - `SearchBar.tsx` - Search functionality
-  - `Stats.tsx` - Display tree statistics
+The `FamilyTree` component (`src/components/tree/FamilyTree/FamilyTree.tsx`) uses @xyflow/react with a **custom tree layout algorithm**:
+- **Bottom-up pass**: Calculates subtree widths (post-order traversal)
+- **Top-down pass**: Assigns positions keeping siblings together (pre-order traversal)
+- Supports polygamous families with color-coded edges per spouse
+- Privacy filtering: individuals with `isPrivate: true` are excluded from rendering
 
 ### GEDCOM File
 
 The GEDCOM file (`public/saeed-family.ged`):
 - GEDCOM 5.5.1 format (UTF-8 encoding)
-- Hierarchical structure with level numbers (0, 1, 2)
 - Individual records: `0 @ID@ INDI` with `NAME`, `SEX`, `BIRT`, `DEAT`, `FAMS`, `FAMC` tags
 - Family records: `0 @ID@ FAM` with `HUSB`, `WIFE`, `CHIL` tags
 - Cross-references use `@ID@` format
 
 **IMPORTANT**: Do not read `.ged` files directly (per project instructions).
+
+### CSS Architecture
+
+Design tokens are defined in `src/styles/tokens/`:
+- `colors.css` - Color palette
+- `typography.css` - Font sizes and weights
+- `spacing.css` - Spacing scale
+- `shadows.css` - Box shadows
+- `transitions.css` - Animation timings
 
 ## TypeScript Configuration
 
