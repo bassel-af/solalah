@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { parseGedcom } from '@/lib/gedcom/parser'
 import { getTreeVisibleIndividuals, filterOutPrivate } from '@/lib/gedcom/graph'
-import { findRootAncestors } from '@/lib/gedcom/roots'
+import { findRootAncestors, findDefaultRoot } from '@/lib/gedcom/roots'
 import type { GedcomData } from '@/lib/gedcom/types'
 
 describe('Private Individual Filtering', () => {
@@ -77,5 +77,11 @@ describe('Private Individual Filtering', () => {
       expect(root.id).toBeDefined()
       expect(data.individuals[root.id].name.toUpperCase()).not.toBe('PRIVATE')
     }
+  })
+
+  it('real GEDCOM tree shows 177 visible individuals from default root', () => {
+    const root = findDefaultRoot(data)
+    const visible = getTreeVisibleIndividuals(data, root!.id, true)
+    expect(visible.size).toBe(177)
   })
 })
