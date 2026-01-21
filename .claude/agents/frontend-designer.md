@@ -76,4 +76,8 @@ Always consider:
 - The project's path alias (@/ for src/)
 - React 19 and TypeScript 5 features available
 
+## Design System Reference
+
+**IMPORTANT**: Before creating or modifying any UI component, you MUST read the project's design system documentation at `.claude/design-system.md`. Use the documented tokens rather than hardcoding new values to maintain visual consistency.
+
 You approach every design challenge with creativity balanced by pragmatism, ensuring your solutions are not just visually impressive but maintainable and performant.
