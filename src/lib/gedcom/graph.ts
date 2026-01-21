@@ -33,10 +33,21 @@ export function getAllDescendants(data: GedcomData, rootId: string): Set<string>
 /**
  * Get all individuals visible in the tree: root + descendants + their spouses
  * This matches what FamilyTree.tsx displays in the canvas
+ * @param excludePrivate - If true, filters out private individuals from the result
  */
-export function getTreeVisibleIndividuals(data: GedcomData, rootId: string): Set<string> {
+export function getTreeVisibleIndividuals(
+  data: GedcomData,
+  rootId: string,
+  excludePrivate = false
+): Set<string> {
   const visible = new Set<string>();
   const { individuals, families } = data;
+
+  const root = individuals[rootId];
+  // If root is private and we're excluding private, return empty set
+  if (excludePrivate && root?.isPrivate) {
+    return visible;
+  }
 
   // Add root
   visible.add(rootId);
@@ -64,7 +75,37 @@ export function getTreeVisibleIndividuals(data: GedcomData, rootId: string): Set
     }
   }
 
+  // Filter out private individuals if requested
+  if (excludePrivate) {
+    return filterOutPrivate(visible, individuals);
+  }
+
   return visible;
+}
+
+/**
+ * Filter out private individuals from a set of IDs
+ * This is the core privacy filtering logic used throughout the app
+ */
+export function filterOutPrivate(
+  ids: Set<string>,
+  individuals: Record<string, Individual>
+): Set<string> {
+  const filtered = new Set<string>();
+  for (const id of ids) {
+    const person = individuals[id];
+    if (person && !person.isPrivate) {
+      filtered.add(id);
+    }
+  }
+  return filtered;
+}
+
+/**
+ * Check if an individual should be displayed (not private)
+ */
+export function isDisplayable(person: Individual | undefined | null): boolean {
+  return person != null && !person.isPrivate;
 }
 
 /**
