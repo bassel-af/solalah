@@ -1,0 +1,10 @@
+/* ============================================
+   GLOBAL STYLES - Entry Point
+
+   This file imports design tokens and base styles.
+   Component-specific styles are in CSS Modules.
+   ============================================ */
+
+@import './tokens/index.css';
+@import './base/index.css';
+@import './tree-global.css';

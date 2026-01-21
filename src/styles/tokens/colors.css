@@ -1,0 +1,80 @@
+/* ============================================
+   COLOR TOKENS
+   ============================================ */
+
+:root {
+  /* Primary Colors (Blue) */
+  --color-primary-light: #63b3ed;
+  --color-primary: #4a90d9;
+  --color-primary-dark: #357abd;
+
+  /* Secondary Colors (Pink/Female) */
+  --color-secondary-light: #f2a7cf;
+  --color-secondary: #ed64a6;
+  --color-secondary-dark: #e91e8c;
+
+  /* Accent Colors (Orange) */
+  --color-accent-light: #fff8e6;
+  --color-accent: #f6ad55;
+  --color-accent-dark: #f5a623;
+
+  /* Neutral Colors - Dark */
+  --color-dark-900: #1a1f36;
+  --color-dark-800: #252b48;
+  --color-dark-700: #2d3352;
+
+  /* Neutral Colors - Light */
+  --color-light-100: #f8f9fa;
+  --color-light-200: #f5f5f5;
+  --color-light-300: #f0f0f0;
+  --color-light-400: #eee;
+  --color-light-500: #ddd;
+  --color-light-600: #ccc;
+
+  /* Text Colors */
+  --color-text-primary: #333;
+  --color-text-secondary: #666;
+  --color-text-muted: #888;
+  --color-text-disabled: #999;
+  --color-text-inverse: #fff;
+
+  /* Semantic Colors */
+  --color-error: #e53e3e;
+  --color-male: #4a90d9;
+  --color-male-light: #9ec5e8;
+  --color-female: #e91e8c;
+  --color-female-light: #f2a7cf;
+
+  /* Alpha Colors - White */
+  --alpha-white-04: rgba(255, 255, 255, 0.04);
+  --alpha-white-06: rgba(255, 255, 255, 0.06);
+  --alpha-white-08: rgba(255, 255, 255, 0.08);
+  --alpha-white-10: rgba(255, 255, 255, 0.10);
+  --alpha-white-12: rgba(255, 255, 255, 0.12);
+  --alpha-white-15: rgba(255, 255, 255, 0.15);
+  --alpha-white-25: rgba(255, 255, 255, 0.25);
+  --alpha-white-35: rgba(255, 255, 255, 0.35);
+  --alpha-white-40: rgba(255, 255, 255, 0.40);
+  --alpha-white-50: rgba(255, 255, 255, 0.50);
+  --alpha-white-60: rgba(255, 255, 255, 0.60);
+  --alpha-white-70: rgba(255, 255, 255, 0.70);
+  --alpha-white-75: rgba(255, 255, 255, 0.75);
+  --alpha-white-80: rgba(255, 255, 255, 0.80);
+  --alpha-white-85: rgba(255, 255, 255, 0.85);
+
+  /* Alpha Colors - Black */
+  --alpha-black-10: rgba(0, 0, 0, 0.10);
+  --alpha-black-15: rgba(0, 0, 0, 0.15);
+  --alpha-black-25: rgba(0, 0, 0, 0.25);
+  --alpha-black-30: rgba(0, 0, 0, 0.30);
+  --alpha-black-40: rgba(0, 0, 0, 0.40);
+  --alpha-black-60: rgba(0, 0, 0, 0.60);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
+  --gradient-sidebar: linear-gradient(180deg, #1a1f36 0%, #252b48 100%);
+  --gradient-toggle: linear-gradient(135deg, #1a1f36 0%, #252b48 100%);
+  --gradient-toggle-bar: linear-gradient(90deg, #63b3ed 0%, #4a90d9 100%);
+  --gradient-stat: linear-gradient(135deg, #63b3ed 0%, #4a90d9 100%);
+  --gradient-search-hero: linear-gradient(135deg, rgba(99, 179, 237, 0.1) 0%, rgba(66, 153, 225, 0.06) 100%);
+}

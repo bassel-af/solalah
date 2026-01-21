@@ -1,0 +1,12 @@
+/* ============================================
+   DESIGN TOKENS - Entry Point
+
+   All CSS custom properties are defined here.
+   Import this file once at the app root.
+   ============================================ */
+
+@import './colors.css';
+@import './typography.css';
+@import './spacing.css';
+@import './shadows.css';
+@import './transitions.css';

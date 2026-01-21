@@ -1,0 +1,20 @@
+/* ============================================
+   COUPLE ROW COMPONENT STYLES
+   ============================================ */
+
+.couple {
+  display: flex;
+  gap: 0;
+  align-items: center;
+}
+
+.spouseGroup {
+  display: flex;
+  align-items: center;
+}
+
+.spouseConnector {
+  width: 20px;
+  height: 2px;
+  background: var(--color-female);
+}

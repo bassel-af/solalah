@@ -1,0 +1,37 @@
+/* ============================================
+   SPACING TOKENS
+   ============================================ */
+
+:root {
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+  --space-8: 18px;
+  --space-9: 20px;
+  --space-10: 22px;
+  --space-11: 24px;
+
+  /* Border Radius */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-full: 20px;
+
+  /* Layout */
+  --sidebar-width: 320px;
+  --sidebar-width-mobile: min(320px, 85vw);
+
+  /* Z-Index */
+  --z-dropdown: 100;
+  --z-sidebar-dropdown: 200;
+  --z-overlay: 900;
+  --z-sidebar: 1000;
+  --z-toggle: 1100;
+}

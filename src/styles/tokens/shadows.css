@@ -1,0 +1,22 @@
+/* ============================================
+   SHADOW TOKENS
+   ============================================ */
+
+:root {
+  /* Box Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 4px 20px rgba(0, 0, 0, 0.25);
+
+  /* Component-specific Shadows */
+  --shadow-sidebar: -4px 0 24px rgba(0, 0, 0, 0.15);
+  --shadow-sidebar-mobile: -8px 0 40px rgba(0, 0, 0, 0.4);
+
+  /* Focus Shadows */
+  --shadow-focus-primary: 0 0 0 3px rgba(99, 179, 237, 0.15);
+  --shadow-focus-accent: 0 0 0 3px rgba(246, 173, 85, 0.15);
+
+  /* Button Shadow */
+  --shadow-button: 0 2px 8px rgba(74, 144, 217, 0.35);
+}

@@ -1,5 +1,6 @@
 import type { Individual, GedcomData } from '@/lib/gedcom';
-import { PersonCard } from './PersonCard';
+import { PersonCard } from '../PersonCard';
+import styles from './CoupleRow.module.css';
 
 interface CoupleRowProps {
   person: Individual;
@@ -21,13 +22,13 @@ export function CoupleRow({ person, spouseIds, data, isRoot = false, nodeRef }: 
     const offset = (spouses.length * spouseGroupWidth) / 2;
 
     return (
-      <div className="couple" style={{ marginLeft: offset }}>
-        <div ref={nodeRef} className="main-person">
+      <div className={styles.couple} style={{ marginLeft: offset }}>
+        <div ref={nodeRef}>
           <PersonCard person={person} isRoot={isRoot} />
         </div>
         {spouses.map((spouse) => (
-          <div key={spouse.id} className="spouse-group">
-            <div className="spouse-connector" />
+          <div key={spouse.id} className={styles.spouseGroup}>
+            <div className={styles.spouseConnector} />
             <PersonCard person={spouse} />
           </div>
         ))}
@@ -36,7 +37,7 @@ export function CoupleRow({ person, spouseIds, data, isRoot = false, nodeRef }: 
   }
 
   return (
-    <div ref={nodeRef} className="main-person">
+    <div ref={nodeRef}>
       <PersonCard person={person} isRoot={isRoot} />
     </div>
   );
