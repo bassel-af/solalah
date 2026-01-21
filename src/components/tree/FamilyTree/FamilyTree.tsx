@@ -49,7 +49,7 @@ interface PersonNodeData {
 function PersonNode({ data }: { data: PersonNodeData }) {
   const { person, spouses, isRoot, searchQuery, isHighlightedPerson, isAncestor, isDescendant, hasHighlight, onPersonClick } = data;
 
-  const getHighlightClass = (personId: string, isMainPerson: boolean) => {
+  const getHighlightClass = (_personId: string, isMainPerson: boolean) => {
     if (!hasHighlight) return '';
 
     // Check if this specific person (main or spouse) is highlighted
