@@ -78,6 +78,8 @@ Always consider:
 
 ## Design System Reference
 
-**IMPORTANT**: Before creating or modifying any UI component, you MUST read the project's design system documentation at `.claude/design-system.md`. Use the documented tokens rather than hardcoding new values to maintain visual consistency.
+**IMPORTANT**: Before creating or modifying any UI component, you MUST read the project's design system documentation at `.claude/design-system.md`.
+
+CSS custom properties are defined in `src/styles/index.css` under `:root`. Always use `var(--token-name)` syntax (e.g., `var(--color-primary)`, `var(--space-4)`) rather than hardcoding values.
 
 You approach every design challenge with creativity balanced by pragmatism, ensuring your solutions are not just visually impressive but maintainable and performant.

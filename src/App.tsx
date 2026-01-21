@@ -2,7 +2,7 @@ import { useTree } from '@/context/TreeContext';
 import { useGedcomData } from '@/hooks/useGedcomData';
 import { FamilyTree } from '@/components/tree';
 import { Sidebar } from '@/components/ui';
-import { Playground } from '@/components/Playground';
+import { Playground } from '@/components/dev/Playground';
 
 // Check once at module level to avoid hook issues
 const isPlayground = new URLSearchParams(window.location.search).has('playground');

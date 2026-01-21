@@ -13,51 +13,51 @@
 }
 
 .react-flow__edge-path {
-  stroke: #ccc;
+  stroke: var(--color-light-600);
   stroke-width: 2;
 }
 
 .react-flow__controls {
-  bottom: 10px;
-  left: 10px;
+  bottom: var(--space-4);
+  left: var(--space-4);
 }
 
 .react-flow__minimap {
-  bottom: 10px;
-  right: 10px;
+  bottom: var(--space-4);
+  right: var(--space-4);
 }
 
 /* Person card */
 .person {
   background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 10px 15px;
+  border: 1px solid var(--color-light-500);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6);
   min-width: 140px;
   max-width: 180px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   position: relative;
 }
 
 .person.male {
-  border-top: 4px solid #4a90d9;
+  border-top: 4px solid var(--color-male);
 }
 
 .person.female {
-  border-top: 4px solid #e91e8c;
+  border-top: 4px solid var(--color-female);
 }
 
 .person-name {
-  font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-1);
   word-wrap: break-word;
 }
 
 .person-dates {
-  color: #666;
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 /* Couple display */
@@ -75,38 +75,38 @@
 .spouse-connector {
   width: 20px;
   height: 2px;
-  background: #e91e8c;
+  background: var(--color-female);
 }
 
 /* Root selector highlight */
 .person.root {
-  box-shadow: 0 0 0 3px #4a90d9;
+  box-shadow: 0 0 0 3px var(--color-primary);
 }
 
 /* Search highlight */
 .person.search-match {
-  box-shadow: 0 0 0 3px #f5a623;
-  background: #fff8e6;
+  box-shadow: 0 0 0 3px var(--color-accent-dark);
+  background: var(--color-accent-light);
 }
 
 /* Deceased person styling */
 .person.deceased {
-  background: #f0f0f0;
+  background: var(--color-light-300);
   opacity: 0.75;
 }
 
 .person.deceased .person-name {
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 .person.deceased .person-dates {
-  color: #999;
+  color: var(--color-text-disabled);
 }
 
 .person.deceased.male {
-  border-top-color: #9ec5e8;
+  border-top-color: var(--color-male-light);
 }
 
 .person.deceased.female {
-  border-top-color: #f2a7cf;
+  border-top-color: var(--color-female-light);
 }
