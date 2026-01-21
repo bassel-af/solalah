@@ -25,7 +25,7 @@ This is a Vite + React + TypeScript genealogy web application that parses and vi
 **Documentation:**
 - `README.md` - Project readme
 - `CLAUDE.md` - Instructions for Claude Code AI assistant
-- `project-structure.md` - This file
+- `/docs/` - Documentation folder (contains this file and other docs)
 
 **Build Output:**
 - `/dist/` - Production build output (generated, git-ignored)
@@ -223,7 +223,7 @@ This is a Vite + React + TypeScript genealogy web application that parses and vi
 
 4. **Documentation:**
    - Add JSDoc comments to complex functions in `/src/lib/gedcom/`
-   - Consider adding a `/docs/` folder for detailed documentation
+   - Documentation now lives in `/docs/` folder
 
 5. **Cleanup:**
    - Remove or archive `index.html.old`
