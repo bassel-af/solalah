@@ -26,7 +26,7 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - **UI**: React 19.x with TypeScript 5.x
 - **Tree Visualization**: @xyflow/react (React Flow) with custom tree layout algorithm
 - **Styling**: CSS with design tokens (`src/styles/tokens/`)
-- **Testing**: Vitest with @testing-library/react and jsdom
+- **Testing**: Vitest with @testing-library/react and jsdom (see `docs/testing.md` for E2E query params)
 
 ## Code Architecture
 
