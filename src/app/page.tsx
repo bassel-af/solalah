@@ -8,11 +8,21 @@ import { FamilyTree } from '@/components/tree';
 import { Sidebar } from '@/components/ui';
 import { Playground } from '@/components/dev/Playground';
 
-function MainApp() {
+interface MainAppProps {
+  useTestData: boolean;
+  showSidebar: boolean;
+  showMinimap: boolean;
+  showControls: boolean;
+}
+
+function MainApp({ useTestData, showSidebar, showMinimap, showControls }: MainAppProps) {
   const { isLoading, error } = useTree();
 
+  // In dev mode, allow loading test file via ?test query param
+  const gedcomFile = useTestData ? '/test-family.ged' : '/saeed-family.ged';
+
   // Load GEDCOM data
-  useGedcomData('/saeed-family.ged');
+  useGedcomData(gedcomFile);
 
   if (error) {
     return (
@@ -28,9 +38,9 @@ function MainApp() {
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      {showSidebar && <Sidebar />}
       <main className="main-content">
-        <FamilyTree />
+        <FamilyTree hideMiniMap={!showMinimap} hideControls={!showControls} />
       </main>
     </div>
   );
@@ -44,7 +54,23 @@ function HomeContent() {
     return <Playground />;
   }
 
-  return <MainApp />;
+  const useTestData =
+    process.env.NODE_ENV === 'development' && searchParams.has('test');
+
+  // Test mode visibility flags
+  const onlyCanvas = searchParams.get('only') === 'canvas';
+  const showSidebar = !searchParams.has('no-sidebar') && !onlyCanvas;
+  const showMinimap = !searchParams.has('no-minimap') && !onlyCanvas;
+  const showControls = !searchParams.has('no-controls') && !onlyCanvas;
+
+  return (
+    <MainApp
+      useTestData={useTestData}
+      showSidebar={showSidebar}
+      showMinimap={showMinimap}
+      showControls={showControls}
+    />
+  );
 }
 
 export default function Home() {

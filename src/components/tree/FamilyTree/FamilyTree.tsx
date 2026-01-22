@@ -479,7 +479,7 @@ function buildTreeData(
   return getLayoutedElements(nodes, edges);
 }
 
-function FamilyTreeInner() {
+function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
   const { data, selectedRootId, config, searchQuery, focusPersonId, highlightedPersonId, setHighlightedPersonId } = useTree();
   const { setViewport, setCenter, getZoom } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
@@ -653,17 +653,22 @@ function FamilyTreeInner() {
         zoomOnScroll
         zoomOnPinch
       >
-        <Controls />
-        <MiniMap nodeStrokeWidth={3} zoomable pannable />
+        {!hideControls && <Controls />}
+        {!hideMiniMap && <MiniMap nodeStrokeWidth={3} zoomable pannable />}
       </ReactFlow>
     </div>
   );
 }
 
-export function FamilyTree() {
+export interface FamilyTreeProps {
+  hideMiniMap?: boolean;
+  hideControls?: boolean;
+}
+
+export function FamilyTree({ hideMiniMap = false, hideControls = false }: FamilyTreeProps) {
   return (
     <ReactFlowProvider>
-      <FamilyTreeInner />
+      <FamilyTreeInner hideMiniMap={hideMiniMap} hideControls={hideControls} />
     </ReactFlowProvider>
   );
 }
