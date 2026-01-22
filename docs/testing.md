@@ -2,14 +2,14 @@
 
 ## Test Mode Query Parameters
 
-Query parameters for Playwright/E2E testing to reduce UI complexity:
+**ALWAYS use these query parameters when testing in the browser with Playwright/MCP.**
+
+Default test URL: `http://localhost:3000/?test&only=canvas`
 
 | Parameter | Effect |
 |-----------|--------|
 | `?test` | Load `/public/test-family.ged` instead of production data |
-| `?no-sidebar` | Hide sidebar |
-| `?no-minimap` | Hide minimap |
-| `?no-controls` | Hide zoom/pan controls |
-| `?only=canvas` | Show only tree canvas (hides all UI) |
-
-Example: `http://localhost:3000/?test&only=canvas`
+| `?only=canvas` | Show only tree canvas (hides sidebar, minimap, controls) |
+| `?no-sidebar` | Hide sidebar only |
+| `?no-minimap` | Hide minimap only |
+| `?no-controls` | Hide zoom/pan controls only |

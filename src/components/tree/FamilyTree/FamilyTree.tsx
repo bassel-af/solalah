@@ -89,10 +89,20 @@ function PersonNode({ data }: { data: PersonNodeData }) {
         onClick={handleClick}
       >
         <div className="person-name">{displayName}</div>
-        {p.birth && (
-          <div className="person-dates">
-            <iconify-icon icon="lucide:calendar" width="14" />
-            <span>{p.birth}</span>
+        {(p.birth || p.death || p.isDeceased) && (
+          <div className="person-dates-container">
+            {p.birth && (
+              <div className="person-date-row">
+                <iconify-icon icon="lucide:calendar" width="14" />
+                <span>{p.birth}</span>
+              </div>
+            )}
+            {p.death && (
+              <div className="person-date-row death">
+                <iconify-icon icon="mdi:star-crescent" width="14" />
+                <span>{p.death}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -180,7 +190,7 @@ const nodeTypes = {
 
 // Layout configuration
 const NODE_WIDTH = 140;
-const NODE_HEIGHT = 60;
+const NODE_HEIGHT = 75;
 const SPOUSE_WIDTH = 160; // Additional width per spouse (card + gap)
 
 // Colors for different spouse edges (to distinguish children by mother)

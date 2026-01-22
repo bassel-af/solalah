@@ -109,4 +109,6 @@ Do not run pnpm commands unless I ask to. pnpm dev will be already running by me
 
 Run `pnpm test` after logic changes (skip for trivial changes like print statements or comments).
 
-Check the browser when you have a done a work related to the frontend. It's better to use the default browser. Do not specify a browser.
+Check the browser when you have done work related to the frontend. It's better to use the default browser. Do not specify a browser.
+
+**IMPORTANT: For browser/Playwright testing, ALWAYS use test mode URL. See `docs/testing.md` for required query parameters.**

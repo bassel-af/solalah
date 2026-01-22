@@ -1,7 +1,10 @@
 {
   "permissions": {
     "deny": [
-      "Read(**/*.ged)"
+      "Read(**/saeed-family.ged)"
+    ],
+    "allow": [
+      "Read(**/test-family.ged)"
     ]
   },
   "enabledPlugins": {
