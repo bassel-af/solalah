@@ -1,3 +1,5 @@
+'use client';
+
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTree } from '@/context/TreeContext';
 import { getDisplayName } from '@/lib/gedcom';

@@ -1,3 +1,5 @@
+'use client';
+
 import { useMemo } from 'react';
 import { useTree } from '@/context/TreeContext';
 import { getAllDescendants } from '@/lib/gedcom';

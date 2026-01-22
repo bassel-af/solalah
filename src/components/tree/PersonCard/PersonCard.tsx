@@ -1,3 +1,5 @@
+'use client';
+
 import clsx from 'clsx';
 import type { Individual } from '@/lib/gedcom';
 import { getDisplayName } from '@/lib/gedcom';

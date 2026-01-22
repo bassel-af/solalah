@@ -5,6 +5,6 @@
    Component-specific styles are in CSS Modules.
    ============================================ */
 
-@import './tokens/index.css';
-@import './base/index.css';
-@import './tree-global.css';
+@import '../styles/tokens/index.css';
+@import '../styles/base/index.css';
+@import '../styles/tree-global.css';

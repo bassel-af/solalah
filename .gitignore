@@ -41,8 +41,12 @@ temp/
 # Cache
 .cache/
 .parcel-cache/
-.next/
-.nuxt/
 
+# Next.js
+.next/
+next-env.d.ts
+.vercel
+
+# Project specific
 CLAUDE.local.md
 .playwright-mcp

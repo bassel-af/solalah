@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect } from 'react';
 import { parseGedcom } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';

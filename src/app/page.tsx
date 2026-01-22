@@ -1,11 +1,12 @@
+'use client';
+
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTree } from '@/context/TreeContext';
 import { useGedcomData } from '@/hooks/useGedcomData';
 import { FamilyTree } from '@/components/tree';
 import { Sidebar } from '@/components/ui';
 import { Playground } from '@/components/dev/Playground';
-
-// Check once at module level to avoid hook issues
-const isPlayground = new URLSearchParams(window.location.search).has('playground');
 
 function MainApp() {
   const { isLoading, error } = useTree();
@@ -35,11 +36,21 @@ function MainApp() {
   );
 }
 
-function App() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const isPlayground = searchParams.has('playground');
+
   if (isPlayground) {
     return <Playground />;
   }
+
   return <MainApp />;
 }
 
-export default App;
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="loading">جاري التحميل...</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
