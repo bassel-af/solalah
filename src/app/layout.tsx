@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { Providers } from './providers';
 
@@ -16,6 +17,10 @@ export default function RootLayout({
     <html lang="ar" dir="rtl">
       <body>
         <Providers>{children}</Providers>
+        <Script
+          src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

@@ -70,6 +70,10 @@
 }
 
 .person-dates {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }

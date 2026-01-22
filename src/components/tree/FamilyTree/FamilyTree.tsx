@@ -78,11 +78,6 @@ function PersonNode({ data }: { data: PersonNodeData }) {
       ? getHighlightClass(p.id, true)
       : (spouseHighlightClass || (hasHighlight ? 'lineage-dimmed' : ''));
 
-    let dates = '';
-    if (p.birth || p.death) {
-      dates = `${p.birth || '?'} - ${p.death || ''}`;
-    }
-
     const handleClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       onPersonClick(p.id);
@@ -94,7 +89,12 @@ function PersonNode({ data }: { data: PersonNodeData }) {
         onClick={handleClick}
       >
         <div className="person-name">{displayName}</div>
-        {dates && <div className="person-dates">{dates}</div>}
+        {p.birth && (
+          <div className="person-dates">
+            <iconify-icon icon="lucide:calendar" width="14" />
+            <span>{p.birth}</span>
+          </div>
+        )}
       </div>
     );
   };
