@@ -58,7 +58,7 @@ Use the browser tool when you need to:
 - Reproduce timing-dependent bugs
 
 ## Project-Specific Context
-- This is a Vite + React + TypeScript genealogy visualization app
+- This is a Next.js 15 (App Router) + React 19 + TypeScript genealogy visualization app
 - Central state lives in TreeContext (`useTree()` hook)
 - GEDCOM parsing happens in `src/lib/gedcom/parser.ts`
 - Tree visualization components are in `src/components/tree/`

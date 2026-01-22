@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository ("solalah") is a family genealogy web application built with Vite + React + TypeScript. It parses and visualizes GEDCOM genealogy files in the browser. The primary data source is `saeed-family.ged` (stored in `/public/`), a GEDCOM 5.5.1 file containing family tree data. The project supports multiple languages, primarily Arabic and English.
+This repository ("solalah") is a family genealogy web application built with Next.js 15 (App Router) + React 19 + TypeScript. It parses and visualizes GEDCOM genealogy files in the browser. The primary data source is `saeed-family.ged` (stored in `/public/`), a GEDCOM 5.5.1 file containing family tree data. The app is RTL (right-to-left) with Arabic as the primary language.
 
 ## Package Management
 
@@ -13,16 +13,17 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 ## Common Commands
 
 - `pnpm install` - Install dependencies
-- `pnpm dev` - Start development server (Vite)
-- `pnpm build` - Build for production (TypeScript compilation + Vite build)
-- `pnpm preview` - Preview production build locally
+- `pnpm dev` - Start development server (Next.js with Turbopack)
+- `pnpm build` - Build for production
+- `pnpm start` - Run production build
+- `pnpm lint` - Run ESLint
 - `pnpm test` - Run tests once
-- `pnpm test:watch` - Run tests in watch mode (interactive development)
+- `pnpm test:watch` - Run tests in watch mode
 
 ## Technology Stack
 
-- **Build Tool**: Vite 7.x
-- **Framework**: React 19.x with TypeScript 5.x
+- **Framework**: Next.js 15.x with App Router and Turbopack
+- **UI**: React 19.x with TypeScript 5.x
 - **Tree Visualization**: @xyflow/react (React Flow) with custom tree layout algorithm
 - **Styling**: CSS with design tokens (`src/styles/tokens/`)
 - **Testing**: Vitest with @testing-library/react and jsdom
@@ -31,7 +32,7 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 
 ### Path Aliases
 
-The project uses `@/` as an alias for the `/src/` directory, configured in both `vite.config.ts` and `tsconfig.json`.
+The project uses `@/` as an alias for the `/src/` directory, configured in `tsconfig.json`.
 
 ### State Management
 
@@ -41,7 +42,7 @@ The project uses `@/` as an alias for the `/src/` directory, configured in both 
 - Manages search query, tree configuration (max depth), loading state, and errors
 - Provides `useTree()` hook for consuming components
 
-The app wraps the entire application in `<TreeProvider>` at `src/main.tsx`.
+The app wraps the entire application in `<TreeProvider>` via `src/app/providers.tsx` (client component).
 
 ### GEDCOM Parsing
 
@@ -62,7 +63,7 @@ The app wraps the entire application in `<TreeProvider>` at `src/main.tsx`.
 
 ### Data Flow
 
-1. `App.tsx` uses `useGedcomData('/saeed-family.ged')` hook
+1. `src/app/page.tsx` (client component) uses `useGedcomData('/saeed-family.ged')` hook
 2. `useGedcomData` hook fetches the GEDCOM file from `/public/` and calls `parseGedcom()`
 3. Parsed data is stored in TreeContext via `setData()`
 4. TreeContext auto-selects the first root ancestor
@@ -99,8 +100,9 @@ Design tokens are defined in `src/styles/tokens/`:
 
 - Strict mode enabled with `noUnusedLocals` and `noUnusedParameters`
 - Target: ES2020
-- JSX: `react-jsx` (automatic runtime)
+- JSX: `preserve` (Next.js handles transformation)
 - Module resolution: `bundler` mode
+- Next.js plugin enabled for enhanced type checking
 
 ## After editing files
 Do not run pnpm commands unless I ask to. pnpm dev will be already running by me in the terminal.

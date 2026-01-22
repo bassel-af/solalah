@@ -54,9 +54,9 @@ test('[descriptive test name]', () => {
 - **Quality over Quantity**: 6 well-chosen tests beat 20 redundant ones
 - **Be Specific**: Test names should describe the scenario and expected outcome
 - **Follow AAA Pattern**: Arrange, Act, Assert structure for clarity
-- **Consider the Stack**: For this React/TypeScript/Vite project, consider:
+- **Consider the Stack**: For this Next.js 15/React 19/TypeScript project, consider:
   - React Testing Library for components
-  - Vitest as the test runner (compatible with Vite)
+  - Vitest as the test runner
   - TypeScript type safety in test code
 - **Respect Project Patterns**: Align with existing code conventions and the `@/` path alias
 
