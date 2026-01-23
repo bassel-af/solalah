@@ -2,6 +2,11 @@
 
 import { TreeProvider } from '@/context/TreeContext';
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  return <TreeProvider>{children}</TreeProvider>;
+interface ProvidersProps {
+  children: React.ReactNode;
+  forcedRootId?: string;
+}
+
+export function Providers({ children, forcedRootId }: ProvidersProps) {
+  return <TreeProvider forcedRootId={forcedRootId}>{children}</TreeProvider>;
 }

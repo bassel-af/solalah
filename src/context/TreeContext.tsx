@@ -43,7 +43,12 @@ const defaultConfig: TreeConfig = {
 
 const TreeContext = createContext<TreeContextValue | null>(null);
 
-export function TreeProvider({ children }: { children: ReactNode }) {
+interface TreeProviderProps {
+  children: ReactNode;
+  forcedRootId?: string; // When set, use this root instead of auto-detecting
+}
+
+export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
   const [data, setDataState] = useState<GedcomData | null>(null);
   const [selectedRootId, setSelectedRootIdState] = useState<string | null>(null);
   const [initialRootId, setInitialRootId] = useState<string | null>(null);
@@ -70,25 +75,41 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     }));
     setAllRootsList(allRoots);
 
-    // Find the default root (oldest ancestor with most descendants)
-    const defaultRoot = findDefaultRoot(newData);
-    if (defaultRoot) {
-      setInitialRootId(defaultRoot.id);
-      setSelectedRootIdState(defaultRoot.id);
+    // Determine the root to use
+    let targetRoot = forcedRootId ? newData.individuals[forcedRootId] : null;
+
+    // Validate forced root exists
+    if (forcedRootId && !targetRoot) {
+      console.error(`Forced root ID "${forcedRootId}" not found in GEDCOM data`);
+    }
+
+    // Fall back to default root if forced root is invalid or not provided
+    if (!targetRoot) {
+      targetRoot = findDefaultRoot(newData);
+    }
+
+    if (targetRoot) {
+      setInitialRootId(targetRoot.id);
+      setSelectedRootIdState(targetRoot.id);
 
       // Build list of descendants of the initial root (including the root itself)
-      const descendantIds = getAllDescendants(newData, defaultRoot.id);
-      descendantIds.add(defaultRoot.id); // Include the root itself
+      const descendantIds = getAllDescendants(newData, targetRoot.id);
+      descendantIds.add(targetRoot.id); // Include the root itself
 
       const descendantsRoots = allRoots.filter((r) => descendantIds.has(r.id));
       setDescendantsRootsList(descendantsRoots);
+
+      // When forced root is set, always use descendants filter
+      if (forcedRootId) {
+        setRootFilterStrategyState('descendants');
+      }
     } else {
-      // No default root, use all individuals for both lists
+      // No root found, use all individuals for both lists
       setDescendantsRootsList(allRoots);
     }
 
     setIsLoading(false);
-  }, []);
+  }, [forcedRootId]);
 
   const setSelectedRootId = useCallback((id: string | null) => {
     setSelectedRootIdState(id);
