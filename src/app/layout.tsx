@@ -3,7 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Solalah - Family Tree',
+  title: 'شجرة العائلة',
   description: 'Family genealogy web application',
 };
 

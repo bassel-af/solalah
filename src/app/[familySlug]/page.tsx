@@ -21,12 +21,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!family) {
     return {
-      title: 'العائلة غير موجودة - Solalah',
+      title: 'العائلة غير موجودة',
     };
   }
 
   return {
-    title: `شجرة ${family.displayName} - Solalah`,
+    title: `عائلة ${family.displayName}`,
     description: `شجرة عائلة ${family.displayName}`,
   };
 }
