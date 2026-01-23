@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useTree } from '@/context/TreeContext';
-import { getDisplayName, getTreeVisibleIndividuals } from '@/lib/gedcom';
+import { getDisplayNameWithNasab, getTreeVisibleIndividuals, DEFAULT_NASAB_DEPTH } from '@/lib/gedcom';
 import styles from './Sidebar.module.css';
 
 interface PersonItem {
@@ -67,7 +67,7 @@ export function Sidebar() {
       // Skip private individuals
       if (person.isPrivate) continue;
 
-      const name = getDisplayName(person);
+      const name = getDisplayNameWithNasab(data, person, DEFAULT_NASAB_DEPTH);
       let dates = '';
       if (person.birth || person.death) {
         dates = `${person.birth || '?'} - ${person.death || ''}`;

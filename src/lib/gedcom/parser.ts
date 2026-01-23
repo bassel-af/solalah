@@ -65,8 +65,15 @@ export function parseGedcom(text: string): GedcomData {
         if (currentRecord.type === 'INDI') {
           const indi = currentRecord as Individual;
           if (tag === 'NAME') {
-            const parsedName = (value || '').replace(/\//g, '').trim();
+            const rawName = value || '';
+            const parsedName = rawName.replace(/\//g, '').trim();
             indi.name = parsedName;
+            // Extract givenName and surname from NAME line format: "GivenName /Surname/"
+            const surnameMatch = rawName.match(/\/([^/]*)\//)
+            if (surnameMatch) {
+              indi.surname = surnameMatch[1].trim();
+              indi.givenName = rawName.substring(0, rawName.indexOf('/')).trim();
+            }
             // Check if name indicates a private individual
             if (parsedName.toUpperCase() === 'PRIVATE' || parsedName.toLowerCase() === 'private') {
               indi.isPrivate = true;
