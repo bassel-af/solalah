@@ -18,6 +18,7 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - `pnpm start` - Run production build
 - `pnpm lint` - Run ESLint
 - `pnpm test` - Run tests once
+- `pnpm test src/test/display.test.ts` - Run a single test file
 - `pnpm test:watch` - Run tests in watch mode
 
 ## Technology Stack
@@ -61,13 +62,22 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 - `getTreeVisibleIndividuals()` - Get individuals visible in the tree (with optional privacy filtering)
 - `calculateDescendantCounts()` - Uses Kahn's algorithm (topological sort) for efficient O(V+E) counting
 
+### Multi-Family Routing
+
+The app uses dynamic routing (`src/app/[familySlug]/page.tsx`) with a family configuration system:
+- **Config** (`src/config/families.ts`): Defines `FamilyConfig` entries (slug, rootId, displayName, gedcomFile) in a `FAMILIES` record
+- **Root URL** (`/`) returns 404 — users access family trees via `/{familySlug}` (e.g., `/saeed`, `/al-dabbagh`, `/al-dalati`, `/sharbek`)
+- Each family route is statically generated via `generateStaticParams()`
+- `FamilyTreeClient` wraps the tree in `<TreeProvider>` with a `forcedRootId` from the family config
+
 ### Data Flow
 
-1. `src/app/page.tsx` (client component) uses `useGedcomData('/saeed-family.ged')` hook
-2. `useGedcomData` hook fetches the GEDCOM file from `/public/` and calls `parseGedcom()`
-3. Parsed data is stored in TreeContext via `setData()`
-4. TreeContext auto-selects the first root ancestor
-5. UI components (`FamilyTree`, `RootSelector`, `SearchBar`, `Stats`) consume data via `useTree()`
+1. User navigates to `/{familySlug}` (e.g., `/saeed`)
+2. `[familySlug]/page.tsx` resolves the `FamilyConfig` via `getFamilyBySlug()`
+3. `FamilyTreeClient` renders `<TreeProvider>` with the family's `forcedRootId`
+4. `useGedcomData` hook fetches the GEDCOM file from `/public/` and calls `parseGedcom()`
+5. Parsed data is stored in TreeContext via `setData()`
+6. UI components (`FamilyTree`, `Sidebar`, `SearchBar`, `Stats`) consume data via `useTree()`
 
 ### Tree Visualization
 
