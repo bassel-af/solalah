@@ -5,10 +5,11 @@ import {
   useContext,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 import type { GedcomData, RootAncestor, TreeConfig } from '@/lib/gedcom';
-import { findRootAncestors, findDefaultRoot, getDisplayName, getAllDescendants } from '@/lib/gedcom';
+import { findRootAncestors, findDefaultRoot, getDisplayName, getAllDescendants, getTreeVisibleIndividuals } from '@/lib/gedcom';
 
 export type RootFilterStrategy = 'all' | 'descendants';
 
@@ -20,7 +21,9 @@ interface TreeState {
   rootFilterStrategy: RootFilterStrategy;
   searchQuery: string;
   focusPersonId: string | null;
+  selectedPersonId: string | null;
   highlightedPersonId: string | null;
+  visiblePersonIds: Set<string>;
   config: TreeConfig;
   isLoading: boolean;
   error: string | null;
@@ -32,6 +35,7 @@ interface TreeContextValue extends TreeState {
   setRootFilterStrategy: (strategy: RootFilterStrategy) => void;
   setSearchQuery: (query: string) => void;
   setFocusPersonId: (id: string | null) => void;
+  setSelectedPersonId: (id: string | null) => void;
   setHighlightedPersonId: (id: string | null) => void;
   setConfig: (config: Partial<TreeConfig>) => void;
   setError: (error: string | null) => void;
@@ -57,6 +61,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
   const [rootFilterStrategy, setRootFilterStrategyState] = useState<RootFilterStrategy>('descendants');
   const [searchQuery, setSearchQuery] = useState('');
   const [focusPersonId, setFocusPersonId] = useState<string | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [highlightedPersonId, setHighlightedPersonIdState] = useState<string | null>(null);
   const [config, setConfigState] = useState<TreeConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,6 +132,11 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     setHighlightedPersonIdState(id);
   }, []);
 
+  const visiblePersonIds = useMemo(() => {
+    if (!data || !selectedRootId) return new Set<string>();
+    return getTreeVisibleIndividuals(data, selectedRootId);
+  }, [data, selectedRootId]);
+
   const setError = useCallback((err: string | null) => {
     setErrorState(err);
     setIsLoading(false);
@@ -140,7 +150,9 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     rootFilterStrategy,
     searchQuery,
     focusPersonId,
+    selectedPersonId,
     highlightedPersonId,
+    visiblePersonIds,
     config,
     isLoading,
     error,
@@ -149,6 +161,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     setRootFilterStrategy,
     setSearchQuery,
     setFocusPersonId,
+    setSelectedPersonId,
     setHighlightedPersonId,
     setConfig,
     setError,

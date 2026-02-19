@@ -490,7 +490,7 @@ function buildTreeData(
 }
 
 function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
-  const { data, selectedRootId, config, searchQuery, focusPersonId, highlightedPersonId, setHighlightedPersonId } = useTree();
+  const { data, selectedRootId, config, searchQuery, focusPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId } = useTree();
   const { setViewport, setCenter, getZoom } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -511,7 +511,8 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
   // Click handler for person cards (toggle behavior)
   const handlePersonClick = useCallback((personId: string) => {
     setHighlightedPersonId(highlightedPersonId === personId ? null : personId);
-  }, [highlightedPersonId, setHighlightedPersonId]);
+    setSelectedPersonId(personId);
+  }, [highlightedPersonId, setHighlightedPersonId, setSelectedPersonId]);
 
   // Clear highlight when root changes
   useEffect(() => {
