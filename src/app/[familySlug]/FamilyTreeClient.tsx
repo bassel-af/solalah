@@ -60,7 +60,7 @@ function FamilyContent({ familyConfig }: FamilyTreeClientProps) {
   // Test mode visibility flags
   const onlyCanvas = searchParams.get('only') === 'canvas';
   const showSidebar = !searchParams.has('no-sidebar') && !onlyCanvas;
-  const showMinimap = !searchParams.has('no-minimap') && !onlyCanvas;
+  const showMinimap = false; // Disabled — was: !searchParams.has('no-minimap') && !onlyCanvas;
   const showControls = !searchParams.has('no-controls') && !onlyCanvas;
 
   return (
