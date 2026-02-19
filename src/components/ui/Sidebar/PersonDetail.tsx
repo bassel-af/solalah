@@ -7,6 +7,16 @@ import { getDisplayName, getPersonRelationships } from '@/lib/gedcom';
 import type { Individual } from '@/lib/gedcom';
 import styles from './PersonDetail.module.css';
 
+function DateInfo({ person, className }: { person: Individual; className?: string }) {
+  if (!person.birth && !person.death) return null;
+  return (
+    <span className={className}>
+      {person.birth && <span>الميلاد: {person.birth}</span>}
+      {person.death && <span>الوفاة: {person.death}</span>}
+    </span>
+  );
+}
+
 interface RelationshipSectionProps {
   title: string;
   people: Individual[];
@@ -30,10 +40,6 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
       {visiblePeople.map((person) => {
         const isVisible = visiblePersonIds.has(person.id);
         const name = getDisplayName(person);
-        let dates = '';
-        if (person.birth || person.death) {
-          dates = `${person.birth || '?'} - ${person.death || ''}`;
-        }
 
         if (isVisible) {
           return (
@@ -47,7 +53,7 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
             >
               <div className={styles.relPersonInfo}>
                 <span className={styles.relPersonName}>{name}</span>
-                {dates && <span className={styles.relPersonDates}>{dates}</span>}
+                <DateInfo person={person} className={styles.relPersonDates} />
               </div>
               <svg className={styles.relChevron} width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -67,7 +73,7 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
           >
             <div className={styles.relPersonInfo}>
               <span className={styles.relPersonName}>{name}</span>
-              {dates && <span className={styles.relPersonDates}>{dates}</span>}
+              <DateInfo person={person} className={styles.relPersonDates} />
             </div>
           </span>
         );
@@ -100,11 +106,6 @@ export function PersonDetail({ personId }: PersonDetailProps) {
   if (!person || !data || !relationships) return null;
 
   const name = getDisplayName(person);
-  let dates = '';
-  if (person.birth || person.death) {
-    dates = `${person.birth || '?'} - ${person.death || ''}`;
-  }
-
   const handleBack = () => {
     setSelectedPersonId(null);
   };
@@ -133,7 +134,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
 
       <div className={styles.hero}>
         <h2 className={styles.heroName}>{name}</h2>
-        {dates && <p className={styles.heroDates}>{dates}</p>}
+        <DateInfo person={person} className={styles.heroDates} />
         {person.sex && (
           <span className={clsx(styles.heroSexBadge, {
             [styles.male]: person.sex === 'M',

@@ -53,6 +53,9 @@
 }
 
 .heroDates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   font-size: var(--font-size-base);
   color: var(--alpha-white-50);
   margin: 0 0 var(--space-6) 0;
@@ -207,10 +210,11 @@
 }
 
 .relPersonDates {
+  display: flex;
+  flex-direction: column;
   font-size: var(--font-size-xs);
   color: var(--alpha-white-40);
   margin-top: var(--space-1);
-  display: block;
 }
 
 /* Chevron for clickable */
