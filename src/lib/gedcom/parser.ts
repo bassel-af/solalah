@@ -1,5 +1,33 @@
 import type { Individual, Family, GedcomData } from './types';
 
+const GEDCOM_MONTHS: Record<string, string> = {
+  JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
+  JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
+};
+
+function formatGedcomDate(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+
+  // "1 JAN 1990" or "01 JAN 1990" → "01/01/1990"
+  const fullMatch = trimmed.match(/^(\d{1,2})\s+([A-Z]{3})\s+(\d{4})$/);
+  if (fullMatch) {
+    const day = fullMatch[1].padStart(2, '0');
+    const month = GEDCOM_MONTHS[fullMatch[2]] || fullMatch[2];
+    return `${day}/${month}/${fullMatch[3]}`;
+  }
+
+  // "JAN 1990" → "01/1990"
+  const monthYearMatch = trimmed.match(/^([A-Z]{3})\s+(\d{4})$/);
+  if (monthYearMatch) {
+    const month = GEDCOM_MONTHS[monthYearMatch[1]] || monthYearMatch[1];
+    return `${month}/${monthYearMatch[2]}`;
+  }
+
+  // Already numeric or year-only — return as-is
+  return trimmed;
+}
+
 export function parseGedcom(text: string): GedcomData {
   const lines = text.split(/\r\n|\r|\n/);
   const individuals: Record<string, Individual> = {};
@@ -108,9 +136,9 @@ export function parseGedcom(text: string): GedcomData {
             }
           } else if (tag === 'DATE') {
             if (currentSubRecord === 'BIRT') {
-              indi.birth = value || '';
+              indi.birth = formatGedcomDate(value || '');
             } else if (currentSubRecord === 'DEAT') {
-              indi.death = value || '';
+              indi.death = formatGedcomDate(value || '');
             }
           }
         }
