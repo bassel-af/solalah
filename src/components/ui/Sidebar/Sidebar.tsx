@@ -26,24 +26,25 @@ export function Sidebar() {
     selectedPersonId,
     setSelectedPersonId,
     visiblePersonIds,
+    isMobileSidebarOpen,
+    setMobileSidebarOpen,
   } = useTree();
 
   const [searchFilter, setSearchFilter] = useState('');
   const [rootDropdownOpen, setRootDropdownOpen] = useState(false);
   const [rootFilter, setRootFilter] = useState('');
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Close sidebar when clicking on a person (mobile UX improvement)
   useEffect(() => {
     if (focusPersonId && window.innerWidth <= 768) {
-      setIsMobileOpen(false);
+      setMobileSidebarOpen(false);
     }
-  }, [focusPersonId]);
+  }, [focusPersonId, setMobileSidebarOpen]);
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
-    if (isMobileOpen && window.innerWidth <= 768) {
+    if (isMobileSidebarOpen && window.innerWidth <= 768) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -51,7 +52,7 @@ export function Sidebar() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isMobileOpen]);
+  }, [isMobileSidebarOpen]);
 
   // Get selected root display text
   const selectedRoot = rootsList.find((r) => r.id === selectedRootId);
@@ -147,7 +148,7 @@ export function Sidebar() {
     setRootDropdownOpen(false);
     // Close sidebar on mobile after selecting root
     if (window.innerWidth <= 768) {
-      setIsMobileOpen(false);
+      setMobileSidebarOpen(false);
     }
   };
 
@@ -160,9 +161,9 @@ export function Sidebar() {
     <>
       {/* Mobile Toggle Button */}
       <button
-        className={clsx(styles.toggle, { [styles.isOpen]: isMobileOpen })}
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        aria-label={isMobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+        className={clsx(styles.toggle, { [styles.isOpen]: isMobileSidebarOpen })}
+        onClick={() => setMobileSidebarOpen(!isMobileSidebarOpen)}
+        aria-label={isMobileSidebarOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
       >
         <span className={styles.toggleBar} />
         <span className={styles.toggleBar} />
@@ -171,16 +172,16 @@ export function Sidebar() {
 
       {/* Mobile Overlay */}
       <div
-        className={clsx(styles.overlay, { [styles.isVisible]: isMobileOpen })}
-        onClick={() => setIsMobileOpen(false)}
+        className={clsx(styles.overlay, { [styles.isVisible]: isMobileSidebarOpen })}
+        onClick={() => setMobileSidebarOpen(false)}
       />
 
-      <aside className={clsx(styles.sidebar, { [styles.isOpen]: isMobileOpen })}>
+      <aside className={clsx(styles.sidebar, { [styles.isOpen]: isMobileSidebarOpen })}>
         <div className={styles.header}>
           <h2>شجرة العائلة</h2>
           <button
             className={styles.close}
-            onClick={() => setIsMobileOpen(false)}
+            onClick={() => setMobileSidebarOpen(false)}
             aria-label="إغلاق القائمة"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

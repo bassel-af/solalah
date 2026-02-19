@@ -44,12 +44,14 @@ interface PersonNodeData {
   isAncestor: boolean;
   isDescendant: boolean;
   hasHighlight: boolean;
+  selectedPersonId: string | null;
   onPersonClick: (personId: string) => void;
+  onOpenSidebar: () => void;
   [key: string]: unknown;
 }
 
 function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, spouses, isRoot, searchQuery, isHighlightedPerson, isAncestor, isDescendant, hasHighlight, onPersonClick } = data;
+  const { person, spouses, isRoot, searchQuery, isHighlightedPerson, isAncestor, isDescendant, hasHighlight, selectedPersonId, onPersonClick, onOpenSidebar } = data;
 
   const getHighlightClass = (_personId: string, isMainPerson: boolean) => {
     if (!hasHighlight) return '';
@@ -83,27 +85,47 @@ function PersonNode({ data }: { data: PersonNodeData }) {
       onPersonClick(p.id);
     };
 
+    const isSelected = selectedPersonId === p.id;
+
     return (
-      <div
-        className={`person person-clickable ${sexClass} ${rootClass} ${deceasedClass} ${matchClass} ${highlightClass}`.trim()}
-        onClick={handleClick}
-      >
-        <div className="person-name">{displayName}</div>
-        {(p.birth || p.death || p.isDeceased) && (
-          <div className="person-dates-container">
-            {p.birth && (
-              <div className="person-date-row">
-                <iconify-icon icon="lucide:calendar" width="14" />
-                <span>{p.birth}</span>
-              </div>
-            )}
-            {p.death && (
-              <div className="person-date-row death">
-                <iconify-icon icon="mdi:star-crescent" width="14" />
-                <span>{p.death}</span>
-              </div>
-            )}
-          </div>
+      <div className="person-card-wrapper">
+        <div
+          className={`person person-clickable ${sexClass} ${rootClass} ${deceasedClass} ${matchClass} ${highlightClass}`.trim()}
+          onClick={handleClick}
+        >
+          <div className="person-name">{displayName}</div>
+          {(p.birth || p.death || p.isDeceased) && (
+            <div className="person-dates-container">
+              {p.birth && (
+                <div className="person-date-row">
+                  <iconify-icon icon="lucide:calendar" width="14" />
+                  <span>{p.birth}</span>
+                </div>
+              )}
+              {p.death && (
+                <div className="person-date-row death">
+                  <iconify-icon icon="mdi:star-crescent" width="14" />
+                  <span>{p.death}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {isSelected && (
+          <button
+            className="person-detail-fab"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenSidebar();
+            }}
+            aria-label="عرض تفاصيل الشخص"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M20 21V19C20 16.79 18.21 15 16 15H8C5.79 15 4 16.79 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            <span>التفاصيل</span>
+          </button>
         )}
       </div>
     );
@@ -325,7 +347,9 @@ function buildTreeData(
   maxDepth: number,
   searchQuery: string,
   highlightState: HighlightState,
-  onPersonClick: (personId: string) => void
+  selectedPersonId: string | null,
+  onPersonClick: (personId: string) => void,
+  onOpenSidebar: () => void
 ): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -402,7 +426,9 @@ function buildTreeData(
         isAncestor,
         isDescendant,
         hasHighlight,
+        selectedPersonId,
         onPersonClick,
+        onOpenSidebar,
       } as PersonNodeData,
     });
 
@@ -490,7 +516,7 @@ function buildTreeData(
 }
 
 function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
-  const { data, selectedRootId, config, searchQuery, focusPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId } = useTree();
+  const { data, selectedRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setMobileSidebarOpen } = useTree();
   const { setViewport, setCenter, getZoom } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -513,6 +539,11 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
     setHighlightedPersonId(highlightedPersonId === personId ? null : personId);
     setSelectedPersonId(personId);
   }, [highlightedPersonId, setHighlightedPersonId, setSelectedPersonId]);
+
+  // Open sidebar on mobile (triggered from node FAB)
+  const handleOpenSidebar = useCallback(() => {
+    setMobileSidebarOpen(true);
+  }, [setMobileSidebarOpen]);
 
   // Clear highlight when root changes
   useEffect(() => {
@@ -571,11 +602,13 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
       config.maxDepth,
       searchQuery,
       highlightState,
-      handlePersonClick
+      selectedPersonId,
+      handlePersonClick,
+      handleOpenSidebar
     );
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [data, selectedRootId, config.maxDepth, searchQuery, highlightState, handlePersonClick]);
+  }, [data, selectedRootId, config.maxDepth, searchQuery, highlightState, selectedPersonId, handlePersonClick, handleOpenSidebar]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

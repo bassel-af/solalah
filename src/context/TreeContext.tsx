@@ -24,6 +24,7 @@ interface TreeState {
   selectedPersonId: string | null;
   highlightedPersonId: string | null;
   visiblePersonIds: Set<string>;
+  isMobileSidebarOpen: boolean;
   config: TreeConfig;
   isLoading: boolean;
   error: string | null;
@@ -37,6 +38,7 @@ interface TreeContextValue extends TreeState {
   setFocusPersonId: (id: string | null) => void;
   setSelectedPersonId: (id: string | null) => void;
   setHighlightedPersonId: (id: string | null) => void;
+  setMobileSidebarOpen: (open: boolean) => void;
   setConfig: (config: Partial<TreeConfig>) => void;
   setError: (error: string | null) => void;
 }
@@ -65,6 +67,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
   const [highlightedPersonId, setHighlightedPersonIdState] = useState<string | null>(null);
   const [config, setConfigState] = useState<TreeConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
 
   // Compute rootsList based on strategy
@@ -153,6 +156,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     selectedPersonId,
     highlightedPersonId,
     visiblePersonIds,
+    isMobileSidebarOpen,
     config,
     isLoading,
     error,
@@ -163,6 +167,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     setFocusPersonId,
     setSelectedPersonId,
     setHighlightedPersonId,
+    setMobileSidebarOpen,
     setConfig,
     setError,
   };
