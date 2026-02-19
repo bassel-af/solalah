@@ -27,7 +27,7 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - **UI**: React 19.x with TypeScript 5.x
 - **Tree Visualization**: @xyflow/react (React Flow) with custom tree layout algorithm
 - **Styling**: CSS with design tokens (`src/styles/tokens/`)
-- **Testing**: Vitest with @testing-library/react and jsdom (see `docs/testing.md` for E2E query params)
+- **Testing**: Vitest with @testing-library/react and jsdom (see `docs/testing.md` for browser test mode)
 
 ## Code Architecture
 
@@ -121,4 +121,4 @@ Run `pnpm test` after logic changes (skip for trivial changes like print stateme
 
 Check the browser when you have done work related to the frontend. It's better to use the default browser. Do not specify a browser.
 
-**IMPORTANT: For browser/Playwright testing, ALWAYS use test mode URL. See `docs/testing.md` for required query parameters.**
+**IMPORTANT: For browser/Playwright testing, ALWAYS use the test route: `http://localhost:3000/test?only=canvas`. See `docs/testing.md` for all query parameters.**

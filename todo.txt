@@ -1,12 +1,4 @@
 - أجب عن سؤال: فلان كيف يقرب لفلان، والعكس
 
-- Fix bug: when a person is clicked and his details
-is open in the side bar, then التركيز في الشجرة 
-is clicked, when you try to click another person,
-the canvas returns to centered person in stupid
-way. (produced on mobile)
-
 - Find a solution for version control of the
 family files.
-
-- Show date as numbers, not as month name or shortcut.
