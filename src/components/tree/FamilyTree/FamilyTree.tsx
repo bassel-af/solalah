@@ -516,7 +516,7 @@ function buildTreeData(
 }
 
 function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
-  const { data, selectedRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setMobileSidebarOpen } = useTree();
+  const { data, selectedRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setFocusPersonId, setMobileSidebarOpen } = useTree();
   const { setViewport, setCenter, getZoom } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -620,6 +620,7 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   // Center viewport on focused person (including spouses who are part of another node)
+  // Clear focusPersonId after centering so the effect only fires once per focus request.
   useEffect(() => {
     if (!focusPersonId || !isReady) return;
 
@@ -639,7 +640,9 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
     }
 
     scrollToNode(targetNodeId, nodes, 'center', true);
-  }, [focusPersonId, nodes, isReady, scrollToNode]);
+    // Clear focus target so subsequent node changes don't re-trigger centering
+    setFocusPersonId(null);
+  }, [focusPersonId, nodes, isReady, scrollToNode, setFocusPersonId]);
 
   // Scroll to root when selectedRootId changes (not on initial load)
   useEffect(() => {

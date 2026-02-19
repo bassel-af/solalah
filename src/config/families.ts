@@ -30,6 +30,12 @@ export const FAMILIES: Record<string, FamilyConfig> = {
     displayName: 'آل شربك',
     gedcomFile: '/saeed-family.ged',
   },
+  test: {
+    slug: 'test',
+    rootId: '@I1@',
+    displayName: 'عائلة اختبار',
+    gedcomFile: '/test-family.ged',
+  },
 };
 
 export function getFamilyBySlug(slug: string): FamilyConfig | undefined {
