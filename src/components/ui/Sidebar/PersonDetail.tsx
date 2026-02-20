@@ -95,6 +95,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
     visiblePersonIds,
     setSelectedPersonId,
     setFocusPersonId,
+    setHighlightedPersonId,
   } = useTree();
 
   const person = data?.individuals[personId];
@@ -113,6 +114,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
   const handlePersonClick = (id: string) => {
     setSelectedPersonId(id);
     setFocusPersonId(id);
+    setHighlightedPersonId(id);
   };
 
   const handleFocusInTree = () => {

@@ -689,6 +689,7 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
         onEdgesChange={onEdgesChange}
         onInit={onInit}
         onNodeClick={(_event, node) => handlePersonClick(node.id)}
+        onPaneClick={() => setHighlightedPersonId(null)}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.SmoothStep}
         minZoom={0.1}

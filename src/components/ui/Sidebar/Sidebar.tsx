@@ -25,6 +25,7 @@ export function Sidebar() {
     setFocusPersonId,
     selectedPersonId,
     setSelectedPersonId,
+    setHighlightedPersonId,
     visiblePersonIds,
     isMobileSidebarOpen,
     setMobileSidebarOpen,
@@ -155,6 +156,7 @@ export function Sidebar() {
   const handlePersonClick = (id: string) => {
     setSelectedPersonId(id);
     setFocusPersonId(id);
+    setHighlightedPersonId(id);
   };
 
   return (

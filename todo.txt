@@ -1,4 +1,8 @@
 - أجب عن سؤال: فلان كيف يقرب لفلان، والعكس
 
-- Find a solution for version control of the
-family files.
+- When a person is clicked in the sidebar,
+the nodes highlight shall be updated in the canvas.
+
+- When the user clicks in the canvas (no node
+clicked), the nodes highlighted shall be
+unhighlighted.
