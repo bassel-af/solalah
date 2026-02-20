@@ -158,8 +158,9 @@
   display: flex;
   align-items: center;
   padding: var(--space-4) var(--space-9);
+  padding-right: calc(var(--space-9) + 16px);
   transition: all var(--transition-fast);
-  border-right: 3px solid transparent;
+  position: relative;
 }
 
 /* Clickable person */
@@ -198,13 +199,27 @@
   font-style: italic;
 }
 
-/* Gender borders */
-.relPerson.male {
-  border-right-color: rgba(99, 179, 237, 0.4);
+/* Gender dot indicator */
+.relPerson.male::before,
+.relPerson.female::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: var(--space-7);
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
 }
 
-.relPerson.female {
-  border-right-color: rgba(237, 100, 166, 0.4);
+.relPerson.male::before {
+  background: rgba(99, 179, 237, 0.5);
+  box-shadow: 0 0 4px rgba(99, 179, 237, 0.3);
+}
+
+.relPerson.female::before {
+  background: rgba(237, 100, 166, 0.5);
+  box-shadow: 0 0 4px rgba(237, 100, 166, 0.3);
 }
 
 /* Person info */
@@ -259,10 +274,12 @@
 
   .relPerson {
     padding: var(--space-3) var(--space-7);
+    padding-right: calc(var(--space-7) + 16px);
   }
 
   .relPersonClickable {
     padding: var(--space-3) var(--space-7);
+    padding-right: calc(var(--space-7) + 16px);
   }
 }
 
@@ -285,9 +302,11 @@
 
   .relPerson {
     padding: var(--space-3) var(--space-6);
+    padding-right: calc(var(--space-6) + 16px);
   }
 
   .relPersonClickable {
     padding: var(--space-3) var(--space-6);
+    padding-right: calc(var(--space-6) + 16px);
   }
 }
