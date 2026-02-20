@@ -83,32 +83,44 @@
   border: 1px solid rgba(237, 100, 166, 0.25);
 }
 
+/* Hero Actions Row */
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
 /* Focus in Tree Button */
 .focusButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  width: 100%;
-  margin-top: var(--space-6);
-  padding: var(--space-5) var(--space-7);
+  width: 36px;
+  height: 36px;
+  padding: 0;
   background: var(--alpha-white-08);
   border: 1px solid var(--alpha-white-12);
-  border-radius: var(--radius-xl);
-  color: var(--color-text-inverse);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-full);
+  color: var(--alpha-white-60);
   cursor: pointer;
   transition: all var(--transition-base);
 }
 
 .focusButton:hover {
   background: var(--alpha-white-15);
-  border-color: var(--alpha-white-20);
+  border-color: var(--alpha-white-25);
+  color: var(--color-text-inverse);
+}
+
+.focusButton:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-primary);
+  border-color: var(--color-primary-light);
 }
 
 .focusButton:active {
-  transform: scale(0.98);
+  transform: scale(0.92);
 }
 
 /* Relationship Sections */
