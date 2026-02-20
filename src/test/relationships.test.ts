@@ -127,6 +127,168 @@ describe('getPersonRelationships', () => {
     expect(rel.children.map((p) => p.id)).toEqual(['@I4@', '@I5@'])
   })
 
+  it('excludes a private father from parents while retaining the non-private mother', () => {
+    const gedcom = `
+0 @I1@ INDI
+1 NAME PRIVATE
+1 SEX M
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME Mother
+1 SEX F
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Child
+1 FAMC @F1@
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+`.trim()
+
+    const data = parseGedcom(gedcom)
+    const rel = getPersonRelationships(data, '@I3@')
+
+    expect(rel.parents.map((p) => p.id)).toEqual(['@I2@'])
+  })
+
+  it('excludes a private mother from parents while retaining the non-private father', () => {
+    const gedcom = `
+0 @I1@ INDI
+1 NAME Father
+1 SEX M
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME PRIVATE
+1 SEX F
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Child
+1 FAMC @F1@
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+`.trim()
+
+    const data = parseGedcom(gedcom)
+    const rel = getPersonRelationships(data, '@I3@')
+
+    expect(rel.parents.map((p) => p.id)).toEqual(['@I1@'])
+  })
+
+  it('excludes a private sibling while retaining non-private siblings', () => {
+    const gedcom = `
+0 @I1@ INDI
+1 NAME Subject
+1 FAMC @F1@
+0 @I2@ INDI
+1 NAME PRIVATE
+1 FAMC @F1@
+0 @I3@ INDI
+1 NAME PublicSibling
+1 FAMC @F1@
+0 @F1@ FAM
+1 CHIL @I1@
+1 CHIL @I2@
+1 CHIL @I3@
+`.trim()
+
+    const data = parseGedcom(gedcom)
+    const rel = getPersonRelationships(data, '@I1@')
+
+    expect(rel.siblings.map((p) => p.id)).toEqual(['@I3@'])
+  })
+
+  it('excludes a private spouse from the spouses list', () => {
+    const gedcom = `
+0 @I1@ INDI
+1 NAME Subject
+1 SEX M
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME PRIVATE
+1 SEX F
+1 FAMS @F1@
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+`.trim()
+
+    const data = parseGedcom(gedcom)
+    const rel = getPersonRelationships(data, '@I1@')
+
+    expect(rel.spouses).toEqual([])
+  })
+
+  it('excludes a private child while retaining non-private children', () => {
+    const gedcom = `
+0 @I1@ INDI
+1 NAME Father
+1 SEX M
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME PRIVATE
+1 FAMC @F1@
+0 @I3@ INDI
+1 NAME PublicChild
+1 FAMC @F1@
+0 @F1@ FAM
+1 HUSB @I1@
+1 CHIL @I2@
+1 CHIL @I3@
+`.trim()
+
+    const data = parseGedcom(gedcom)
+    const rel = getPersonRelationships(data, '@I1@')
+
+    expect(rel.children.map((p) => p.id)).toEqual(['@I3@'])
+  })
+
+  it('returns all empty arrays when every relative is private', () => {
+    const gedcom = `
+0 @I1@ INDI
+1 NAME PRIVATE
+1 SEX M
+1 FAMS @F1@
+0 @I2@ INDI
+1 NAME PRIVATE
+1 SEX F
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Subject
+1 FAMC @F1@
+1 FAMS @F2@
+0 @I4@ INDI
+1 NAME PRIVATE
+1 SEX F
+1 FAMS @F2@
+0 @I5@ INDI
+1 NAME PRIVATE
+1 FAMC @F1@
+0 @I6@ INDI
+1 NAME PRIVATE
+1 FAMC @F2@
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+1 CHIL @I5@
+0 @F2@ FAM
+1 HUSB @I3@
+1 WIFE @I4@
+1 CHIL @I6@
+`.trim()
+
+    const data = parseGedcom(gedcom)
+    const rel = getPersonRelationships(data, '@I3@')
+
+    expect(rel.parents).toEqual([])
+    expect(rel.siblings).toEqual([])
+    expect(rel.spouses).toEqual([])
+    expect(rel.children).toEqual([])
+  })
+
   it('returns empty arrays for a person with no relationships', () => {
     const gedcom = `
 0 @I1@ INDI

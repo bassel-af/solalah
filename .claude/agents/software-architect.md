@@ -32,6 +32,13 @@ When reviewing or designing code, you will evaluate:
 - Are naming conventions clear and consistent?
 - Is the code self-documenting with appropriate comments for complex logic?
 
+### 5. File Size & Module Cohesion
+- Flag files exceeding ~200–300 lines as candidates for decomposition
+- React components should ideally stay under ~150 lines; extract custom hooks, sub-components, or utilities when they grow beyond this
+- Utility/library modules should stay under ~300 lines; split by domain or responsibility when they exceed this
+- Type definition files can be longer but should be split when they cover multiple unrelated domains
+- Test files are exempt from strict limits but should be split per module under test when they grow unwieldy
+
 ## Review Framework
 
 When analyzing code, structure your feedback as:

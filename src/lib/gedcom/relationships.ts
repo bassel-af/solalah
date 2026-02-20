@@ -27,14 +27,14 @@ export function getPersonRelationships(
   if (person.familyAsChild) {
     const family = families[person.familyAsChild];
     if (family) {
-      if (family.husband && individuals[family.husband]) {
+      if (family.husband && individuals[family.husband] && !individuals[family.husband].isPrivate) {
         parents.push(individuals[family.husband]);
       }
-      if (family.wife && individuals[family.wife]) {
+      if (family.wife && individuals[family.wife] && !individuals[family.wife].isPrivate) {
         parents.push(individuals[family.wife]);
       }
       for (const childId of family.children) {
-        if (childId !== personId && individuals[childId]) {
+        if (childId !== personId && individuals[childId] && !individuals[childId].isPrivate) {
           siblings.push(individuals[childId]);
         }
       }
@@ -48,7 +48,7 @@ export function getPersonRelationships(
     if (!family) continue;
 
     const spouseId = family.husband === personId ? family.wife : family.husband;
-    if (spouseId && individuals[spouseId]) {
+    if (spouseId && individuals[spouseId] && !individuals[spouseId].isPrivate) {
       // Avoid duplicate spouses
       if (!spouses.some((s) => s.id === spouseId)) {
         spouses.push(individuals[spouseId]);
@@ -56,7 +56,7 @@ export function getPersonRelationships(
     }
 
     for (const childId of family.children) {
-      if (!childIds.has(childId) && individuals[childId]) {
+      if (!childIds.has(childId) && individuals[childId] && !individuals[childId].isPrivate) {
         childIds.add(childId);
         children.push(individuals[childId]);
       }
