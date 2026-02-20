@@ -3,6 +3,7 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTree } from '@/context/TreeContext';
 import { getDisplayName } from '@/lib/gedcom';
+import { matchesSearch } from '@/lib/utils/search';
 
 interface SearchMatch {
   id: string;
@@ -19,12 +20,11 @@ export function SearchBar() {
   const matches = useMemo<SearchMatch[]>(() => {
     if (!data || !searchQuery.trim()) return [];
 
-    const query = searchQuery.toLowerCase();
     const results: SearchMatch[] = [];
 
     for (const person of Object.values(data.individuals)) {
       const name = getDisplayName(person);
-      if (name.toLowerCase().includes(query)) {
+      if (matchesSearch(name, searchQuery)) {
         let dates = '';
         if (person.birth || person.death) {
           dates = `${person.birth || '?'} - ${person.death || ''}`;

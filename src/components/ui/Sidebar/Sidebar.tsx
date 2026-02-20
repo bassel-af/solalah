@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { useTree } from '@/context/TreeContext';
 import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH } from '@/lib/gedcom';
 import { PersonDetail } from './PersonDetail';
+import { matchesSearch } from '@/lib/utils/search';
 import styles from './Sidebar.module.css';
 
 interface PersonItem {
@@ -60,9 +61,7 @@ export function Sidebar() {
   const selectedRootText = selectedRoot?.text || '';
 
   // Filter roots for dropdown
-  const filteredRoots = rootsList.filter((r) =>
-    r.text.toLowerCase().includes(rootFilter.toLowerCase())
-  );
+  const filteredRoots = rootsList.filter((r) => matchesSearch(r.text, rootFilter));
 
   // Build list of all individuals with their info (excluding private)
   const allIndividuals = useMemo<PersonItem[]>(() => {
@@ -103,8 +102,7 @@ export function Sidebar() {
 
     // Apply search filter
     if (searchFilter.trim()) {
-      const query = searchFilter.toLowerCase();
-      filtered = filtered.filter((p) => p.name.toLowerCase().includes(query));
+      filtered = filtered.filter((p) => matchesSearch(p.name, searchFilter));
     }
 
     return filtered;
