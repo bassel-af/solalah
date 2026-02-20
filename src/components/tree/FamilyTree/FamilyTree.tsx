@@ -698,7 +698,8 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
         nodesConnectable={false}
         elementsSelectable={false}
         panOnDrag
-        zoomOnScroll
+        panOnScroll
+        zoomOnScroll={false}
         zoomOnPinch
       >
         {!hideControls && <Controls />}
