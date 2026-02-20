@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { GedcomData, RootAncestor, TreeConfig } from '@/lib/gedcom';
-import { findRootAncestors, findDefaultRoot, getDisplayName, getAllDescendants, getTreeVisibleIndividuals } from '@/lib/gedcom';
+import { findRootAncestors, findDefaultRoot, getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH, getAllDescendants, getTreeVisibleIndividuals } from '@/lib/gedcom';
 
 export type RootFilterStrategy = 'all' | 'descendants';
 
@@ -79,7 +79,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     // Build list of all individuals
     const allRoots = findRootAncestors(newData).map((person) => ({
       id: person.id,
-      text: getDisplayName(person) + (person.birth ? ` (${person.birth})` : ''),
+      text: getDisplayNameWithNasab(newData, person, DEFAULT_NASAB_DEPTH) + (person.birth ? ` (${person.birth})` : ''),
     }));
     setAllRootsList(allRoots);
 

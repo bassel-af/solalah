@@ -488,7 +488,7 @@
 
 .dropdownList {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  bottom: calc(100% + var(--space-1));
   right: 0;
   left: 0;
   max-height: 240px;
