@@ -37,12 +37,6 @@ export function Sidebar() {
   const [rootFilter, setRootFilter] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Close sidebar when clicking on a person (mobile UX improvement)
-  useEffect(() => {
-    if (focusPersonId && window.innerWidth <= 768) {
-      setMobileSidebarOpen(false);
-    }
-  }, [focusPersonId, setMobileSidebarOpen]);
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
