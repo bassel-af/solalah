@@ -48,6 +48,7 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
               className={clsx(styles.relPersonClickable, {
                 [styles.male]: person.sex === 'M',
                 [styles.female]: person.sex === 'F',
+                [styles.deceased]: person.isDeceased,
               })}
               onClick={() => onPersonClick(person.id)}
             >
@@ -185,6 +186,13 @@ export function PersonDetail({ personId }: PersonDetailProps) {
           people={relationships.children}
           visiblePersonIds={visiblePersonIds}
           onPersonClick={handlePersonClick}
+        />
+        <RelationshipSection
+          title="الأعمام والعمات"
+          people={relationships.paternalUncles}
+          visiblePersonIds={visiblePersonIds}
+          onPersonClick={handlePersonClick}
+          hideNonVisible
         />
       </div>
     </div>

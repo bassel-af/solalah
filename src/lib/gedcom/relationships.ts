@@ -3,6 +3,7 @@ import type { Individual, GedcomData } from './types';
 export interface PersonRelationships {
   parents: Individual[];
   siblings: Individual[];
+  paternalUncles: Individual[];
   spouses: Individual[];
   children: Individual[];
 }
@@ -16,11 +17,12 @@ export function getPersonRelationships(
 
   const parents: Individual[] = [];
   const siblings: Individual[] = [];
+  const paternalUncles: Individual[] = [];
   const spouses: Individual[] = [];
   const children: Individual[] = [];
 
   if (!person) {
-    return { parents, siblings, spouses, children };
+    return { parents, siblings, paternalUncles, spouses, children };
   }
 
   // Parents & siblings from familyAsChild
@@ -36,6 +38,25 @@ export function getPersonRelationships(
       for (const childId of family.children) {
         if (childId !== personId && individuals[childId] && !individuals[childId].isPrivate) {
           siblings.push(individuals[childId]);
+        }
+      }
+    }
+  }
+
+  // Paternal uncles: father's brothers from the grandfather's family
+  if (person.familyAsChild) {
+    const birthFamily = families[person.familyAsChild];
+    const fatherId = birthFamily?.husband;
+    if (fatherId && individuals[fatherId]) {
+      const father = individuals[fatherId];
+      if (father.familyAsChild) {
+        const grandfatherFamily = families[father.familyAsChild];
+        if (grandfatherFamily) {
+          for (const uncleId of grandfatherFamily.children) {
+            if (uncleId !== fatherId && individuals[uncleId] && !individuals[uncleId].isPrivate) {
+              paternalUncles.push(individuals[uncleId]);
+            }
+          }
         }
       }
     }
@@ -63,5 +84,5 @@ export function getPersonRelationships(
     }
   }
 
-  return { parents, siblings, spouses, children };
+  return { parents, siblings, paternalUncles, spouses, children };
 }

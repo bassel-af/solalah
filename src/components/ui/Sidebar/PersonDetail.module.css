@@ -186,9 +186,27 @@
   composes: relPerson;
 }
 
-/* Deceased non-visible person — grey out to indicate they are dead */
-.relPersonStatic.deceased {
-  opacity: 0.4;
+/* Deceased person — grey out to indicate they are dead */
+.relPerson.deceased {
+  opacity: 0.5;
+}
+
+.relPerson.deceased .relPersonName {
+  color: var(--alpha-white-50);
+}
+
+.relPerson.deceased .relPersonDates {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.relPerson.deceased.male::before {
+  background: rgba(99, 179, 237, 0.25);
+  box-shadow: none;
+}
+
+.relPerson.deceased.female::before {
+  background: rgba(237, 100, 166, 0.25);
+  box-shadow: none;
 }
 
 /* Out of scope label */
