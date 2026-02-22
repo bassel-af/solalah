@@ -49,8 +49,20 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 
 **Parser** (`src/lib/gedcom/parser.ts`):
 - `parseGedcom(text: string)` - Parses raw GEDCOM text into structured data
-- `findRootAncestors(data)` - Identifies individuals with no parents who have families
 - `getDisplayName(person)` - Formats person names for display
+
+**Display** (`src/lib/gedcom/display.ts`):
+- `getDisplayNameWithNasab(person, data, depth?)` - Arabic nasab/patronymic chain using بن/بنت connectors (`DEFAULT_NASAB_DEPTH = 2`)
+
+**Roots** (`src/lib/gedcom/roots.ts`):
+- `findRootAncestors(data)` - Identifies individuals with no parents who have families
+- `findDefaultRoot(data)` - Picks root ancestor with the most descendants
+
+**Relationships** (`src/lib/gedcom/relationships.ts`):
+- `getPersonRelationships()` - Returns `{ parents, siblings, paternalUncles, spouses, children }`
+
+**Search** (`src/lib/gedcom/search.ts`):
+- `matchesSearch()` - Multi-word, diacritic-stripping, case-insensitive Arabic/Latin search
 
 **Types** (`src/lib/gedcom/types.ts`):
 - `Individual` - Person record with name, birth/death dates, sex, family references, `isPrivate` flag
@@ -66,6 +78,7 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 
 The app uses dynamic routing (`src/app/[familySlug]/page.tsx`) with a family configuration system:
 - **Config** (`src/config/families.ts`): Defines `FamilyConfig` entries (slug, rootId, displayName, gedcomFile) in a `FAMILIES` record
+- The `test` family config uses `test-family.ged` (small fixture) — used by the `/test` browser test route
 - **Root URL** (`/`) returns 404 — users access family trees via `/{familySlug}` (e.g., `/saeed`, `/al-dabbagh`, `/al-dalati`, `/sharbek`)
 - Each family route is statically generated via `generateStaticParams()`
 - `FamilyTreeClient` wraps the tree in `<TreeProvider>` with a `forcedRootId` from the family config
@@ -99,12 +112,30 @@ The GEDCOM file (`public/saeed-family.ged`):
 
 ### CSS Architecture
 
-Design tokens are defined in `src/styles/tokens/`:
-- `colors.css` - Color palette
-- `typography.css` - Font sizes and weights
-- `spacing.css` - Spacing scale
-- `shadows.css` - Box shadows
-- `transitions.css` - Animation timings
+- Component styles use **CSS Modules** (`.module.css` files co-located with components)
+- Tree-specific global styles in `src/styles/tree-global.css` (targets React Flow classes)
+- Design tokens are defined in `src/styles/tokens/`:
+  - `colors.css` - Color palette
+  - `typography.css` - Font sizes and weights
+  - `spacing.css` - Spacing scale
+  - `shadows.css` - Box shadows
+  - `transitions.css` - Animation timings
+
+### Naming Conventions
+
+- **PascalCase** for component directories and files (e.g., `FamilyTree/FamilyTree.tsx`)
+- **camelCase** for hooks and utility files (e.g., `useTree.ts`, `display.ts`)
+- **kebab-case** for CSS files (e.g., `tree-global.css`)
+
+### Mobile Patterns
+
+- Sidebar has mobile overlay with FAB (floating action button) toggle
+- Node cards show details FAB on mobile when a person is selected
+- Body scroll is locked when mobile sidebar is open
+
+### Dev Tools
+
+- `?playground` query param renders `Playground.tsx` (SVG-line-based tree layout experiment) instead of the main app
 
 ## TypeScript Configuration
 
