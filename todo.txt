@@ -1,3 +1,6 @@
+In mobile browser, in person detail in the sidebar, when we click gps icon, the sidebar shall disappear
+
+
 أعمام الشخص (Done)
 أحفاد (Done)
 أبناء الأشقاء والشقيقات
