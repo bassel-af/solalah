@@ -30,15 +30,15 @@
 
 .icon {
   font-size: 48px;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-11);
   opacity: 0.85;
 }
 
 .title {
-  font-size: 28px;
+  font-size: var(--font-size-6xl);
   font-weight: var(--font-weight-bold);
   color: var(--alpha-white-85);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-5);
   letter-spacing: -0.5px;
 }
 
@@ -49,22 +49,51 @@
   line-height: 1.6;
 }
 
+/* Divider — decorative accent line */
 .divider {
-  width: 40px;
-  height: 1px;
-  background: var(--alpha-white-10);
-  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto var(--space-11);
 }
 
+.divider::before,
+.divider::after {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--alpha-white-10);
+}
+
+.dividerDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.4;
+}
+
+/* Contact section */
 .contact {
   font-size: var(--font-size-sm);
   color: var(--alpha-white-25);
+  margin: 0;
+}
+
+.contactLabel {
+  display: block;
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-25);
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: var(--space-3);
+  font-weight: var(--font-weight-medium);
 }
 
 .contact a {
   color: var(--color-primary-light);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--transition-base);
 }
 
 .contact a:hover {
@@ -77,6 +106,6 @@
   }
 
   .title {
-    font-size: 24px;
+    font-size: var(--font-size-5xl);
   }
 }
