@@ -20,6 +20,11 @@ export default function RootLayout({
           src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"
           strategy="beforeInteractive"
         />
+        <Script
+          src="https://analytics.autoflowa.com/script.js"
+          data-website-id="3797d417-f3f8-45cb-b925-6e915a3e8ef9"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

@@ -21,7 +21,7 @@ export const FAMILIES: Record<string, FamilyConfig> = {
   'al-dalati': {
     slug: 'al-dalati',
     rootId: '@37458008@',
-    displayName: 'آل الدلاتي',
+    displayName: 'آل الدالاتي',
     gedcomFile: '/saeed-family.ged',
   },
   'sharbek': {
