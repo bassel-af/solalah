@@ -9,7 +9,7 @@ export const FAMILIES: Record<string, FamilyConfig> = {
   'saeed': {
     slug: 'saeed',
     rootId: '@4709420@',
-    displayName: 'آل سعيد',
+    displayName: 'آل سعيّد',
     gedcomFile: '/saeed-family.ged',
   },
   'al-dabbagh': {
