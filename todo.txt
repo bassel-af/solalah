@@ -1,6 +1,3 @@
-
-
-
 In mobile browser, in person detail in the sidebar, when we click gps icon, the sidebar shall disappear.
 أعمام الشخص (Done)
 أحفاد (Done)
@@ -10,6 +7,3 @@ In mobile browser, in person detail in the sidebar, when we click gps icon, the 
 أبناء الخال
 أبناء الخالات
 أنساب
-
-when a person is clicked, the related people are not
-shown dead or not
