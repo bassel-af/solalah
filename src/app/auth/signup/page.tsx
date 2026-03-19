@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import styles from '../auth.module.css';
 
 export default function SignupPage() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next') || '/dashboard';
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +19,7 @@ export default function SignupPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/auth/callback',
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
   }
@@ -50,7 +53,7 @@ export default function SignupPage() {
       });
     }
 
-    window.location.href = '/dashboard';
+    window.location.href = next;
   }
 
   return (
@@ -130,7 +133,7 @@ export default function SignupPage() {
 
         <p className={styles.switchLink}>
           لديك حساب بالفعل؟{' '}
-          <a href="/auth/login">تسجيل الدخول</a>
+          <a href={`/auth/login${next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`}>تسجيل الدخول</a>
         </p>
       </div>
     </main>

@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import styles from '../auth.module.css';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next') || '/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +18,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/auth/callback',
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
   }
@@ -42,8 +45,6 @@ export default function LoginPage() {
       });
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get('next') || '/dashboard';
     window.location.href = next;
   }
 
@@ -110,7 +111,7 @@ export default function LoginPage() {
 
         <p className={styles.switchLink}>
           ليس لديك حساب؟{' '}
-          <a href="/auth/signup">إنشاء حساب</a>
+          <a href={`/auth/signup${next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`}>إنشاء حساب</a>
         </p>
       </div>
     </main>

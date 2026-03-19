@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireWorkspaceMember, requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
+import { sendEmail } from '@/lib/email/transport';
+import { buildInviteEmail } from '@/lib/email/templates/invite';
 import { z } from 'zod';
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -65,6 +67,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
   const invitation = await prisma.workspaceInvitation.create({
     data: {
       workspaceId: id,
@@ -72,11 +77,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       email,
       individualId: individualId ?? null,
       invitedById: result.user.id,
+      expiresAt,
+      maxUses: 1,
     },
   });
 
-  // Email sending is stubbed
-  console.log(`[STUB] Sending workspace invitation email to ${email} for workspace ${id}`);
+  // Look up workspace name and inviter name for the email
+  let emailSent = false;
+  try {
+    const workspace = await prisma.workspace.findUnique({
+      where: { id },
+      select: { nameAr: true },
+    });
+    const inviter = await prisma.user.findUnique({
+      where: { id: result.user.id },
+      select: { displayName: true },
+    });
 
-  return NextResponse.json({ data: invitation }, { status: 201 });
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const inviteUrl = `${siteUrl}/invite/${invitation.id}`;
+
+    const emailContent = buildInviteEmail({
+      workspaceName: workspace?.nameAr ?? 'عائلة',
+      inviterName: inviter?.displayName ?? 'عضو',
+      inviteUrl,
+    });
+
+    await sendEmail({
+      to: email,
+      ...emailContent,
+    });
+    emailSent = true;
+  } catch (error) {
+    console.error('Failed to send invitation email:', error);
+  }
+
+  return NextResponse.json({ data: invitation, emailSent }, { status: 201 });
 }

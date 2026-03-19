@@ -17,6 +17,7 @@ const mockMembershipDelete = vi.fn();
 const mockMembershipCount = vi.fn();
 const mockInvitationCreate = vi.fn();
 const mockUserFindUnique = vi.fn();
+const mockWorkspaceFindUnique = vi.fn();
 
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -34,7 +35,15 @@ vi.mock('@/lib/db', () => ({
     user: {
       findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
     },
+    workspace: {
+      findUnique: (...args: unknown[]) => mockWorkspaceFindUnique(...args),
+    },
   },
+}));
+
+const mockSendEmail = vi.fn();
+vi.mock('@/lib/email/transport', () => ({
+  sendEmail: (...args: unknown[]) => mockSendEmail(...args),
 }));
 
 import { NextRequest } from 'next/server';
@@ -196,8 +205,12 @@ describe('POST /api/workspaces/[id]/members', () => {
       workspaceId: wsId,
       role: 'workspace_admin',
     });
-    mockUserFindUnique.mockResolvedValue(null); // user not registered yet
+    mockUserFindUnique
+      .mockResolvedValueOnce(null) // user not registered yet (membership check)
+      .mockResolvedValueOnce({ displayName: 'Admin' }); // inviter lookup
     mockMembershipFindMany.mockResolvedValue([]); // not a member
+    mockWorkspaceFindUnique.mockResolvedValue({ name: 'آل سعيد' });
+    mockSendEmail.mockResolvedValue({});
 
     const invitation = {
       id: 'inv-uuid-1',
@@ -219,6 +232,7 @@ describe('POST /api/workspaces/[id]/members', () => {
     const body = await res.json();
     expect(body.data.email).toBe('new@example.com');
     expect(body.data.type).toBe('email');
+    expect(body.emailSent).toBe(true);
   });
 
   test('creates invitation with optional individualId', async () => {
@@ -228,8 +242,12 @@ describe('POST /api/workspaces/[id]/members', () => {
       workspaceId: wsId,
       role: 'workspace_admin',
     });
-    mockUserFindUnique.mockResolvedValue(null);
+    mockUserFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ displayName: 'Admin' });
     mockMembershipFindMany.mockResolvedValue([]);
+    mockWorkspaceFindUnique.mockResolvedValue({ name: 'آل سعيد' });
+    mockSendEmail.mockResolvedValue({});
 
     const indId = 'a0000000-0000-4000-a000-000000000001';
     const invitation = {
@@ -252,6 +270,74 @@ describe('POST /api/workspaces/[id]/members', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.individualId).toBe(indId);
+  });
+
+  test('returns emailSent false when email sending fails', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+    mockUserFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ displayName: 'Admin' });
+    mockMembershipFindMany.mockResolvedValue([]);
+    mockWorkspaceFindUnique.mockResolvedValue({ name: 'آل سعيد' });
+    mockSendEmail.mockRejectedValue(new Error('SMTP connection failed'));
+
+    const invitation = {
+      id: 'inv-uuid-3',
+      workspaceId: wsId,
+      type: 'email',
+      email: 'fail@example.com',
+      invitedById: fakeUser.id,
+    };
+    mockInvitationCreate.mockResolvedValue(invitation);
+
+    const { POST } = await import('@/app/api/workspaces/[id]/members/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/members`, {
+      method: 'POST',
+      body: { email: 'fail@example.com' },
+    });
+    const res = await POST(req, membersParams);
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.emailSent).toBe(false);
+    expect(body.data.id).toBe('inv-uuid-3');
+  });
+
+  test('sets expiresAt and maxUses when creating invitation', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+    mockUserFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ displayName: 'Admin' });
+    mockMembershipFindMany.mockResolvedValue([]);
+    mockWorkspaceFindUnique.mockResolvedValue({ name: 'Test' });
+    mockSendEmail.mockResolvedValue({});
+    mockInvitationCreate.mockResolvedValue({ id: 'inv-uuid-4' });
+
+    const { POST } = await import('@/app/api/workspaces/[id]/members/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/members`, {
+      method: 'POST',
+      body: { email: 'test@example.com' },
+    });
+    await POST(req, membersParams);
+
+    const createCall = mockInvitationCreate.mock.calls[0][0];
+    expect(createCall.data.maxUses).toBe(1);
+    expect(createCall.data.expiresAt).toBeInstanceOf(Date);
+    // expiresAt should be ~7 days from now
+    const diffMs = createCall.data.expiresAt.getTime() - Date.now();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    expect(diffDays).toBeGreaterThan(6.9);
+    expect(diffDays).toBeLessThan(7.1);
   });
 });
 
