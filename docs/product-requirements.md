@@ -392,6 +392,14 @@ Notification
 - Storage quota tracked in schema (5 GB default) but not enforced
 - Tests — workspaces, workspace detail, workspace members, workspace invitations, workspace by-slug (38 tests)
 
+**✅ Email invites & Google OAuth:**
+- Email invite sending — Nodemailer transport (`src/lib/email/transport.ts`) with Gmail SMTP, Arabic RTL email template (`src/lib/email/templates/invite.ts`)
+- Invite acceptance flow — `/invite/[id]` server+client page, `POST /api/invitations/[id]/accept` with full validation (status, expiry, email match, already-member, race condition handling)
+- Invitations set `expiresAt` (7 days) and `maxUses: 1`; acceptance is atomic via `$transaction`
+- Google OAuth — configured in GoTrue (`docker/.env`), redirect URI via Kong, `?next` param forwarded through OAuth+signup flows
+- Auth pages fixed — `useSearchParams` for SSR-safe `?next` param handling in login/signup
+- Tests — invite email template (9 tests), invite acceptance API (12 tests)
+
 **✅ Policy page:**
 - Policy page — `/policy` (publicly accessible, Arabic primary + English, covers terms/privacy/billing)
 - Clearly states platform is currently free; terms may change with notice
