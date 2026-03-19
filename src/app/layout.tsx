@@ -1,6 +1,15 @@
 import type { Metadata } from 'next';
+import { Noto_Sans_Arabic } from 'next/font/google';
 import Script from 'next/script';
+import { GlobalProviders } from './global-providers';
 import './globals.css';
+
+const notoSansArabic = Noto_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto-sans-arabic',
+});
 
 export const metadata: Metadata = {
   title: 'شجرة العائلة',
@@ -13,9 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" className={notoSansArabic.variable}>
       <body>
-        {children}
+        <GlobalProviders>
+          {children}
+        </GlobalProviders>
         <Script
           src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"
           strategy="beforeInteractive"

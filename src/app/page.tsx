@@ -25,7 +25,9 @@ export default function Home() {
   return (
     <main className={styles.container}>
       <div className={styles.card}>
-        <div className={styles.icon}>🌳</div>
+        <div className={styles.icon}>
+          <iconify-icon icon="material-symbols:family-restroom" width="48" height="48" />
+        </div>
         <h1 className={styles.title}>شجرة العائلة</h1>
         <p className={styles.subtitle}>
           يمكنك الوصول إلى شجرة عائلتك من خلال الرابط المخصص لها

@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { getFamilyBySlug } from '@/config/families';
+import { roleLabel } from '@/lib/workspace/labels';
+import { Spinner } from '@/components/ui/Spinner';
 import styles from './workspace.module.css';
 
 interface Workspace {
@@ -26,17 +28,6 @@ interface Member {
     email: string;
     displayName: string | null;
   };
-}
-
-function roleLabel(role: string): string {
-  switch (role) {
-    case 'workspace_admin':
-      return 'مدير';
-    case 'workspace_member':
-      return 'عضو';
-    default:
-      return role;
-  }
 }
 
 export default function WorkspaceDetailPage() {
@@ -247,7 +238,9 @@ export default function WorkspaceDetailPage() {
   if (loading) {
     return (
       <main className={styles.container}>
-        <div className={styles.loading}>جاري التحميل...</div>
+        <div className={styles.loading}>
+          <Spinner size="lg" label="جاري التحميل..." />
+        </div>
       </main>
     );
   }
@@ -257,7 +250,7 @@ export default function WorkspaceDetailPage() {
       <main className={styles.container}>
         <header className={styles.header}>
           <Link href="/dashboard" className={styles.backLink}>
-            &larr; العودة للوحة التحكم
+            &rarr; العودة للوحة التحكم
           </Link>
         </header>
         <div className={styles.content}>
@@ -275,7 +268,7 @@ export default function WorkspaceDetailPage() {
         <h1 className={styles.headerTitle}>{workspace.nameAr}</h1>
         <div className={styles.headerRight}>
           <Link href="/dashboard" className={styles.backLink}>
-            &larr; لوحة التحكم
+            &rarr; لوحة التحكم
           </Link>
         </div>
       </header>
@@ -307,7 +300,9 @@ export default function WorkspaceDetailPage() {
         {/* Tree link */}
         {familyConfig ? (
           <Link href={`/${familyConfig.slug}`} className={styles.treeLink}>
-            <span className={styles.treeLinkIcon}>🌳</span>
+            <span className={styles.treeLinkIcon}>
+              <iconify-icon icon="material-symbols:account-tree" width="24" height="24" />
+            </span>
             عرض شجرة العائلة
           </Link>
         ) : (

@@ -1,0 +1,50 @@
+.container {
+  position: fixed;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  pointer-events: none;
+}
+
+.toast {
+  padding: var(--space-3) var(--space-7);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  animation: slideUp var(--transition-base) ease;
+  max-width: 400px;
+  text-align: center;
+}
+
+.success {
+  background: rgba(72, 187, 120, 0.95);
+  color: #fff;
+}
+
+.error {
+  background: rgba(229, 62, 62, 0.95);
+  color: #fff;
+}
+
+.info {
+  background: rgba(74, 144, 217, 0.95);
+  color: #fff;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

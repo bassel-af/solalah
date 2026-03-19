@@ -1,37 +1,8 @@
-.container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--color-dark-900);
-  overflow: hidden;
-  position: relative;
-}
-
-.container::before {
-  content: '';
-  position: absolute;
-  top: -40%;
-  right: -20%;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(74, 144, 217, 0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.card {
-  text-align: center;
-  padding: 48px 40px;
-  max-width: 420px;
-  width: 100%;
-}
-
 .icon {
   font-size: 48px;
   margin-bottom: var(--space-11);
   opacity: 0.85;
+  color: var(--alpha-white-70);
 }
 
 .title {
@@ -44,7 +15,7 @@
 .subtitle {
   font-size: var(--font-size-base);
   color: var(--alpha-white-40);
-  margin: 0 0 32px;
+  margin: 0 0 var(--space-13);
   line-height: 1.6;
 }
 
@@ -120,6 +91,19 @@
   text-align: center;
 }
 
+/* Forgot password link */
+.forgotLink {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-35);
+  text-decoration: none;
+  text-align: start;
+  transition: color var(--transition-base);
+}
+
+.forgotLink:hover {
+  color: var(--color-primary-light);
+}
+
 /* Switch link */
 .switchLink {
   margin-top: 24px;
@@ -183,10 +167,4 @@
 
 .googleIcon {
   flex-shrink: 0;
-}
-
-@media (max-width: 480px) {
-  .card {
-    padding: 32px 24px;
-  }
 }

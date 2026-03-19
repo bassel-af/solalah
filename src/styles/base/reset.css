@@ -16,10 +16,27 @@ body {
   padding: 0;
   background: var(--color-light-100);
   direction: rtl;
-  height: 100vh;
-  overflow: hidden;
 }
 
-#root {
-  height: 100vh;
+/* Focus-visible styles */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus-primary);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 0;
+  box-shadow: var(--shadow-focus-primary);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus-accent);
+  border-radius: var(--radius-sm);
 }

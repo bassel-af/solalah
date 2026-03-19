@@ -157,6 +157,7 @@
   font-size: 64px;
   opacity: 0.5;
   margin-bottom: var(--space-4);
+  color: var(--alpha-white-50);
 }
 
 .emptyTitle {
@@ -192,10 +193,10 @@
 
 /* Loading */
 .loading {
-  text-align: center;
-  padding: var(--space-12) var(--space-6);
-  color: var(--alpha-white-40);
-  font-size: var(--font-size-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-15) var(--space-6);
 }
 
 /* Error */

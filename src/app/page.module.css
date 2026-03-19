@@ -32,6 +32,7 @@
   font-size: 48px;
   margin-bottom: var(--space-11);
   opacity: 0.85;
+  color: var(--alpha-white-70);
 }
 
 .title {

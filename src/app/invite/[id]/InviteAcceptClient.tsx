@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/api/client';
+import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout';
 import styles from './invite.module.css';
 
 interface InviteAcceptClientProps {
@@ -81,65 +82,65 @@ export default function InviteAcceptClient({
   }
 
   return (
-    <main className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.icon}>📩</div>
-        <h1 className={styles.title}>دعوة للانضمام</h1>
+    <CenteredCardLayout>
+      <div className={styles.icon}>
+        <iconify-icon icon="material-symbols:mail" width="48" height="48" />
+      </div>
+      <h1 className={styles.title}>دعوة للانضمام</h1>
 
-        <div className={styles.details}>
-          <div className={styles.detailRow}>
-            <span className={styles.detailLabel}>المساحة</span>
-            <span className={styles.detailValue}>{workspaceName}</span>
-          </div>
-          {inviterName && (
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>الدعوة من</span>
-              <span className={styles.detailValue}>{inviterName}</span>
-            </div>
-          )}
-          {invitedEmail && (
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>البريد الإلكتروني</span>
-              <span className={styles.detailValue} dir="ltr">{invitedEmail}</span>
-            </div>
-          )}
+      <div className={styles.details}>
+        <div className={styles.detailRow}>
+          <span className={styles.detailLabel}>المساحة</span>
+          <span className={styles.detailValue}>{workspaceName}</span>
         </div>
-
-        {isInvalid && (
-          <div className={styles.warning}>
-            {getInvalidMessage()}
+        {inviterName && (
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>الدعوة من</span>
+            <span className={styles.detailValue}>{inviterName}</span>
           </div>
         )}
-
-        {emailMismatch && (
-          <div className={styles.warning}>
-            هذه الدعوة مخصصة لـ {invitedEmail}. يرجى تسجيل الدخول بهذا البريد الإلكتروني.
+        {invitedEmail && (
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>البريد الإلكتروني</span>
+            <span className={styles.detailValue} dir="ltr">{invitedEmail}</span>
           </div>
-        )}
-
-        {alreadyMember && (
-          <div className={styles.info}>
-            أنت بالفعل عضو في هذه المساحة.{' '}
-            <a href={`/workspaces/${workspaceSlug}`} className={styles.link}>
-              الذهاب للمساحة
-            </a>
-          </div>
-        )}
-
-        {error && (
-          <div className={styles.error}>{error}</div>
-        )}
-
-        {!isInvalid && !alreadyMember && !emailMismatch && (
-          <button
-            onClick={handleAccept}
-            className={styles.button}
-            disabled={loading}
-          >
-            {loading ? 'جاري القبول...' : 'قبول الدعوة'}
-          </button>
         )}
       </div>
-    </main>
+
+      {isInvalid && (
+        <div className={styles.warning}>
+          {getInvalidMessage()}
+        </div>
+      )}
+
+      {emailMismatch && (
+        <div className={styles.warning}>
+          هذه الدعوة مخصصة لـ {invitedEmail}. يرجى تسجيل الدخول بهذا البريد الإلكتروني.
+        </div>
+      )}
+
+      {alreadyMember && (
+        <div className={styles.info}>
+          أنت بالفعل عضو في هذه المساحة.{' '}
+          <a href={`/workspaces/${workspaceSlug}`} className={styles.link}>
+            الذهاب للمساحة
+          </a>
+        </div>
+      )}
+
+      {error && (
+        <div className={styles.error}>{error}</div>
+      )}
+
+      {!isInvalid && !alreadyMember && !emailMismatch && (
+        <button
+          onClick={handleAccept}
+          className={styles.button}
+          disabled={loading}
+        >
+          {loading ? 'جاري القبول...' : 'قبول الدعوة'}
+        </button>
+      )}
+    </CenteredCardLayout>
   );
 }

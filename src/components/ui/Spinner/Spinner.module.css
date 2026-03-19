@@ -1,0 +1,43 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.spinner {
+  display: inline-block;
+  border: 3px solid var(--alpha-white-10);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin var(--transition-slow) linear infinite;
+}
+
+.sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.md {
+  width: 32px;
+  height: 32px;
+}
+
+.lg {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+.label {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-40);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

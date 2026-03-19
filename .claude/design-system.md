@@ -84,7 +84,7 @@ This document defines the design tokens and visual language for the Solalah fami
 
 ### Font Family
 ```css
---font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+--font-family-base: var(--font-noto-sans-arabic), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 ```
 
 ### Font Sizes
@@ -138,6 +138,10 @@ This document defines the design tokens and visual language for the Solalah fami
 | `--space-9` | `20px` |
 | `--space-10` | `22px` |
 | `--space-11` | `24px` |
+| `--space-12` | `28px` |
+| `--space-13` | `32px` |
+| `--space-14` | `40px` |
+| `--space-15` | `48px` |
 
 ## Border Radius
 

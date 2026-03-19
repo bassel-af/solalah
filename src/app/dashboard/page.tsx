@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { createClient } from '@/lib/supabase/client';
+import { roleLabel } from '@/lib/workspace/labels';
+import { Spinner } from '@/components/ui/Spinner';
 import styles from './dashboard.module.css';
 
 interface Workspace {
@@ -16,17 +18,6 @@ interface Workspace {
 interface WorkspaceMembership {
   role: string;
   workspace: Workspace;
-}
-
-function roleLabel(role: string): string {
-  switch (role) {
-    case 'workspace_admin':
-      return 'مدير';
-    case 'workspace_member':
-      return 'عضو';
-    default:
-      return role;
-  }
 }
 
 export default function DashboardPage() {
@@ -73,10 +64,14 @@ export default function DashboardPage() {
         {error && <div className={styles.error}>{error}</div>}
 
         {loading ? (
-          <div className={styles.loading}>جاري التحميل...</div>
+          <div className={styles.loading}>
+            <Spinner size="lg" label="جاري التحميل..." />
+          </div>
         ) : workspaces.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>🏠</div>
+            <div className={styles.emptyIcon}>
+              <iconify-icon icon="material-symbols:home-work" width="64" height="64" />
+            </div>
             <h2 className={styles.emptyTitle}>لا توجد مساحات عائلة</h2>
             <p className={styles.emptyText}>
               أنشئ مساحة عائلة جديدة لبدء التعاون مع عائلتك

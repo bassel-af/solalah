@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   '/auth/signup',
   '/auth/callback',
   '/auth/confirm',
+  '/auth/forgot-password',
   '/policy',
   '/test', // test route for browser testing
 ];
