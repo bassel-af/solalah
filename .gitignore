@@ -20,6 +20,7 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+docker/.env
 
 # Editor directories and files
 .vscode/
@@ -50,3 +51,5 @@ next-env.d.ts
 # Project specific
 CLAUDE.local.md
 .playwright-mcp
+
+/generated/prisma

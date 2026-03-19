@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository ("solalah") is a family genealogy web application built with Next.js 15 (App Router) + React 19 + TypeScript. It parses and visualizes GEDCOM genealogy files in the browser. The primary data source is `saeed-family.ged` (stored in `/public/`), a GEDCOM 5.5.1 file containing family tree data. The app is RTL (right-to-left) with Arabic as the primary language.
+This repository ("solalah") is a **private family collaboration platform** evolving from a read-only genealogy viewer. Built with Next.js 15 (App Router) + React 19 + TypeScript, backed by PostgreSQL (Prisma ORM) and Supabase Auth (self-hosted via Docker Compose). The app is RTL (right-to-left) with Arabic as the primary language. See `docs/product-requirements.md` for the full PRD and `docs/auth-provider-decisions.md` for auth architecture decisions.
+
+**Current state**: Phase 1 (Auth & Workspace Foundation) is in progress. Infrastructure is set up (Docker, Prisma, GoTrue). Auth pages (signup/login) work end-to-end. Workspace features are not yet implemented. The tree visualization still reads from static GEDCOM files in `/public/` — database-backed trees come in Phase 4.
 
 ## Package Management
 
@@ -20,13 +22,22 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - `pnpm test` - Run tests once
 - `pnpm test src/test/display.test.ts` - Run a single test file
 - `pnpm test:watch` - Run tests in watch mode
+- `cd docker && docker compose up -d` - Start Supabase stack (PostgreSQL, GoTrue, Kong, Studio)
+- `cd docker && docker compose down` - Stop Supabase stack
+- `npx prisma migrate dev` - Run Prisma migrations
+- `npx prisma generate` - Regenerate Prisma client
+- `npx prisma studio` - Open Prisma Studio (database browser)
 
 ## Technology Stack
 
 - **Framework**: Next.js 15.x with App Router and Turbopack
 - **UI**: React 19.x with TypeScript 5.x
+- **ORM**: Prisma 7.x with `@prisma/adapter-pg` driver adapter
+- **Auth**: Supabase Auth (GoTrue) via `@supabase/supabase-js`, self-hosted
+- **Database**: PostgreSQL 15 (via Docker Compose)
+- **API Gateway**: Kong 3.9.1 (routes `/auth/v1/*` to GoTrue)
 - **Tree Visualization**: @xyflow/react (React Flow) with custom tree layout algorithm
-- **Styling**: CSS with design tokens (`src/styles/tokens/`)
+- **Styling**: CSS Modules with design tokens (`src/styles/tokens/`)
 - **Testing**: Vitest with @testing-library/react and jsdom (see `docs/testing.md` for browser test mode)
 
 ## Code Architecture
@@ -132,6 +143,39 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Sidebar has mobile overlay with FAB (floating action button) toggle
 - Node cards show details FAB on mobile when a person is selected
 - Body scroll is locked when mobile sidebar is open
+
+### Backend Infrastructure
+
+**Docker Compose** (`docker/docker-compose.yml`):
+- Start: `cd docker && docker compose up -d`
+- Services: `db` (PostgreSQL 15), `gotrue` (Supabase Auth v2.186.0), `kong` (API gateway), `studio` (admin UI), `pg-meta`
+- Ports: PostgreSQL 5432, GoTrue 9999, Kong 8000 (public API), Studio 3001
+- Kong config at `docker/kong.yml` — routes `/auth/v1/*` to GoTrue with CORS headers
+- Secrets in `docker/.env` (gitignored)
+
+**Prisma** (`prisma/schema.prisma`):
+- 20 tables: users, workspaces, workspace_memberships, workspace_invitations, branches, branch_memberships, branch_invitations, user_tree_links, family_trees, individuals, families, family_children, tree_edit_logs, posts, albums, album_media, events, event_rsvps, notifications
+- Prisma v7 uses driver adapters — client instantiation requires `PrismaPg` from `@prisma/adapter-pg`
+- Generated client output: `generated/prisma/` (gitignored)
+- Run migrations: `npx prisma migrate dev`
+- Config: `prisma.config.ts` loads `DATABASE_URL` from `.env` via `dotenv/config`
+
+**Supabase Client Libraries**:
+- Browser client: `src/lib/supabase/client.ts` — uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Server client: `src/lib/supabase/server.ts` — uses `SUPABASE_SERVICE_ROLE_KEY`
+- Prisma singleton: `src/lib/db.ts` — uses `DATABASE_URL`
+
+**Auth Flow**:
+- Signup: `src/app/auth/signup/page.tsx` → GoTrue `/auth/v1/signup`
+- Login: `src/app/auth/login/page.tsx` → GoTrue `/auth/v1/token?grant_type=password`
+- Callback: `src/app/auth/callback/route.ts` — handles OAuth redirects and email confirmations
+- User sync: `POST /api/auth/sync-user` — mirrors GoTrue user to `public.users` table
+- Middleware: `src/middleware.ts` — protects routes by checking `sb-access-token` / `sb-refresh-token` cookies
+
+**Environment Variables** (see `.env.example`):
+- `.env` — `DATABASE_URL` (used by Prisma CLI)
+- `.env.local` — `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`
+- `docker/.env` — Docker Compose secrets (gitignored)
 
 ### Dev Tools
 

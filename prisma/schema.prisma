@@ -1,0 +1,473 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// Users — mirrors auth.users, created on sign-up via GoTrue webhook/trigger
+// =============================================================================
+
+model User {
+  id         String   @id @db.Uuid // same UUID as auth.users.id
+  email      String   @unique
+  displayName String  @map("display_name")
+  avatarUrl  String?  @map("avatar_url")
+  phone      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workspaceMemberships WorkspaceMembership[]
+  createdWorkspaces    Workspace[]           @relation("WorkspaceCreator")
+  sentWorkspaceInvites WorkspaceInvitation[] @relation("InviteSender")
+  branchMemberships    BranchMembership[]
+  createdBranches      Branch[]              @relation("BranchCreator")
+  sentBranchInvites    BranchInvitation[]    @relation("BranchInviteSender")
+  receivedBranchInvites BranchInvitation[]   @relation("BranchInviteReceiver")
+  userTreeLinks        UserTreeLink[]        @relation("TreeLinkUser")
+  requestedTreeLinks   UserTreeLink[]        @relation("TreeLinkRequester")
+  treeEdits            TreeEditLog[]
+  posts                Post[]
+  albums               Album[]
+  events               Event[]
+  eventRsvps           EventRsvp[]
+  notifications        Notification[]
+  createdIndividuals   Individual[]          @relation("IndividualCreator")
+  uploadedMedia        AlbumMedia[]
+
+  @@map("users")
+}
+
+// =============================================================================
+// Workspaces
+// =============================================================================
+
+model Workspace {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug              String   @unique
+  nameAr            String   @map("name_ar")
+  nameEn            String?  @map("name_en")
+  logoUrl           String?  @map("logo_url")
+  description       String?
+  createdById       String   @map("created_by") @db.Uuid
+  storageQuotaBytes BigInt   @default(5368709120) @map("storage_quota_bytes") // 5 GB
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  createdBy   User                  @relation("WorkspaceCreator", fields: [createdById], references: [id])
+  memberships WorkspaceMembership[]
+  invitations WorkspaceInvitation[]
+  branches    Branch[]
+  familyTree  FamilyTree?
+  posts       Post[]
+  albums      Album[]
+  events      Event[]
+  userTreeLinks UserTreeLink[]
+
+  @@map("workspaces")
+}
+
+// =============================================================================
+// Workspace Membership
+// =============================================================================
+
+enum WorkspaceRole {
+  workspace_admin
+  workspace_member
+}
+
+enum ContentPermission {
+  tree_editor
+  news_editor
+  album_editor
+  event_editor
+}
+
+model WorkspaceMembership {
+  userId      String              @map("user_id") @db.Uuid
+  workspaceId String              @map("workspace_id") @db.Uuid
+  role        WorkspaceRole       @default(workspace_member)
+  permissions ContentPermission[] @default([])
+  joinedAt    DateTime            @default(now()) @map("joined_at")
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workspaceId])
+  @@map("workspace_memberships")
+}
+
+// =============================================================================
+// Workspace Invitations (email + join code)
+// =============================================================================
+
+enum InvitationType {
+  email
+  code
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  revoked
+}
+
+model WorkspaceInvitation {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId  String           @map("workspace_id") @db.Uuid
+  type         InvitationType
+  email        String?          // set for email type
+  code         String?          // set for code type (e.g., "SAEED-4X7K")
+  individualId String?          @map("individual_id") @db.Uuid // Flow A: invite-with-tree-link
+  invitedById  String           @map("invited_by") @db.Uuid
+  expiresAt    DateTime?        @map("expires_at")
+  maxUses      Int?             @map("max_uses")
+  useCount     Int              @default(0) @map("use_count")
+  status       InvitationStatus @default(pending)
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy  User       @relation("InviteSender", fields: [invitedById], references: [id])
+  individual Individual? @relation(fields: [individualId], references: [id])
+
+  @@index([code])
+  @@index([workspaceId, status])
+  @@map("workspace_invitations")
+}
+
+// =============================================================================
+// Branches
+// =============================================================================
+
+model Branch {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  description String?
+  createdById String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy   User               @relation("BranchCreator", fields: [createdById], references: [id])
+  memberships BranchMembership[]
+  invitations BranchInvitation[]
+  posts       Post[]
+  albums      Album[]
+  events      Event[]
+
+  @@map("branches")
+}
+
+// =============================================================================
+// Branch Membership
+// =============================================================================
+
+enum BranchRole {
+  branch_admin
+  branch_member
+}
+
+model BranchMembership {
+  userId   String     @map("user_id") @db.Uuid
+  branchId String     @map("branch_id") @db.Uuid
+  role     BranchRole @default(branch_member)
+  joinedAt DateTime   @default(now()) @map("joined_at")
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@map("branch_memberships")
+}
+
+// =============================================================================
+// Branch Invitations
+// =============================================================================
+
+enum BranchInvitationStatus {
+  pending
+  accepted
+  declined
+}
+
+model BranchInvitation {
+  id            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  branchId      String                 @map("branch_id") @db.Uuid
+  invitedUserId String                 @map("invited_user_id") @db.Uuid
+  invitedById   String                 @map("invited_by") @db.Uuid
+  status        BranchInvitationStatus @default(pending)
+  createdAt     DateTime               @default(now()) @map("created_at")
+
+  // Relations
+  branch      Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  invitedUser User   @relation("BranchInviteReceiver", fields: [invitedUserId], references: [id])
+  invitedBy   User   @relation("BranchInviteSender", fields: [invitedById], references: [id])
+
+  @@map("branch_invitations")
+}
+
+// =============================================================================
+// User–Tree Linking
+// =============================================================================
+
+enum TreeLinkStatus {
+  pending
+  confirmed
+}
+
+model UserTreeLink {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String         @map("user_id") @db.Uuid
+  individualId String         @map("individual_id") @db.Uuid
+  workspaceId  String         @map("workspace_id") @db.Uuid
+  status       TreeLinkStatus @default(pending)
+  requestedById String        @map("requested_by") @db.Uuid
+  confirmedAt  DateTime?      @map("confirmed_at")
+
+  // Relations
+  user        User       @relation("TreeLinkUser", fields: [userId], references: [id], onDelete: Cascade)
+  individual  Individual @relation(fields: [individualId], references: [id])
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  requestedBy User       @relation("TreeLinkRequester", fields: [requestedById], references: [id])
+
+  @@unique([userId, workspaceId]) // one link per user per workspace
+  @@unique([individualId, workspaceId]) // one link per individual per workspace
+  @@map("user_tree_links")
+}
+
+// =============================================================================
+// Family Tree
+// =============================================================================
+
+model FamilyTree {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String @unique @map("workspace_id") @db.Uuid
+
+  // Relations
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  individuals Individual[]
+  families    Family[]
+  editLogs    TreeEditLog[]
+
+  @@map("family_trees")
+}
+
+model Individual {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  treeId      String   @map("tree_id") @db.Uuid
+  gedcomId    String?  @map("gedcom_id") // original GEDCOM ID if imported
+  givenName   String?  @map("given_name")
+  surname     String?
+  fullName    String?  @map("full_name")
+  sex         String?  // M, F, or null
+  birthDate   String?  @map("birth_date")
+  birthPlace  String?  @map("birth_place")
+  deathDate   String?  @map("death_date")
+  deathPlace  String?  @map("death_place")
+  isPrivate   Boolean  @default(false) @map("is_private")
+  createdById String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tree               FamilyTree           @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  createdBy          User?                @relation("IndividualCreator", fields: [createdById], references: [id])
+  familiesAsHusband  Family[]             @relation("FamilyHusband")
+  familiesAsWife     Family[]             @relation("FamilyWife")
+  familyChildren     FamilyChild[]
+  userTreeLinks      UserTreeLink[]
+  workspaceInvitations WorkspaceInvitation[]
+
+  @@unique([treeId, gedcomId]) // gedcomId is unique within a tree
+  @@map("individuals")
+}
+
+model Family {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  treeId    String  @map("tree_id") @db.Uuid
+  gedcomId  String? @map("gedcom_id") // original GEDCOM ID if imported
+  husbandId String? @map("husband_id") @db.Uuid
+  wifeId    String? @map("wife_id") @db.Uuid
+
+  // Relations
+  tree     FamilyTree    @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  husband  Individual?   @relation("FamilyHusband", fields: [husbandId], references: [id])
+  wife     Individual?   @relation("FamilyWife", fields: [wifeId], references: [id])
+  children FamilyChild[]
+
+  @@unique([treeId, gedcomId])
+  @@map("families")
+}
+
+model FamilyChild {
+  familyId     String @map("family_id") @db.Uuid
+  individualId String @map("individual_id") @db.Uuid
+
+  // Relations
+  family     Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  individual Individual @relation(fields: [individualId], references: [id], onDelete: Cascade)
+
+  @@id([familyId, individualId])
+  @@map("family_children")
+}
+
+// =============================================================================
+// Tree Edit Log (audit trail)
+// =============================================================================
+
+model TreeEditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  treeId     String   @map("tree_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  action     String   // create, update, delete
+  entityType String   @map("entity_type") // individual, family, family_child
+  entityId   String   @map("entity_id") @db.Uuid
+  payload    Json?    // diff or snapshot
+  timestamp  DateTime @default(now())
+
+  // Relations
+  tree FamilyTree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id])
+
+  @@index([treeId, timestamp])
+  @@map("tree_edit_logs")
+}
+
+// =============================================================================
+// Content: News Posts
+// =============================================================================
+
+model Post {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  branchId       String?  @map("branch_id") @db.Uuid // null = workspace-scoped
+  authorId       String   @map("author_id") @db.Uuid
+  content        String
+  mediaSizeBytes BigInt   @default(0) @map("media_size_bytes")
+  isPinned       Boolean  @default(false) @map("is_pinned")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  branch    Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id])
+
+  @@index([workspaceId, createdAt])
+  @@map("posts")
+}
+
+// =============================================================================
+// Content: Albums
+// =============================================================================
+
+model Album {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  branchId    String?  @map("branch_id") @db.Uuid
+  name        String
+  createdById String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  branch    Branch?      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdBy User         @relation(fields: [createdById], references: [id])
+  media     AlbumMedia[]
+
+  @@map("albums")
+}
+
+model AlbumMedia {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  albumId       String   @map("album_id") @db.Uuid
+  fileUrl       String   @map("file_url")
+  fileSizeBytes BigInt   @map("file_size_bytes")
+  taggedIndividualIds String[] @map("tagged_individual_ids") @db.Uuid
+  uploadedById  String   @map("uploaded_by") @db.Uuid
+  uploadedAt    DateTime @default(now()) @map("uploaded_at")
+
+  // Relations
+  album      Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation(fields: [uploadedById], references: [id])
+
+  @@map("album_media")
+}
+
+// =============================================================================
+// Content: Events
+// =============================================================================
+
+enum RsvpVisibility {
+  all
+  counts
+  admin
+}
+
+model Event {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String         @map("workspace_id") @db.Uuid
+  branchId    String?        @map("branch_id") @db.Uuid
+  title       String
+  startAt     DateTime       @map("start_at")
+  endAt       DateTime?      @map("end_at")
+  location    String?
+  description String?
+  isGenerated Boolean        @default(false) @map("is_generated")
+  rsvpVisibility RsvpVisibility @default(all) @map("rsvp_visibility")
+  createdById String         @map("created_by") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  branch    Branch?     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdBy User        @relation(fields: [createdById], references: [id])
+  rsvps     EventRsvp[]
+
+  @@map("events")
+}
+
+enum RsvpStatus {
+  attending
+  not_attending
+  maybe
+}
+
+model EventRsvp {
+  userId   String     @map("user_id") @db.Uuid
+  eventId  String     @map("event_id") @db.Uuid
+  status   RsvpStatus
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([userId, eventId])
+  @@map("event_rsvps")
+}
+
+// =============================================================================
+// Notifications
+// =============================================================================
+
+model Notification {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String   // workspace_invite, branch_invite, tree_link_request, etc.
+  payload   Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
