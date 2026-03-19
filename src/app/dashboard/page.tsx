@@ -77,7 +77,7 @@ export default function DashboardPage() {
               أنشئ مساحة عائلية جديدة لبدء التعاون مع عائلتك
             </p>
             <Link href="/dashboard/create" className={styles.emptyCreateButton}>
-              إنشاء مساحة عائلة جديدة
+              إنشاء مساحة عائلية جديدة
             </Link>
           </div>
         ) : (
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>مساحات العائلة</h2>
               <Link href="/dashboard/create" className={styles.createButton}>
-                + إنشاء مساحة عائلة جديدة
+                + إنشاء مساحة عائلية جديدة
               </Link>
             </div>
             <div className={styles.workspaceGrid}>

@@ -79,8 +79,8 @@ export default function CreateWorkspacePage() {
       <div className={styles.icon}>
         <iconify-icon icon="material-symbols:add-home-work" width="48" height="48" />
       </div>
-      <h1 className={styles.title}>إنشاء مساحة عائلة</h1>
-      <p className={styles.subtitle}>أنشئ مساحة عائلة جديدة لعائلتك</p>
+      <h1 className={styles.title}>إنشاء مساحة عائلية</h1>
+      <p className={styles.subtitle}>أنشئ مساحة عائلية جديدة لعائلتك</p>
 
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}
