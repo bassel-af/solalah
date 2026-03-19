@@ -11,18 +11,25 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.8",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.2",
     "@xyflow/react": "^12.10.0",
     "clsx": "^2.1.1",
     "next": "^15.3.4",
+    "pg": "^8.20.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "zod": "^4.3.6"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

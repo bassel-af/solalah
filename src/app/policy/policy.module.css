@@ -1,0 +1,103 @@
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-dark-900);
+  color: var(--alpha-white-85);
+  direction: rtl;
+  padding: var(--space-8) var(--space-6);
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.pageTitle {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--alpha-white-85);
+  text-align: center;
+  margin: 0 0 var(--space-4);
+}
+
+.pageSubtitle {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-40);
+  text-align: center;
+  margin: 0 0 var(--space-10);
+  line-height: 1.6;
+}
+
+.section {
+  margin-bottom: var(--space-10);
+  padding: var(--space-8);
+  border-radius: 12px;
+  border: 1px solid var(--alpha-white-10);
+  background: var(--alpha-white-04);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--alpha-white-85);
+  margin: 0 0 var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--alpha-white-10);
+}
+
+.arabicBlock {
+  margin-bottom: var(--space-6);
+}
+
+.arabicBlock p {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-70);
+  line-height: 1.8;
+  margin: 0 0 var(--space-3);
+}
+
+.englishBlock {
+  direction: ltr;
+  text-align: left;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--alpha-white-08);
+}
+
+.englishLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--alpha-white-35);
+  margin: 0 0 var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.englishBlock p {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-50);
+  line-height: 1.7;
+  margin: 0 0 var(--space-2);
+}
+
+.lastUpdated {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-25);
+  margin-top: var(--space-10);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--alpha-white-08);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .section {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .pageTitle {
+    font-size: var(--font-size-2xl);
+  }
+}

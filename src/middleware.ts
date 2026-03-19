@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
 // Public paths that don't require authentication
 const PUBLIC_PATHS = [
@@ -31,24 +32,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow public paths
+  // Allow public paths without session refresh
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
-  // For protected routes, check for a valid session cookie.
-  // We check for the presence of auth tokens. Full verification
-  // happens server-side in API routes / page loaders.
-  const accessToken = request.cookies.get('sb-access-token')?.value;
-  const refreshToken = request.cookies.get('sb-refresh-token')?.value;
+  // For protected routes, verify/refresh the session via Supabase SSR
+  const { user, supabaseResponse } = await updateSession(request);
 
-  if (!accessToken && !refreshToken) {
+  if (!user) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return supabaseResponse;
 }
 
 export const config = {

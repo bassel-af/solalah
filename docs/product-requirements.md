@@ -360,32 +360,37 @@ Notification
 
 ### Phase 1 — Auth & Workspace Foundation
 
-**✅ DONE — Infrastructure & Auth:**
+**✅ DONE — Infrastructure:**
 - Supabase Auth self-hosted (Docker Compose): PostgreSQL + GoTrue v2.186.0 + Kong 3.9.1 + Studio + pg-meta — `docker/docker-compose.yml`
 - Prisma ORM with full data model (20 tables) — `prisma/schema.prisma`, migration applied
 - Prisma v7 with `@prisma/adapter-pg` driver adapter — `src/lib/db.ts`
 - Supabase client libraries — `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (server)
-- Auth pages — `/auth/signup`, `/auth/login` with email/password (working end-to-end)
-- Auth callback route — `/auth/callback` for OAuth/email confirmation redirects
-- User sync API — `POST /api/auth/sync-user` mirrors GoTrue user to `public.users` (not yet wired into auth pages)
-- Route protection middleware — `src/middleware.ts` checks for session cookies, redirects to login
-- Phone OTP infrastructure ready in GoTrue config but activation deferred (SMS gateway not configured)
 - Environment config — `.env.local` (Next.js), `docker/.env` (Docker Compose), `.env` (Prisma)
-- Tests — 21 tests (15 middleware + 6 sync-user API)
+- Phone OTP infrastructure ready in GoTrue config but activation deferred (SMS gateway not configured)
 
-**🔧 TODO — Wire up auth flow:**
-- Call `/api/auth/sync-user` after login/signup to populate `public.users`
-- Cookie-based session management (Supabase JS stores tokens in localStorage; middleware checks cookies — these need to be aligned)
+**✅ DONE — Auth pages & middleware:**
+- Auth pages — `/auth/signup`, `/auth/login` with email/password (working end-to-end, Arabic RTL UI)
+- Auth callback route — `/auth/callback` for OAuth/email confirmation redirects
+- User sync API — `POST /api/auth/sync-user` mirrors GoTrue user to `public.users` (tested, but not yet called from auth pages)
+- Route protection middleware — `src/middleware.ts` checks for `sb-access-token` / `sb-refresh-token` cookies, redirects unauthenticated users to `/auth/login`
+- Tests — middleware tests + sync-user API tests
 
-**🔲 TODO — Workspace features:**
+**🔧 TODO — Complete auth flow:**
+- Wire `/api/auth/sync-user` into login/signup pages so `public.users` is populated after auth
+- Add Google OAuth button to auth pages (GoTrue config exists but UI is missing)
+
+**🔲 TODO — Workspace features (not started):**
+- Workspace CRUD API routes (`/api/workspaces/*`) — no routes exist yet
 - Self-service workspace creation; creator becomes first `workspace_admin`
 - Workspace membership: email invite + workspace join code (WhatsApp-friendly)
 - Content roles: admin can grant `tree_editor`, `news_editor`, `album_editor`, `event_editor`
 - Protected routes: workspace pages require login **and membership**
 - Basic workspace dashboard (tree accessible; other features placeholder)
-- Policy page (`/policy`): publicly accessible, covers terms, privacy, and future billing notice
-- Storage quota tracked (visible to admin) but not enforced
 - Existing family configs (`src/config/families.ts`) seeded as workspace records in the database
+- Storage quota tracked (visible to admin) but not enforced
+
+**🔲 TODO — Policy page (not started):**
+- Policy page (`/policy`): publicly accessible, covers terms, privacy, and future billing notice (route is whitelisted in middleware but page doesn't exist yet)
 
 ### Phase 2 — Branch Infrastructure
 - Branch creation (workspace_admin only)

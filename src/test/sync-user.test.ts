@@ -10,27 +10,16 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 
-// Mock @prisma/adapter-pg
-vi.mock('@prisma/adapter-pg', () => ({
-  PrismaPg: vi.fn(),
-}));
-
-// Mock the Prisma client — the route imports from a deep relative path
-// that resolves to generated/prisma/client.
-// vi.hoisted ensures the fns are available when vi.mock factory runs (hoisted to top).
-const { mockUpsert, mockDisconnect } = vi.hoisted(() => ({
+// Mock the Prisma singleton from @/lib/db
+const { mockUpsert } = vi.hoisted(() => ({
   mockUpsert: vi.fn(),
-  mockDisconnect: vi.fn(),
 }));
 
-vi.mock('../../generated/prisma/client', () => {
-  return {
-    PrismaClient: class MockPrismaClient {
-      user = { upsert: mockUpsert };
-      $disconnect = mockDisconnect;
-    },
-  };
-});
+vi.mock('@/lib/db', () => ({
+  prisma: {
+    user: { upsert: mockUpsert },
+  },
+}));
 
 import { POST } from '@/app/api/auth/sync-user/route';
 import { NextRequest } from 'next/server';
@@ -79,7 +68,7 @@ describe('POST /api/auth/sync-user', () => {
     expect(body.error).toBe('Invalid session');
   });
 
-  test('creates a new user via upsert when user does not exist', async () => {
+  test('upserts user using Prisma singleton and returns user data', async () => {
     const fakeUser = {
       id: 'user-uuid-123',
       email: 'test@example.com',
@@ -163,25 +152,5 @@ describe('POST /api/auth/sync-user', () => {
         }),
       }),
     );
-  });
-
-  test('disconnects prisma client after successful upsert', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: {
-          id: 'user-1',
-          email: 'a@b.com',
-          phone: null,
-          user_metadata: {},
-        },
-      },
-      error: null,
-    });
-    mockUpsert.mockResolvedValue({ id: 'user-1' });
-
-    const request = makeRequest({ authorization: 'Bearer valid-token' });
-    await POST(request);
-
-    expect(mockDisconnect).toHaveBeenCalled();
   });
 });

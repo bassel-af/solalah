@@ -1,9 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
-// Mock @supabase/supabase-js
+// Mock @supabase/ssr — used by the middleware helper
 const mockGetUser = vi.fn();
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: () => ({
     auth: {
       getUser: mockGetUser,
     },
@@ -28,6 +28,11 @@ function makeRequest(
 describe('middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: no authenticated user (unauthenticated state)
+    mockGetUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'No session' },
+    });
   });
 
   describe('public paths', () => {
