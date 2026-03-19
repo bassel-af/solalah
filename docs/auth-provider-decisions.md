@@ -1,81 +1,68 @@
 Identity & Authentication Decision Summary
 
 Context
-We are building a family-oriented platform with two clients: a Next.js web application and a Flutter mobile application. Users can belong to multiple families with different roles in each (e.g., admin in one family, regular member in another). The platform will grow with many features over time. We need a centralized authentication system that handles identity securely. After evaluating both self-hosted open-source options and managed cloud services, we chose Keycloak.
+We are building a family-oriented platform with two clients: a Next.js web application and an Expo mobile application. Users can belong to multiple families with different roles in each (e.g., admin in one family, regular member in another). The platform will grow with many features over time. We need a centralized authentication system that handles identity securely and supports email login, Google SSO, phone OTP, 2FA, and full session/refresh token control — while keeping all user data private on our own infrastructure.
+
+After evaluating both self-hosted open-source options and managed cloud services, we chose Supabase Auth (self-hosted).
 
 Evaluated Providers
+- Supabase Auth (self-hosted, open source, GoTrue engine)
 - Keycloak (self-hosted, open source, Java/Quarkus)
 - Clerk (managed cloud service)
 - Zitadel (self-hosted, open source, Go)
 - Authentik (self-hosted, open source, Python/Django)
 
-Why Keycloak
+Why Supabase Auth
 
-Production stability: Keycloak has been in development for 12 years, backed by Red Hat, and is part of the CNCF incubation program. It is the most battle-tested identity solution available. For a platform that will grow significantly, this maturity reduces operational risk.
+All required auth features are first-class, not extensions: email/password, Google SSO, phone OTP (via SMS gateway), TOTP-based 2FA, session management, and refresh token control are all built into Supabase Auth natively. No extension installation, no custom authenticator SPI, no third-party plugin maintenance.
 
-License safety: Keycloak uses the Apache 2.0 license, which has no copyleft restrictions. This means there is no risk of being forced to open-source application code due to integration with the identity provider.
+Official Expo SDK: Supabase provides an official JavaScript SDK (@supabase/supabase-js) with documented Expo/React Native integration. This is a meaningful advantage over Keycloak, which relies on community-maintained packages with no official mobile SDK.
 
-No vendor lock-in: Keycloak is fully self-hosted and open source. There is no dependency on a third-party company's pricing decisions, terms of service changes, or continued existence. Migration away from Keycloak means migrating standard OIDC — not untangling proprietary SDK integrations.
+Consolidated infrastructure: Self-hosting Supabase via Docker Compose gives us PostgreSQL (our application database), authentication (GoTrue), and file storage (for albums and media uploads) in a single stack. Three infrastructure concerns collapse into one deployment. This reduces operational complexity significantly.
 
-Largest ecosystem: Keycloak has the largest community (~31,000 GitHub stars), the most Stack Overflow answers, tutorials, and third-party integrations. When problems arise, finding solutions is easier than with any alternative.
+Self-hosted and private: Supabase is fully open source (Apache 2.0) and designed to be self-hosted via Docker Compose. All user data, credentials, and sessions remain on our own server. No data leaves to third-party services.
 
-Handles the hardest parts: Account registration, email verification, secure login, JWT token issuance and refresh, password recovery, brute-force protection, and session management across multiple devices. Building all of this manually would take weeks and would be prone to serious security vulnerabilities.
+Lighter than Keycloak: Supabase Auth (GoTrue) has a much smaller resource footprint than Keycloak's Java/Quarkus stack (~1.25 GB RAM baseline). This matters for a growing platform starting on modest infrastructure.
 
-Widest protocol support: Keycloak supports OIDC, SAML, and LDAP out of the box. As the platform grows and potentially integrates with external systems, this breadth matters.
+License safety: Apache 2.0 with no copyleft restrictions. No risk of being forced to open-source application code due to the auth integration.
 
-Future extensibility: Social login (Google, Apple), MFA policies, user federation, and identity brokering are all built in with no rebuilding needed.
+Known trade-offs with Supabase Auth
 
-Self-hosted for privacy: User data stays on our own server and never leaves to third-party companies.
+Younger project: Supabase is approximately 5 years old versus Keycloak's 12. It is less battle-tested at enterprise scale. For a family platform (not a bank or large enterprise), this trade-off is acceptable.
 
-Flutter integration: Community-maintained packages (keycloak_wrapper, keycloak_flutter) provide mature OIDC/PKCE flows with token management and secure storage. These are not official SDKs, but they are well-documented and battle-tested. Since no provider offers pre-built Flutter UI components, custom auth UI must be built regardless of provider choice — this levels the playing field.
+Self-hosting complexity: The official Supabase self-hosted Docker Compose stack includes multiple services (PostgreSQL, GoTrue, PostgREST, Storage API, Kong gateway, Studio). This is more moving parts than running Keycloak alone, but the upside is a complete infrastructure stack rather than auth only.
 
-Known trade-offs with Keycloak
+Admin UI: Supabase Studio (included in the Docker Compose stack) provides a user management interface, but it is less feature-rich than Keycloak's admin console for advanced identity management scenarios.
 
-Resource usage: Keycloak is the heaviest option evaluated, with a baseline memory footprint of ~1.25 GB RAM. It uses a Java/Quarkus stack with 8 separate cache configurations that can be complex to tune. For a growing platform this is acceptable, but it is a real cost.
+All family permissions in application layer: As with Keycloak, workspace memberships, branch memberships, content roles, and user-tree linking must be built in our application code. Supabase Auth handles identity; our backend handles family-level authorization. This is not a Supabase-specific limitation — it applies to every option evaluated.
 
-Admin UI complexity: Keycloak's admin console is powerful but complex. The learning curve is steep compared to Authentik's visual flow designer or Clerk's dashboard.
+Why Not Keycloak
 
-Permissions in the application layer: Family permissions (one user, multiple families, different roles per family) must be built in our application code. Keycloak handles authentication and identity; our backend handles family-level authorization. This is additional development work, but it gives us full control over the permission model as the platform grows.
+Keycloak was the previous choice and remains technically capable. The primary reasons for switching are:
 
-Version upgrades: Major Keycloak version upgrades (notably the WildFly to Quarkus migration) have historically introduced breaking changes. Upgrades require careful planning.
+Phone OTP requires a third-party extension: Native phone authentication is not built into Keycloak. It requires installing and maintaining a community extension (e.g., keycloak-phone-authenticator), which adds operational overhead and dependency risk.
+
+No official Expo SDK: Keycloak's mobile integration for Expo/React Native relies on community-maintained packages. No official SDK means more risk of breaking changes and less documentation.
+
+Resource overhead without proportional benefit: Keycloak's ~1.25 GB RAM baseline is justified for enterprise identity federation scenarios. For our use case — email, Google SSO, phone OTP, 2FA — Supabase Auth provides the same feature set at a fraction of the resource cost.
+
+Supabase provides more than auth: Switching to Supabase means consolidating the database, auth, and file storage into one self-hosted stack. Keycloak is auth-only and would still require separate PostgreSQL and storage infrastructure.
 
 Why Not Clerk
 
-Clerk was the strongest alternative evaluated. Its Organizations feature natively models "one user, multiple groups with per-group roles" — which maps directly to our families model. It also has a first-class Next.js integration with pre-built React components. However:
-
-No self-hosting: Clerk is entirely cloud-hosted. User data lives on Clerk's servers with no option to self-host. For a family platform handling personal genealogical data, this is a significant privacy concern.
-
-Vendor lock-in: Clerk's SDK is deeply embedded in application code (components like <SignIn>, <OrganizationSwitcher>, hooks, middleware). If Clerk raises prices, changes terms, or shuts down, migration requires rewriting auth flows across the entire application — not just swapping an OIDC provider.
-
-Flutter SDK is beta: Clerk announced its official Flutter SDK in March 2025, but it remains in beta as of February 2026. Building a production mobile app on a beta authentication SDK introduces risk of breaking changes and missing features. There are no pre-built Flutter UI components like the React ones — so the main DX advantage Clerk has on web does not carry over to mobile.
-
-Cost grows with usage: The free tier (10,000 MAUs, 100 organizations) is generous for early development. Beyond that, costs scale at $0.02/user/month plus add-ons (SMS + social login = $200/mo). For a self-hosted alternative, the only cost is server resources.
-
-Clerk's real strengths: The Organizations model with per-org custom roles and permissions would eliminate the need to build our own family permissions layer. The Next.js App Router integration is best-in-class with native React Server Components support. The <OrganizationSwitcher> component alone would save significant frontend work on web. For a web-only project or one using React Native, Clerk would likely be the better choice.
+Clerk was the strongest managed option evaluated. Its developer experience for Next.js is best-in-class and its Organizations feature natively models our multi-workspace data model. However, Clerk is entirely cloud-hosted with no self-hosting option. For a family platform handling personal genealogical data and private family content, storing user credentials and sessions on a third-party company's servers is not acceptable. Vendor lock-in and SDK coupling are additional concerns.
 
 Why Not Zitadel
 
-Self-hosting is not production-grade: Multiple developer reports from 2025-2026 describe Zitadel's self-hosting experience as brittle. Documentation is written primarily for cloud users, init-time-only environment variables cause silent failures that are hard to diagnose, and architectural churn (e.g., Login V2 split into a separate service) disrupts existing deployments.
-
-AGPL 3.0 license: Zitadel switched from Apache 2.0 to AGPL 3.0 in May 2025 (effective v3). If Zitadel is integrated into the application rather than used as a purely external service, the AGPL copyleft provisions could require open-sourcing the entire application. This introduces legal risk that does not exist with Keycloak or Clerk.
-
-Security track record: High-severity security advisories were reported in 2025, including SSRF and account-takeover-style federation flaws. While all software has vulnerabilities, this is concerning for a younger project.
-
-No Flutter SDK: Zitadel does not provide a Flutter SDK. Their documentation recommends generic OIDC libraries like flutter_appauth. This is workable but offers no advantage over Keycloak's community packages.
-
-Actions V2 adds operational overhead: Zitadel's extensibility system moved from inline JavaScript to external webhooks. Custom logic now requires deploying and maintaining separate HTTP services, adding latency, failure modes, and infrastructure complexity.
-
-Community is growing but still smaller: Zitadel has grown to ~12,000 GitHub stars and 200+ contributors, which is respectable. However, Keycloak's ecosystem is still significantly larger, and Zitadel's documentation has acknowledged gaps in onboarding and clarity.
+Zitadel switched from Apache 2.0 to AGPL 3.0 in May 2025 (effective v3). This license change introduces legal risk if Zitadel is integrated into the application rather than used as a purely external service. Additionally, multiple developer reports from 2025–2026 describe Zitadel's self-hosting experience as brittle, with documentation primarily written for cloud users and architectural churn disrupting existing deployments. Zitadel also has no official Expo SDK.
 
 Why Not Authentik
 
-Risk of outgrowing it: Authentik is positioned for small-to-medium deployments and homelab use cases. For a platform with many planned features and long-term growth, there is a risk of hitting limitations as complexity increases. Keycloak has more proven scalability at larger scales.
+Authentik is well-suited for smaller deployments and has an excellent admin UI. However, phone OTP support is not first-class, there is no official Expo SDK, and the community and ecosystem are the smallest of the options evaluated. For a platform with significant planned growth, Keycloak or Supabase are safer long-term choices.
 
-Smallest ecosystem: Authentik has the smallest community of the four options evaluated, with fewer integrations, fewer production deployment reports, and less third-party tooling.
+Deployment
 
-No Flutter SDK: Like Zitadel, Authentik does not provide a Flutter SDK. Integration relies on generic OIDC libraries.
-
-Authentik's real strengths: Authentik has the best admin UI of the self-hosted options (visual flow-based designer), uses less memory than Keycloak (~600 MB-1 GB), and is genuinely easier to set up and maintain. It uses the Apache 2.0 license. For a smaller project, Authentik would be a strong choice. For our growth ambitions, Keycloak's maturity and ecosystem outweigh Authentik's ease-of-use advantages.
+Supabase is deployed via the official Docker Compose configuration from the Supabase GitHub repository. All services run in Docker containers on our own server. The stack includes: PostgreSQL, GoTrue (auth), PostgREST, Storage API, Kong (API gateway), and Supabase Studio (admin UI). Environment variables control SMTP configuration, SMS gateway credentials (for phone OTP), and OAuth client credentials (for Google SSO).
 
 Decision Summary
-Keycloak is chosen for its production maturity, Apache 2.0 license, largest ecosystem, and full self-hosting capability. The main cost is higher resource usage and the need to build family permissions in our application layer. Clerk was the closest alternative — its Organizations model is a near-perfect fit for our data model, but vendor lock-in, no self-hosting, and a beta Flutter SDK ruled it out. Zitadel's AGPL license change and brittle self-hosting experience, and Authentik's smaller scale, ruled out the remaining options.
+Supabase Auth (self-hosted via Docker Compose) is chosen for its native support of all required auth features, official Expo SDK, consolidated infrastructure (DB + auth + storage in one stack), lighter resource footprint, Apache 2.0 license, and full self-hosting capability. Keycloak was the previous choice and remains capable, but Supabase better fits the current requirements given the Expo mobile target and the value of consolidating infrastructure. Clerk was the strongest alternative from a DX perspective but is ruled out by its cloud-only model.
