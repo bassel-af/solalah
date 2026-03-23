@@ -238,4 +238,93 @@ describe('GET /api/workspaces/[id]/tree', () => {
     expect(typeof body.data.individuals).toBe('object');
     expect(typeof body.data.families).toBe('object');
   });
+
+  test('redacts PII for private individuals in the response', async () => {
+    mockAuth();
+    mockMember();
+
+    const now = new Date();
+    mockFamilyTreeFindUnique.mockResolvedValue({
+      id: 'tree-uuid-1',
+      workspaceId: wsId,
+      individuals: [
+        {
+          id: 'ind-public',
+          treeId: 'tree-uuid-1',
+          gedcomId: null,
+          givenName: 'محمد',
+          surname: 'السعيد',
+          fullName: null,
+          sex: 'M',
+          birthDate: '1950',
+          birthPlace: 'مكة',
+          deathDate: null,
+          deathPlace: null,
+          isDeceased: false,
+          isPrivate: false,
+          createdById: null,
+          updatedAt: now,
+          createdAt: now,
+        },
+        {
+          id: 'ind-private',
+          treeId: 'tree-uuid-1',
+          gedcomId: null,
+          givenName: 'فاطمة',
+          surname: 'السعيد',
+          fullName: null,
+          sex: 'F',
+          birthDate: '1960',
+          birthPlace: 'المدينة',
+          deathDate: '2020',
+          deathPlace: 'جدة',
+          isDeceased: true,
+          isPrivate: true,
+          createdById: null,
+          updatedAt: now,
+          createdAt: now,
+        },
+      ],
+      families: [
+        {
+          id: 'fam-1',
+          treeId: 'tree-uuid-1',
+          gedcomId: null,
+          husbandId: 'ind-public',
+          wifeId: 'ind-private',
+          children: [],
+        },
+      ],
+    });
+
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree`);
+    const res = await GET(req, treeParams);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    // Public individual should be unchanged
+    expect(body.data.individuals['ind-public'].givenName).toBe('محمد');
+    expect(body.data.individuals['ind-public'].surname).toBe('السعيد');
+    expect(body.data.individuals['ind-public'].birth).toBe('1950');
+
+    // Private individual should have PII redacted
+    const priv = body.data.individuals['ind-private'];
+    expect(priv).toBeDefined();
+    expect(priv.name).toBe('خاص');
+    expect(priv.givenName).toBe('خاص');
+    expect(priv.surname).toBe('');
+    expect(priv.birth).toBe('');
+    expect(priv.death).toBe('');
+
+    // But structural data should remain
+    expect(priv.id).toBe('ind-private');
+    expect(priv.sex).toBe('F');
+    expect(priv.isPrivate).toBe(true);
+    expect(priv.familiesAsSpouse).toEqual(['fam-1']);
+
+    // Family structure intact
+    expect(body.data.families['fam-1'].wife).toBe('ind-private');
+  });
 });

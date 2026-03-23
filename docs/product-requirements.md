@@ -422,6 +422,8 @@ Notification
 - Seed script extended to populate tree data from existing GEDCOM files
 - 94 new tests (264 total)
 
+We need also btw to make it possible in edit person UI to mark him as dead without putting dates. Also we need to add a way to add notes. Check if these things are also parsable from gedcom or not.
+
 ### Phase 3 — Family-Aware Relationship Editing
 
 Phase 2 introduced basic tree editing, but the "Add child" flow has a gap: when a person has multiple families (e.g., a man with two wives, or a woman who remarried), the UI adds the child to the first family without asking the user which family/spouse the child belongs to. This must be fixed before the tree editor is usable for real polygamous family data.

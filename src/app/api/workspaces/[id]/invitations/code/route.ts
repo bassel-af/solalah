@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
+import { inviteCodeGenLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
+import { generateJoinCode } from '@/lib/workspace/join-code';
 import { z } from 'zod';
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -10,21 +12,14 @@ const generateCodeSchema = z.object({
   maxUses: z.number().int().positive().optional(),
 }).optional();
 
-function generateJoinCode(slug: string): string {
-  const prefix = slug.split('-')[0].toUpperCase().slice(0, 8);
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let random = '';
-  for (let i = 0; i < 4; i++) {
-    random += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `${prefix}-${random}`;
-}
-
 // POST /api/workspaces/[id]/invitations/code — Generate join code
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const result = await requireWorkspaceAdmin(request, id);
   if (isErrorResponse(result)) return result;
+
+  const { allowed, retryAfterSeconds } = inviteCodeGenLimiter.check(result.user.id);
+  if (!allowed) return rateLimitResponse(retryAfterSeconds);
 
   let body: Record<string, unknown> = {};
   try {

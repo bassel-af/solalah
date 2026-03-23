@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/auth';
+import { invitationAcceptLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { prisma } from '@/lib/db';
 import { serializeBigInt } from '@/lib/api/serialize';
 
@@ -12,6 +13,9 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: authError }, { status: 401 });
   }
+
+  const { allowed, retryAfterSeconds } = invitationAcceptLimiter.check(user.id);
+  if (!allowed) return rateLimitResponse(retryAfterSeconds);
 
   const { id } = await context.params;
 

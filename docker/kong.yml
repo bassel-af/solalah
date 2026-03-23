@@ -31,3 +31,9 @@ services:
             - Content-Range
           credentials: true
           max_age: 3600
+      - name: rate-limiting
+        config:
+          policy: local
+          minute: 10
+          limit_by: ip
+          hide_client_headers: false

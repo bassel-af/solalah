@@ -62,25 +62,66 @@ describe('middleware', () => {
   });
 
   describe('static assets', () => {
-    test('allows _next/* paths without auth', async () => {
+    test('allows _next/* paths without auth and skips session refresh', async () => {
       const request = makeRequest('/_next/static/chunk.js');
       const response = await middleware(request);
 
       expect(response.headers.get('location')).toBeNull();
+      expect(response.status).toBe(200);
+      expect(mockGetUser).not.toHaveBeenCalled();
     });
 
-    test('allows paths with file extensions (e.g. /favicon.ico)', async () => {
+    test('allows paths with file extensions (e.g. /favicon.ico) and skips session refresh', async () => {
       const request = makeRequest('/favicon.ico');
       const response = await middleware(request);
 
       expect(response.headers.get('location')).toBeNull();
+      expect(mockGetUser).not.toHaveBeenCalled();
     });
 
-    test('allows API routes without auth', async () => {
+  });
+
+  describe('API routes', () => {
+    test('/api/auth/sync-user is NOT treated as a static asset — runs session refresh', async () => {
       const request = makeRequest('/api/auth/sync-user');
+      await middleware(request);
+
+      // updateSession calls getUser, so if getUser was called, session refresh ran
+      expect(mockGetUser).toHaveBeenCalled();
+    });
+
+    test('/api/workspaces is NOT treated as a static asset — runs session refresh', async () => {
+      const request = makeRequest('/api/workspaces');
+      await middleware(request);
+
+      expect(mockGetUser).toHaveBeenCalled();
+    });
+
+    test('does NOT redirect to /auth/login when unauthenticated', async () => {
+      // Default mock: user is null (unauthenticated)
+      const request = makeRequest('/api/workspaces');
+      const response = await middleware(request);
+
+      // API routes should NOT redirect — route handlers return 401 themselves
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.status).toBe(200);
+    });
+
+    test('passes through with refreshed session when authenticated', async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-1' } },
+        error: null,
+      });
+
+      const request = makeRequest('/api/workspaces', {
+        'sb-access-token': 'valid-access-token',
+        'sb-refresh-token': 'valid-refresh-token',
+      });
       const response = await middleware(request);
 
       expect(response.headers.get('location')).toBeNull();
+      expect(response.status).toBe(200);
+      expect(mockGetUser).toHaveBeenCalled();
     });
   });
 

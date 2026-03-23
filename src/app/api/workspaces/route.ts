@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api/auth';
+import { workspaceCreateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { serializeBigInt } from '@/lib/api/serialize';
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: authError }, { status: 401 });
   }
+
+  const { allowed, retryAfterSeconds } = workspaceCreateLimiter.check(user.id);
+  if (!allowed) return rateLimitResponse(retryAfterSeconds);
 
   let body: unknown;
   try {

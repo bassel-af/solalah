@@ -84,7 +84,7 @@ services:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
       KONG_DNS_ORDER: LAST,SRV,A,CNAME
-      KONG_PLUGINS: cors,key-auth,acl
+      KONG_PLUGINS: cors,key-auth,acl,rate-limiting
       KONG_LOG_LEVEL: warn
     volumes:
       - ./kong.yml:/etc/kong/kong.yml:ro

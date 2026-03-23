@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dbTreeToGedcomData } from '@/lib/tree/mapper'
+import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper'
 import type { GedcomData } from '@/lib/gedcom/types'
 
 // ---------------------------------------------------------------------------
@@ -468,5 +468,179 @@ describe('dbTreeToGedcomData', () => {
     expect(result.individuals['ind-1'].name).toBe('Ahmad Saeed')
     expect(result.individuals['ind-1'].givenName).toBe('Ahmad')
     expect(result.individuals['ind-1'].surname).toBe('Saeed')
+  })
+})
+
+describe('redactPrivateIndividuals', () => {
+  const TREE_ID = 'tree-001'
+  const WORKSPACE_ID = 'ws-001'
+
+  it('redacts name fields for private individuals', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          surname: 'Saeed',
+          fullName: 'Ahmad Saeed',
+          sex: 'M',
+          birthDate: '1980',
+          birthPlace: 'Mecca',
+          deathDate: '2020',
+          deathPlace: 'Jeddah',
+          isPrivate: true,
+          isDeceased: true,
+        }),
+      ],
+      families: [],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const result = redactPrivateIndividuals(gedcom)
+    const ind = result.individuals['ind-1']
+
+    expect(ind.name).toBe('خاص')
+    expect(ind.givenName).toBe('خاص')
+    expect(ind.surname).toBe('')
+    expect(ind.birth).toBe('')
+    expect(ind.death).toBe('')
+  })
+
+  it('preserves id, sex, and family references for private individuals', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'father-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          sex: 'M',
+          isPrivate: true,
+        }),
+        makeIndividual({
+          id: 'child-1',
+          treeId: TREE_ID,
+          givenName: 'Omar',
+          sex: 'M',
+          isPrivate: false,
+        }),
+      ],
+      families: [
+        makeFamily({
+          id: 'fam-1',
+          treeId: TREE_ID,
+          husbandId: 'father-1',
+          children: [{ familyId: 'fam-1', individualId: 'child-1' }],
+        }),
+      ],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const result = redactPrivateIndividuals(gedcom)
+    const ind = result.individuals['father-1']
+
+    expect(ind.id).toBe('father-1')
+    expect(ind.sex).toBe('M')
+    expect(ind.familiesAsSpouse).toEqual(['fam-1'])
+    expect(ind.isPrivate).toBe(true)
+  })
+
+  it('does not redact non-private individuals', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          surname: 'Saeed',
+          sex: 'M',
+          birthDate: '1950',
+          isPrivate: false,
+        }),
+      ],
+      families: [],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const result = redactPrivateIndividuals(gedcom)
+    const ind = result.individuals['ind-1']
+
+    expect(ind.name).toBe('Ahmad Saeed')
+    expect(ind.givenName).toBe('Ahmad')
+    expect(ind.surname).toBe('Saeed')
+    expect(ind.birth).toBe('1950')
+  })
+
+  it('preserves families and tree structure unchanged', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'father-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          sex: 'M',
+          isPrivate: true,
+        }),
+        makeIndividual({
+          id: 'child-1',
+          treeId: TREE_ID,
+          givenName: 'Omar',
+          sex: 'M',
+          isPrivate: false,
+        }),
+      ],
+      families: [
+        makeFamily({
+          id: 'fam-1',
+          treeId: TREE_ID,
+          husbandId: 'father-1',
+          children: [{ familyId: 'fam-1', individualId: 'child-1' }],
+        }),
+      ],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const result = redactPrivateIndividuals(gedcom)
+
+    // Families remain intact
+    expect(result.families['fam-1'].husband).toBe('father-1')
+    expect(result.families['fam-1'].children).toEqual(['child-1'])
+
+    // Child still references parent family
+    expect(result.individuals['child-1'].familyAsChild).toBe('fam-1')
+  })
+
+  it('does not mutate the original GedcomData', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          surname: 'Saeed',
+          birthDate: '1980',
+          isPrivate: true,
+        }),
+      ],
+      families: [],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const originalName = gedcom.individuals['ind-1'].name
+
+    redactPrivateIndividuals(gedcom)
+
+    // Original should be unchanged
+    expect(gedcom.individuals['ind-1'].name).toBe(originalName)
   })
 })

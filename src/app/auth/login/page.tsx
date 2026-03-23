@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { validateRedirectPath } from '@/lib/auth/validate-redirect';
 import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout';
 import styles from '../auth.module.css';
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/dashboard';
+  const next = validateRedirectPath(searchParams.get('next'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

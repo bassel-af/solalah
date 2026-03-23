@@ -20,15 +20,18 @@ function isPublicPath(pathname: string): boolean {
 function isStaticAsset(pathname: string): boolean {
   return (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
     pathname.includes('.') // files with extensions (images, fonts, etc.)
   );
+}
+
+function isApiRoute(pathname: string): boolean {
+  return pathname.startsWith('/api');
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for static assets and API routes
+  // Skip middleware entirely for static assets (no session refresh needed)
   if (isStaticAsset(pathname)) {
     return NextResponse.next();
   }
@@ -38,7 +41,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For protected routes, verify/refresh the session via Supabase SSR
+  // For API routes, run session refresh but do NOT redirect on auth failure.
+  // Individual API route handlers call getAuthenticatedUser() and return 401 themselves.
+  if (isApiRoute(pathname)) {
+    const { supabaseResponse } = await updateSession(request);
+    return supabaseResponse;
+  }
+
+  // For protected page routes, verify/refresh the session and redirect if unauthenticated
   const { user, supabaseResponse } = await updateSession(request);
 
   if (!user) {

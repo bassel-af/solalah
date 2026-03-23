@@ -9,12 +9,20 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 
+// Mock rate limiter to always allow requests (rate-limit logic tested separately)
+vi.mock('@/lib/api/rate-limit', () => ({
+  joinCodeLimiter: { check: () => ({ allowed: true, retryAfterSeconds: 0 }) },
+  inviteCodeGenLimiter: { check: () => ({ allowed: true, retryAfterSeconds: 0 }) },
+  rateLimitResponse: () => new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 }),
+}));
+
 const mockMembershipFindUnique = vi.fn();
 const mockMembershipCreate = vi.fn();
 const mockInvitationCreate = vi.fn();
 const mockInvitationFindFirst = vi.fn();
 const mockInvitationUpdate = vi.fn();
 const mockWorkspaceFindUnique = vi.fn();
+const mockTransaction = vi.fn();
 
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -30,6 +38,7 @@ vi.mock('@/lib/db', () => ({
     workspace: {
       findUnique: (...args: unknown[]) => mockWorkspaceFindUnique(...args),
     },
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
@@ -97,7 +106,7 @@ describe('POST /api/workspaces/[id]/invitations/code', () => {
     expect(res.status).toBe(403);
   });
 
-  test('generates a join code with slug prefix and 4 random chars', async () => {
+  test('generates a join code with slug prefix and 8 random chars', async () => {
     mockAuth();
     mockMembershipFindUnique.mockResolvedValue({
       userId: fakeUser.id,
@@ -128,8 +137,8 @@ describe('POST /api/workspaces/[id]/invitations/code', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.code).toBeDefined();
-    // Code format: SLUG_PREFIX-4_RANDOM_CHARS (e.g., SAEED-4X7K)
-    expect(capturedCode).toMatch(/^SAEED-[A-Z0-9]{4}$/);
+    // Code format: SLUG_PREFIX-8_RANDOM_CHARS (e.g., SAEED-4X7KA3B2)
+    expect(capturedCode).toMatch(/^SAEED-[A-Z0-9]{8}$/);
   });
 
   test('accepts optional expiresAt and maxUses', async () => {
@@ -235,29 +244,46 @@ describe('POST /api/workspaces/join', () => {
     expect(body.error).toContain('already');
   });
 
-  test('joins workspace successfully and increments useCount', async () => {
+  test('joins workspace successfully using a transaction', async () => {
     mockAuth(joiningUser);
     mockInvitationFindFirst.mockResolvedValue({
       id: 'inv-uuid-1',
       workspaceId: wsId,
       type: 'code',
-      code: 'SAEED-4X7K',
+      code: 'SAEED-4X7KA3B2',
       status: 'pending',
       useCount: 2,
       maxUses: 10,
       expiresAt: null,
     });
     mockMembershipFindUnique.mockResolvedValue(null); // not a member
-    mockMembershipCreate.mockResolvedValue({
-      userId: joiningUser.id,
-      workspaceId: wsId,
-      role: 'workspace_member',
+
+    // The transaction callback receives a tx client and should return the membership
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const txClient = {
+        workspaceInvitation: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'inv-uuid-1',
+            workspaceId: wsId,
+            useCount: 2,
+            maxUses: 10,
+          }),
+          update: vi.fn().mockResolvedValue({}),
+        },
+        workspaceMembership: {
+          create: vi.fn().mockResolvedValue({
+            userId: joiningUser.id,
+            workspaceId: wsId,
+            role: 'workspace_member',
+          }),
+        },
+      };
+      return fn(txClient);
     });
-    mockInvitationUpdate.mockResolvedValue({});
 
     const { POST } = await import('@/app/api/workspaces/join/route');
     const req = makeRequest('http://localhost:3000/api/workspaces/join', {
-      body: { code: 'SAEED-4X7K' },
+      body: { code: 'SAEED-4X7KA3B2' },
     });
     const res = await POST(req);
 
@@ -265,13 +291,8 @@ describe('POST /api/workspaces/join', () => {
     const body = await res.json();
     expect(body.data.role).toBe('workspace_member');
 
-    // Verify useCount was incremented
-    expect(mockInvitationUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'inv-uuid-1' },
-        data: { useCount: 3 },
-      }),
-    );
+    // Verify a transaction was used (not separate prisma calls)
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 
   test('returns 404 if code has reached max uses', async () => {
@@ -285,5 +306,50 @@ describe('POST /api/workspaces/join', () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(404);
+  });
+
+  test('returns 404 when max uses exceeded inside transaction (race condition)', async () => {
+    mockAuth(joiningUser);
+    // Initial findFirst outside transaction finds the invitation (not yet at max)
+    mockInvitationFindFirst.mockResolvedValue({
+      id: 'inv-uuid-1',
+      workspaceId: wsId,
+      type: 'code',
+      code: 'SAEED-RACE1234',
+      status: 'pending',
+      useCount: 4,
+      maxUses: 5,
+      expiresAt: null,
+    });
+    mockMembershipFindUnique.mockResolvedValue(null); // not a member
+
+    // Inside the transaction, re-reading the invitation shows it's now at max
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const txClient = {
+        workspaceInvitation: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'inv-uuid-1',
+            workspaceId: wsId,
+            useCount: 5, // Another request incremented it
+            maxUses: 5,
+          }),
+          update: vi.fn(),
+        },
+        workspaceMembership: {
+          create: vi.fn(),
+        },
+      };
+      return fn(txClient);
+    });
+
+    const { POST } = await import('@/app/api/workspaces/join/route');
+    const req = makeRequest('http://localhost:3000/api/workspaces/join', {
+      body: { code: 'SAEED-RACE1234' },
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toContain('invalid');
   });
 });

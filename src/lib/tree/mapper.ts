@@ -142,6 +142,38 @@ function mapSex(sex: string | null): 'M' | 'F' | null {
 }
 
 // ---------------------------------------------------------------------------
+// Privacy redaction
+// ---------------------------------------------------------------------------
+
+const PRIVATE_PLACEHOLDER = 'خاص'
+
+/**
+ * Returns a new GedcomData with PII redacted for private individuals.
+ * Structural data (id, sex, family references) is preserved so the tree
+ * layout works correctly. The original object is not mutated.
+ */
+export function redactPrivateIndividuals(data: GedcomData): GedcomData {
+  const redacted: Record<string, Individual> = {}
+
+  for (const [id, ind] of Object.entries(data.individuals)) {
+    if (ind.isPrivate) {
+      redacted[id] = {
+        ...ind,
+        name: PRIVATE_PLACEHOLDER,
+        givenName: PRIVATE_PLACEHOLDER,
+        surname: '',
+        birth: '',
+        death: '',
+      }
+    } else {
+      redacted[id] = ind
+    }
+  }
+
+  return { individuals: redacted, families: data.families }
+}
+
+// ---------------------------------------------------------------------------
 // Family mapping
 // ---------------------------------------------------------------------------
 

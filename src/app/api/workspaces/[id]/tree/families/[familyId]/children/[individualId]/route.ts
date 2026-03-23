@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
+import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeFamily } from '@/lib/tree/queries';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string; individualId: string }> };
@@ -11,6 +12,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   const result = await requireTreeEditor(request, workspaceId);
   if (isErrorResponse(result)) return result;
+
+  const { allowed, retryAfterSeconds } = treeMutateLimiter.check(result.user.id);
+  if (!allowed) return rateLimitResponse(retryAfterSeconds);
 
   const tree = await getOrCreateTree(workspaceId);
   const family = await getTreeFamily(tree.id, familyId);

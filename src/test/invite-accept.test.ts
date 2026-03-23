@@ -9,6 +9,12 @@ vi.mock('@supabase/supabase-js', () => ({
   }),
 }));
 
+// Mock rate limiter to always allow requests (rate-limit logic tested separately)
+vi.mock('@/lib/api/rate-limit', () => ({
+  invitationAcceptLimiter: { check: () => ({ allowed: true, retryAfterSeconds: 0 }) },
+  rateLimitResponse: () => new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 }),
+}));
+
 const mockInvitationFindUnique = vi.fn();
 const mockInvitationUpdate = vi.fn();
 const mockMembershipFindUnique = vi.fn();
