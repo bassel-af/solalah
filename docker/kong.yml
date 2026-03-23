@@ -35,6 +35,6 @@ services:
       - name: rate-limiting
         config:
           policy: local
-          minute: 10
+          minute: 30
           limit_by: ip
           hide_client_headers: false

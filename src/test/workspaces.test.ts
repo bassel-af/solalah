@@ -189,6 +189,11 @@ describe('POST /api/workspaces', () => {
     expect(body.data.slug).toBe('test-ws');
     expect(body.data.nameAr).toBe('اختبار');
     expect(mockTransaction).toHaveBeenCalled();
+
+    // Verify workspace count checks only owned workspaces (workspace_admin), not all memberships
+    expect(mockMembershipCount).toHaveBeenCalledWith({
+      where: { userId: fakeUser.id, role: 'workspace_admin' },
+    });
   });
 
   test('returns 403 when user already has 5 workspaces', async () => {
@@ -206,6 +211,11 @@ describe('POST /api/workspaces', () => {
     expect(response.status).toBe(403);
     const body = await response.json();
     expect(body.error).toContain('limit');
+
+    // Verify the count query filters by workspace_admin role (owned workspaces, not memberships)
+    expect(mockMembershipCount).toHaveBeenCalledWith({
+      where: { userId: fakeUser.id, role: 'workspace_admin' },
+    });
   });
 
   test('allows workspace creation when user has fewer than 5 workspaces', async () => {

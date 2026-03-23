@@ -1,3 +1,6 @@
+// TODO(production): This is a single-process in-memory rate limiter.
+// It will not work correctly across multiple instances (e.g., multiple pods or serverless).
+// Replace with Redis-backed or Upstash-backed rate limiting before horizontal scaling.
 import { NextResponse } from 'next/server';
 
 export class RateLimiter {

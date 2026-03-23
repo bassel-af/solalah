@@ -18,6 +18,3 @@ export function generateJoinCode(slug: string): string {
   }
   return `${prefix}-${random}`;
 }
-
-/** Sentinel for tests to verify crypto is used instead of Math.random */
-export const _usesSecureRandom = true;

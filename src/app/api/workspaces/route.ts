@@ -37,9 +37,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Per-user workspace creation limit (checked after validation to avoid unnecessary DB queries)
+  // Per-user workspace creation limit — count only workspaces the user owns (is admin of),
+  // not all memberships, so being invited to workspaces doesn't block creating new ones
   const workspaceCount = await prisma.workspaceMembership.count({
-    where: { userId: user.id },
+    where: { userId: user.id, role: 'workspace_admin' },
   });
   if (workspaceCount >= 5) {
     return NextResponse.json(

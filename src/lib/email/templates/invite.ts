@@ -7,7 +7,11 @@ interface InviteEmailParams {
 }
 
 export function buildInviteEmail({ workspaceName, inviterName, inviteUrl }: InviteEmailParams) {
-  const subject = `دعوة للانضمام إلى ${workspaceName} على سلالة`;
+  // Strip newlines and carriage returns from subject to prevent header injection
+  const subject = `دعوة للانضمام إلى ${workspaceName} على سلالة`.replace(/[\r\n]/g, '');
+
+  // Validate URL scheme — only allow http/https, escape double quotes for safe HTML embedding
+  const safeUrl = /^https?:\/\//.test(inviteUrl) ? inviteUrl.replace(/"/g, '&quot;') : '';
 
   // Escape dynamic values to prevent HTML injection in the email body
   const safeInviterName = escapeHtml(inviterName);
@@ -35,13 +39,13 @@ export function buildInviteEmail({ workspaceName, inviterName, inviteUrl }: Invi
               <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 24px;">
                 قام <strong>${safeInviterName}</strong> بدعوتك للانضمام إلى عائلة <strong>${safeWorkspaceName}</strong> على منصة سلالة.
               </p>
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              ${safeUrl ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
                 <tr>
                   <td style="background-color: #1a5c3a; border-radius: 6px;">
-                    <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">قبول الدعوة</a>
+                    <a href="${safeUrl}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">قبول الدعوة</a>
                   </td>
                 </tr>
-              </table>
+              </table>` : ''}
               <p style="font-size: 14px; color: #888; line-height: 1.6; margin: 0;">
                 إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا البريد الإلكتروني.
               </p>
@@ -62,10 +66,10 @@ export function buildInviteEmail({ workspaceName, inviterName, inviteUrl }: Invi
   const text = `مرحبا،
 
 قام ${inviterName} بدعوتك للانضمام إلى عائلة ${workspaceName} على منصة سلالة.
-
+${safeUrl ? `
 لقبول الدعوة، افتح الرابط التالي:
-${inviteUrl}
-
+${safeUrl}
+` : ''}
 إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا البريد الإلكتروني.`;
 
   return { subject, html, text };

@@ -1,4 +1,19 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
+import { randomBytes as realRandomBytes } from 'node:crypto';
+
+// Track calls to randomBytes to verify crypto is used
+let randomBytesCalls = 0;
+
+vi.mock('crypto', () => {
+  const wrappedRandomBytes = (...args: Parameters<typeof realRandomBytes>) => {
+    randomBytesCalls++;
+    return realRandomBytes(...args);
+  };
+  return {
+    default: { randomBytes: wrappedRandomBytes },
+    randomBytes: wrappedRandomBytes,
+  };
+});
 
 // Test the extracted generateJoinCode function directly
 // It should use crypto, produce 8 random chars, and only use A-Z0-9
@@ -52,9 +67,10 @@ describe('generateJoinCode', () => {
     expect(codes.size).toBe(10);
   });
 
-  test('uses crypto module for randomness (not Math.random)', async () => {
-    // We verify this by checking the module source imports crypto
-    const { _usesSecureRandom } = await import('@/lib/workspace/join-code');
-    expect(_usesSecureRandom).toBe(true);
+  test('uses crypto.randomBytes for randomness (not Math.random)', async () => {
+    const { generateJoinCode } = await import('@/lib/workspace/join-code');
+    const before = randomBytesCalls;
+    generateJoinCode('test-family');
+    expect(randomBytesCalls).toBeGreaterThan(before);
   });
 });
