@@ -19,51 +19,41 @@ export async function POST(
 
   const { id } = await context.params;
 
+  // Generic error for all invalid/expired/used invitation states
+  // to prevent invitation ID enumeration and status information leakage
+  const invalidInvitationResponse = () =>
+    NextResponse.json(
+      { error: 'دعوة غير صالحة أو منتهية الصلاحية' },
+      { status: 404 },
+    );
+
   // Find invitation
   const invitation = await prisma.workspaceInvitation.findUnique({
     where: { id },
   });
 
   if (!invitation) {
-    return NextResponse.json(
-      { error: 'الدعوة غير موجودة' },
-      { status: 404 },
-    );
+    return invalidInvitationResponse();
   }
 
   // Check status is pending
   if (invitation.status !== 'pending') {
-    return NextResponse.json(
-      { error: 'هذه الدعوة لم تعد صالحة' },
-      { status: 410 },
-    );
+    return invalidInvitationResponse();
   }
 
   // Check expiration
   if (invitation.expiresAt && invitation.expiresAt < new Date()) {
-    return NextResponse.json(
-      { error: 'انتهت صلاحية هذه الدعوة' },
-      { status: 410 },
-    );
+    return invalidInvitationResponse();
   }
 
   // Check max uses
   if (invitation.maxUses !== null && invitation.useCount >= invitation.maxUses) {
-    return NextResponse.json(
-      { error: 'تم استخدام هذه الدعوة بالكامل' },
-      { status: 410 },
-    );
+    return invalidInvitationResponse();
   }
 
   // Email match check for email-type invitations
   if (invitation.type === 'email' && invitation.email !== user.email) {
-    return NextResponse.json(
-      {
-        error: 'هذه الدعوة مخصصة لبريد إلكتروني آخر',
-        code: 'EMAIL_MISMATCH',
-      },
-      { status: 403 },
-    );
+    return invalidInvitationResponse();
   }
 
   // Check if already a member

@@ -37,6 +37,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Per-user workspace creation limit (checked after validation to avoid unnecessary DB queries)
+  const workspaceCount = await prisma.workspaceMembership.count({
+    where: { userId: user.id },
+  });
+  if (workspaceCount >= 5) {
+    return NextResponse.json(
+      { error: 'Maximum workspace limit reached' },
+      { status: 403 },
+    );
+  }
+
   const { slug, nameAr, description, logoUrl } = parsed.data;
 
   try {

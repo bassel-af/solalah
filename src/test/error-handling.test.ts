@@ -33,6 +33,7 @@ vi.mock('@/lib/db', () => ({
       create: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
     workspaceInvitation: {
       findUnique: vi.fn(),

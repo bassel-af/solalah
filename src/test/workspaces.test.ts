@@ -17,6 +17,7 @@ const mockWorkspaceFindUnique = vi.fn();
 const mockWorkspaceFindMany = vi.fn();
 const mockMembershipFindMany = vi.fn();
 const mockMembershipFindUnique = vi.fn();
+const mockMembershipCount = vi.fn();
 const mockTransaction = vi.fn();
 
 // Mock rate limiter to always allow requests (rate-limit logic tested separately)
@@ -36,6 +37,7 @@ vi.mock('@/lib/db', () => ({
     workspaceMembership: {
       findMany: (...args: unknown[]) => mockMembershipFindMany(...args),
       findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+      count: (...args: unknown[]) => mockMembershipCount(...args),
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
@@ -165,6 +167,7 @@ describe('POST /api/workspaces', () => {
     mockAuthenticatedUser();
     const { POST } = await import('@/app/api/workspaces/route');
 
+    mockMembershipCount.mockResolvedValue(0);
     const createdWorkspace = {
       id: 'ws-uuid-1',
       slug: 'test-ws',
@@ -186,6 +189,47 @@ describe('POST /api/workspaces', () => {
     expect(body.data.slug).toBe('test-ws');
     expect(body.data.nameAr).toBe('اختبار');
     expect(mockTransaction).toHaveBeenCalled();
+  });
+
+  test('returns 403 when user already has 5 workspaces', async () => {
+    mockAuthenticatedUser();
+    const { POST } = await import('@/app/api/workspaces/route');
+
+    mockMembershipCount.mockResolvedValue(5);
+
+    const request = makeRequest('http://localhost:3000/api/workspaces', {
+      method: 'POST',
+      body: { slug: 'sixth-ws', nameAr: 'سادسة' },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toContain('limit');
+  });
+
+  test('allows workspace creation when user has fewer than 5 workspaces', async () => {
+    mockAuthenticatedUser();
+    const { POST } = await import('@/app/api/workspaces/route');
+
+    mockMembershipCount.mockResolvedValue(4);
+    const createdWorkspace = {
+      id: 'ws-uuid-5',
+      slug: 'fifth-ws',
+      nameAr: 'خامسة',
+      description: null,
+      logoUrl: null,
+      createdById: fakeUser.id,
+    };
+    mockTransaction.mockResolvedValue(createdWorkspace);
+
+    const request = makeRequest('http://localhost:3000/api/workspaces', {
+      method: 'POST',
+      body: { slug: 'fifth-ws', nameAr: 'خامسة' },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
   });
 });
 

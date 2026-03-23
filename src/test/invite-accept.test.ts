@@ -97,34 +97,40 @@ describe('POST /api/invitations/[id]/accept', () => {
     expect(res.status).toBe(401);
   });
 
-  test('returns 404 if invitation not found', async () => {
+  test('returns generic error if invitation not found', async () => {
     mockAuth();
     mockInvitationFindUnique.mockResolvedValue(null);
     const { POST } = await import('@/app/api/invitations/[id]/accept/route');
     const req = makeRequest(`http://localhost:3000/api/invitations/${invId}/accept`);
     const res = await POST(req, acceptParams);
     expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe('دعوة غير صالحة أو منتهية الصلاحية');
   });
 
-  test('returns 410 if invitation already accepted', async () => {
+  test('returns same generic error if invitation already accepted', async () => {
     mockAuth();
     mockInvitationFindUnique.mockResolvedValue(makePendingInvitation({ status: 'accepted' }));
     const { POST } = await import('@/app/api/invitations/[id]/accept/route');
     const req = makeRequest(`http://localhost:3000/api/invitations/${invId}/accept`);
     const res = await POST(req, acceptParams);
-    expect(res.status).toBe(410);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe('دعوة غير صالحة أو منتهية الصلاحية');
   });
 
-  test('returns 410 if invitation revoked', async () => {
+  test('returns same generic error if invitation revoked', async () => {
     mockAuth();
     mockInvitationFindUnique.mockResolvedValue(makePendingInvitation({ status: 'revoked' }));
     const { POST } = await import('@/app/api/invitations/[id]/accept/route');
     const req = makeRequest(`http://localhost:3000/api/invitations/${invId}/accept`);
     const res = await POST(req, acceptParams);
-    expect(res.status).toBe(410);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe('دعوة غير صالحة أو منتهية الصلاحية');
   });
 
-  test('returns 410 if invitation expired', async () => {
+  test('returns same generic error if invitation expired', async () => {
     mockAuth();
     mockInvitationFindUnique.mockResolvedValue(
       makePendingInvitation({ expiresAt: new Date(Date.now() - 1000) }),
@@ -132,7 +138,9 @@ describe('POST /api/invitations/[id]/accept', () => {
     const { POST } = await import('@/app/api/invitations/[id]/accept/route');
     const req = makeRequest(`http://localhost:3000/api/invitations/${invId}/accept`);
     const res = await POST(req, acceptParams);
-    expect(res.status).toBe(410);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe('دعوة غير صالحة أو منتهية الصلاحية');
   });
 
   test('allows null expiresAt (never expires)', async () => {
@@ -154,7 +162,7 @@ describe('POST /api/invitations/[id]/accept', () => {
     expect(res.status).toBe(201);
   });
 
-  test('returns 410 if max uses exceeded', async () => {
+  test('returns same generic error if max uses exceeded', async () => {
     mockAuth();
     mockInvitationFindUnique.mockResolvedValue(
       makePendingInvitation({ maxUses: 5, useCount: 5 }),
@@ -162,10 +170,12 @@ describe('POST /api/invitations/[id]/accept', () => {
     const { POST } = await import('@/app/api/invitations/[id]/accept/route');
     const req = makeRequest(`http://localhost:3000/api/invitations/${invId}/accept`);
     const res = await POST(req, acceptParams);
-    expect(res.status).toBe(410);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe('دعوة غير صالحة أو منتهية الصلاحية');
   });
 
-  test('returns 403 with EMAIL_MISMATCH for email invitation with wrong user', async () => {
+  test('returns generic error for email invitation with wrong user', async () => {
     mockAuth();
     mockInvitationFindUnique.mockResolvedValue(
       makePendingInvitation({ type: 'email', email: 'other@example.com' }),
@@ -173,9 +183,9 @@ describe('POST /api/invitations/[id]/accept', () => {
     const { POST } = await import('@/app/api/invitations/[id]/accept/route');
     const req = makeRequest(`http://localhost:3000/api/invitations/${invId}/accept`);
     const res = await POST(req, acceptParams);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.code).toBe('EMAIL_MISMATCH');
+    expect(body.error).toBe('دعوة غير صالحة أو منتهية الصلاحية');
   });
 
   test('skips email check for code-type invitations', async () => {

@@ -49,7 +49,10 @@ services:
 
       # Email auth
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # SECURITY: Auto-confirm disabled — SMTP must be configured for email
+      # verification to work. Without SMTP, users cannot complete signup,
+      # which is safer than allowing unverified email addresses.
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
 
       # Google OAuth (disabled by default — set env vars to enable)
       GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_OAUTH_ENABLED:-false}

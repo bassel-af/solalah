@@ -113,14 +113,14 @@ describe('GET /api/workspaces/[id]/members', () => {
         workspaceId: wsId,
         role: 'workspace_admin',
         permissions: [],
-        user: { id: fakeUser.id, email: 'admin@example.com', displayName: 'Admin' },
+        user: { id: fakeUser.id, displayName: 'Admin', avatarUrl: null },
       },
       {
         userId: 'user-2',
         workspaceId: wsId,
         role: 'workspace_member',
         permissions: ['tree_editor'],
-        user: { id: 'user-2', email: 'member@example.com', displayName: 'Member' },
+        user: { id: 'user-2', displayName: 'Member', avatarUrl: null },
       },
     ];
     mockMembershipFindMany.mockResolvedValue(members);
@@ -133,6 +133,53 @@ describe('GET /api/workspaces/[id]/members', () => {
     const body = await res.json();
     expect(body.data).toHaveLength(2);
     expect(body.data[0].role).toBe('workspace_admin');
+  });
+
+  test('returns displayName and avatarUrl for each member', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+    const members = [
+      {
+        userId: fakeUser.id,
+        workspaceId: wsId,
+        role: 'workspace_admin',
+        permissions: [],
+        user: { id: fakeUser.id, displayName: 'Admin', avatarUrl: 'https://example.com/avatar.jpg' },
+      },
+    ];
+    mockMembershipFindMany.mockResolvedValue(members);
+
+    const { GET } = await import('@/app/api/workspaces/[id]/members/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/members`);
+    const res = await GET(req, membersParams);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data[0].user.displayName).toBe('Admin');
+    expect(body.data[0].user.avatarUrl).toBe('https://example.com/avatar.jpg');
+  });
+
+  test('queries only id, displayName, and avatarUrl for user data', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+    mockMembershipFindMany.mockResolvedValue([]);
+
+    const { GET } = await import('@/app/api/workspaces/[id]/members/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/members`);
+    await GET(req, membersParams);
+
+    const findManyCall = mockMembershipFindMany.mock.calls[0][0];
+    expect(findManyCall.include.user).toEqual({
+      select: { id: true, displayName: true, avatarUrl: true },
+    });
   });
 });
 
