@@ -505,11 +505,55 @@ Notification
 - UUID path param validation on move endpoint
 - All new fields (`notes`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`, `birthPlace`, `deathPlace`) redacted for private individuals
 
+**✅ Marriage events (MARC/MARR/DIV) on families:**
+- 16 new DB columns on `Family` model: date, hijriDate, place, description, notes for each of MARC (عقد القران), MARR (الزفاف), DIV (الانفصال), plus `isDivorced` boolean
+- GEDCOM parser: `MARC`, `MARR`, `DIV` tags under FAM with sub-tags `DATE`, `PLAC`, `NOTE`, `_HIJR`; inline values (e.g., `1 MARC 12/2/1443`) stored as description; NOTE references resolved
+- `FamilyEvent` type groups date/hijriDate/place/description/notes per event; `Family` type gains `marriageContract`, `marriage`, `divorce` objects + `isDivorced`
+- Mapper, seed helpers, and all family API routes (create/update) extended with event fields
+- `FamilyEventForm` modal with 3 collapsible sections (عقد القران / الزفاف / الانفصال), auto-expand when data exists, divorce fields behind `isDivorced` checkbox
+- PersonDetail sidebar: marriage info section per family showing عقد القران, الزفاف, الانفصال with dates/places/description/notes; hidden for private spouses
+- Add-spouse flow auto-opens FamilyEventForm after creating spouse+family (single-flow UX)
+
+**✅ Hijri dates (`_HIJR` custom tag):**
+- `birthHijriDate` and `deathHijriDate` columns on `Individual` model; Hijri date columns on each family event
+- GEDCOM parser: `_HIJR` tag at level 2 under `BIRT`/`DEAT`/`MARC`/`MARR`/`DIV`
+- Hijri date text inputs in `IndividualForm` (birth/death) and `FamilyEventForm` with `.hijriFieldAccented` styling
+- Privacy redaction clears Hijri dates on private individuals
+
+**✅ Calendar preference:**
+- `calendarPreference` column on `User` model (default: `'hijri'`)
+- `GET/PATCH /api/users/me/preferences` with rate limiting
+- `CalendarPreferenceContext` + `useCalendarPreference` hook: localStorage + server sync on mount
+- `getPreferredDate()` / `getSecondaryDate()` / `getDateSuffix()` helpers in `calendar-helpers.ts`
+- Calendar toggle (هجري/ميلادي) in PersonDetail hero — only shown when both dates exist for the current person
+- Single-date display: هـ suffix for Hijri-only, م suffix for Gregorian-only; suffix placed after date, before place
+- Dual-date display: preferred calendar primary, other calendar secondary (smaller/dimmer)
+
+**✅ Add-spouse UX:**
+- Button text auto-determined by person's sex: "إضافة زوجة" for males, "إضافة زوج" for females
+- Sex field auto-locked in the form (opposite of selected person's sex)
+
+**✅ Islamic GEDCOM standard page:**
+- Public page at `/islamic-gedcom` documenting custom `_HIJR` tag and standard GEDCOM tag mappings to Islamic marriage concepts
+- Covers GEDCOM 5.5.1 and 7.0 compatibility
+- Arabic-first RTL layout with LTR code examples on separate lines
+
+**✅ Architecture improvements:**
+- Shared Zod schemas extracted to `src/lib/tree/schemas.ts` — individual and family field schemas reused across create/update routes
+- `usePersonActions` hook extracted from PersonDetail (379 lines) — all API calls, form state, delete state encapsulated
+- `serializeIndividualForm()` helper deduplicates form-to-API payload mapping; sends `null` for empty fields (enables field clearing via PATCH)
+- Shared form CSS extracted to `src/styles/form-elements.module.css` (checkbox, textarea, error, hijri accent, label, fieldGroup)
+- Shared thin scrollbar CSS module at `src/styles/scrollbar.module.css` — composed into Modal, Sidebar, PersonDetail
+- `FamilyEventForm.onSubmit` properly async/awaited
+- Family event PATCH sends flat fields matching API schema (not nested objects)
+
 **✅ UI polish:**
-- Modal scrollable: `max-height: 85vh` + `overflow-y: auto` on content
+- Modal scrollable: `max-height: 85vh` + `overflow-y: auto` on content with shared thin scrollbar
 - Deceased person visibility: removed aggressive `opacity: 0.5`, using direct color values (names 55%, dates 40%)
 - Disabled input styling: `opacity: 0.35`, `cursor: not-allowed`
-- 166 new tests (489 total), 0 regressions
+- Marriage section inside scrollable area (not sticky)
+- Tree edge routing: increased vertical gap (120px) and horizontal gap (40px) to prevent edge overlap; `pathOptions` applied correctly on edges
+- 291 new tests (614 total), 0 regressions
 
 ### Phase 4 — User-Tree Linking + Branch Pointers
 

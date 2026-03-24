@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository ("solalah") is a **private family collaboration platform** evolving from a read-only genealogy viewer. Built with Next.js 15 (App Router) + React 19 + TypeScript, backed by PostgreSQL (Prisma ORM) and Supabase Auth (self-hosted via Docker Compose). The app is RTL (right-to-left) with Arabic as the primary language. See `docs/product-requirements.md` for the full PRD and `docs/auth-provider-decisions.md` for auth architecture decisions.
 
-**Current state**: Phase 1 (Auth & Workspace Foundation) and Phase 2 (Editable Family Tree) are complete, including security hardening. Auth (email/password + Google OAuth), workspace CRUD, membership/invitations, dashboard UI, policy page, and database-backed editable family tree are all working. Phase 3 (Family-Aware Relationship Editing) is next. The tree visualization reads from the database via `GET /api/workspaces/[id]/tree`; static GEDCOM files in `/public/` are preserved for the legacy `/{familySlug}` routes and seeding.
+**Current state**: Phases 1–3 are complete. Phase 1 (Auth & Workspace Foundation): email/password + Google OAuth, workspace CRUD, membership/invitations, dashboard UI, policy page. Phase 2 (Editable Family Tree): database-backed tree with full CRUD. Phase 3 (Family-Aware Relationship Editing): add child/spouse/parent, move child between families, marriage events (MARC/MARR/DIV), Hijri date support, calendar preference. The tree visualization reads from the database via `GET /api/workspaces/[id]/tree`; static GEDCOM files in `/public/` are preserved for the legacy `/{familySlug}` routes and seeding.
 
 ## Package Management
 
@@ -57,6 +57,11 @@ The project uses `@/` as an alias for the `/src/` directory, configured in `tsco
 
 The app wraps the entire application in `<TreeProvider>` via `src/app/providers.tsx` (client component).
 
+**WorkspaceTreeContext** (`src/context/WorkspaceTreeContext.tsx`) manages workspace-specific tree state:
+- `workspaceId`, `canEdit`, `refreshTree()` — consumed via `useWorkspaceTree()` hook
+
+**ToastContext** (`src/context/ToastContext.tsx`) provides app-wide toast notifications.
+
 ### GEDCOM Parsing
 
 **Parser** (`src/lib/gedcom/parser.ts`):
@@ -77,14 +82,37 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 - `matchesSearch()` - Multi-word, diacritic-stripping, case-insensitive Arabic/Latin search
 
 **Types** (`src/lib/gedcom/types.ts`):
-- `Individual` - Person record with name, birth/death dates, sex, family references, `isPrivate` flag
-- `Family` - Family unit with husband, wife, and children references
+- `FamilyEvent` - Event record with `date`, `hijriDate`, `place`, `description`, `notes`
+- `Individual` - Person record with name, birth/death (with hijri dates, notes, description), sex, family references, `isPrivate`/`isDeceased` flags
+- `Family` - Family unit with husband, wife, children, plus `marriageContract` (MARC), `marriage` (MARR), `divorce` (DIV) as `FamilyEvent`, and `isDivorced` flag
 - `GedcomData` - Container for individuals and families records (keyed by ID)
 
 **Graph utilities** (`src/lib/gedcom/graph.ts`):
 - `getAllDescendants()` - Get all descendants of a person
 - `getTreeVisibleIndividuals()` - Get individuals visible in the tree (with optional privacy filtering)
 - `calculateDescendantCounts()` - Uses Kahn's algorithm (topological sort) for efficient O(V+E) counting
+
+**Calendar helpers** (`src/lib/calendar-helpers.ts`):
+- `CalendarPreference` type (`'hijri' | 'gregorian'`)
+- `getPreferredDate()`, `getSecondaryDate()`, `getDateSuffix()` — select display date based on user preference
+
+**Person detail helpers** (`src/lib/person-detail-helpers.ts`):
+- Form data builders: `buildEditInitialData()`, `buildFamilyEventInitialData()`, `serializeIndividualForm()`
+- Validation: `validateAddParent()`, `canMoveChild()`, `needsFamilyPickerForAddChild()`
+- Display: `formatDateWithPlace()`, `getDeceasedLabel()`
+- Family picker: `getFamiliesForPicker()`, `getAlternativeFamilies()`
+
+**Tree schemas** (`src/lib/tree/schemas.ts`):
+- Zod validation schemas for tree API: `createIndividualSchema`, `updateIndividualSchema`, `createFamilySchema`, `updateFamilySchema`
+- Shared field schemas: `individualFieldsSchema`, `familyEventFieldsSchema`
+
+### Hooks
+
+- `useCalendarPreference` — manages hijri/gregorian preference with localStorage persistence and server sync
+- `usePersonActions` — Phase 3 editing state machine (modes: `edit`, `addChild`, `addSpouse`, `addParent`, `editFamilyEvent`) with submit/delete handlers and child-move support
+- `useWorkspaceTreeData` — fetches and manages workspace tree data
+- `useGedcomData` — fetches GEDCOM file from `/public/` for legacy routes
+- `useTreeLines` — SVG line drawing for playground mode
 
 ### Multi-Family Routing
 
@@ -112,12 +140,21 @@ The `FamilyTree` component (`src/components/tree/FamilyTree/FamilyTree.tsx`) use
 - Supports polygamous families with color-coded edges per spouse
 - Privacy filtering: individuals with `isPrivate: true` are excluded from rendering
 
+**Tree editing components** (`src/components/tree/`):
+- `IndividualForm` — form for creating/editing individuals (name, sex, birth/death with hijri dates, notes)
+- `FamilyEventForm` — form for marriage contract (MARC), marriage (MARR), divorce (DIV) events with expandable sections
+- `FamilyPickerModal` — modal to select which family when adding/moving a child (polygamy support)
+- `CoupleRow` — displays marriage event information between spouses
+- `PersonCard` — individual node card in the tree
+- `EmptyTreeState` — placeholder for workspaces with no tree data
+
 ### GEDCOM File
 
 The GEDCOM file (`public/saeed-family.ged`):
-- GEDCOM 5.5.1 format (UTF-8 encoding)
+- GEDCOM 5.5.1 format (UTF-8 encoding) with Islamic extensions
 - Individual records: `0 @ID@ INDI` with `NAME`, `SEX`, `BIRT`, `DEAT`, `FAMS`, `FAMC` tags
-- Family records: `0 @ID@ FAM` with `HUSB`, `WIFE`, `CHIL` tags
+- Family records: `0 @ID@ FAM` with `HUSB`, `WIFE`, `CHIL`, `MARC` (marriage contract), `MARR` (marriage), `DIV` (divorce) tags
+- Hijri dates via custom `_HIJR` subtag on date events
 - Cross-references use `@ID@` format
 
 **IMPORTANT**: Do not read `.ged` files directly (per project instructions).
@@ -156,7 +193,10 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Secrets in `docker/.env` (gitignored) — all security-sensitive vars use `:?` syntax (Docker fails to start if missing)
 
 **Prisma** (`prisma/schema.prisma`):
-- 16 tables: users, workspaces, workspace_memberships, workspace_invitations, user_tree_links, family_trees, individuals, families, family_children, tree_edit_logs, posts, albums, album_media, events, event_rsvps, notifications (branch tables removed in Phase 2)
+- 16 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, TreeEditLog, Post, Album, AlbumMedia, Event, EventRsvp, Notification
+- `User` has `calendarPreference` field (default: `'hijri'`)
+- `Individual` has `birthHijriDate`, `deathHijriDate`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`
+- `Family` has marriage contract (MARC), marriage (MARR), and divorce (DIV) event fields: `{type}Date`, `{type}HijriDate`, `{type}Place`, `{type}Description`, `{type}Notes`, plus `isDivorced`
 - Prisma v7 uses driver adapters — client instantiation requires `PrismaPg` from `@prisma/adapter-pg`
 - Generated client output: `generated/prisma/` (gitignored)
 - Run migrations: `npx prisma migrate dev`
@@ -173,6 +213,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Login: `src/app/auth/login/page.tsx` → GoTrue `/auth/v1/token?grant_type=password` + Google OAuth
 - Callback: `src/app/auth/callback/route.ts` — handles OAuth redirects, email confirmations, sets cookies, syncs user to DB
 - User sync: `POST /api/auth/sync-user` + shared helper `src/lib/auth/sync-user.ts` — mirrors GoTrue user to `public.users`
+- Password reset: `src/app/auth/forgot-password/page.tsx` → Supabase `resetPasswordForEmail()`
 - Redirect validation: `src/lib/auth/validate-redirect.ts` — validates `?next` parameter to prevent open redirects
 - Middleware: `src/middleware.ts` — three code paths: static assets (skip), API routes (session refresh only, no login redirect), page routes (session refresh + login redirect)
 - After login/signup, users are redirected to `/dashboard`
@@ -209,26 +250,38 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `DELETE /api/workspaces/[id]/tree/families/[id]` — delete family
 - `POST /api/workspaces/[id]/tree/families/[id]/children` — add child to family
 - `DELETE /api/workspaces/[id]/tree/families/[id]/children/[individualId]` — remove child from family
+- `POST /api/workspaces/[id]/tree/families/[familyId]/children/[individualId]/move` — move child to another family
+
+**User API Routes** (`src/app/api/users/`):
+- `GET /api/users/me/preferences` — get user preferences (calendar preference)
+- `PATCH /api/users/me/preferences` — update user preferences
 
 **Tree Library** (`src/lib/tree/`):
 - `queries.ts` — database query helpers for tree CRUD
 - `mapper.ts` — `dbTreeToGedcomData()` maps DB records to `GedcomData` shape; `redactPrivateIndividuals()` strips PII from private individuals
 - `seed-helpers.ts` — helpers for seeding tree data from GEDCOM
+- `schemas.ts` — Zod validation schemas for tree API requests
 
 **Email** (`src/lib/email/`):
 - `transport.ts` — Nodemailer with Gmail SMTP
 - `templates/invite.ts` — Arabic RTL invitation email (HTML-escaped dynamic values, URL-validated links, header-injection-safe subjects)
 
-**Join Code Generation** (`src/lib/workspace/join-code.ts`):
-- Uses `crypto.randomBytes()` with 8 random characters (A-Z0-9), format: `SLUG_PREFIX-XXXXXXXX`
+**Workspace utilities** (`src/lib/workspace/`):
+- `join-code.ts` — `crypto.randomBytes()` with 8 random characters (A-Z0-9), format: `SLUG_PREFIX-XXXXXXXX`
+- `labels.ts` — `roleLabel()` maps workspace roles to Arabic display labels
+
+**Seed** (`src/lib/seed/seed-workspaces.ts`):
+- `seedWorkspacesFromFamilies()` — creates workspaces from family configurations for local development
 
 **Dashboard & Workspace UI**:
 - `/dashboard` — workspace list (مساحات العائلة), create button, logout
 - `/dashboard/create` — create workspace form (اسم العائلة, slug, description)
 - `/workspaces/[slug]` — workspace detail with members, invite modal, tree link
-- `/workspaces/[slug]/tree` — database-backed tree view with edit controls (add/edit individual, add child/spouse/parent, delete)
+- `/workspaces/[slug]/tree` — database-backed tree view with edit controls (add/edit individual, add child/spouse/parent, move child, edit family events, delete)
 - `/invite/[id]` — invitation acceptance page
 - `/policy` — public policy page (Arabic + English)
+- `/islamic-gedcom` — public documentation page for the Islamic GEDCOM standard (custom tags: `_HIJR`, MARC/MARR/DIV)
+- `/auth/forgot-password` — password reset via Supabase Auth
 
 **Environment Variables** (see `.env.example`):
 - `.env` — `DATABASE_URL` (used by Prisma CLI)

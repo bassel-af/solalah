@@ -1,5 +1,3 @@
-Fix lines shape
-
 Check other inputs in MacFamilyTree
 تعريب مكان الميلاد
 مكان الميلاد يتم اختياره وليس فقط كتابته
@@ -7,7 +5,7 @@ Check other inputs in MacFamilyTree
 
 Show also members in tree above descendents in someway.
 
-We need to control indexing. Only
+We need to control search engines indexing. Only
 the landing and policy pages shall
 be indexed.
 
@@ -17,12 +15,9 @@ be indexed.
 
 المحارم
 
+Low priority now:
 Undo - Redo
 Version control
-
 إصدار نعوة
-
 UI latest touches.
-
-
 divorce/khol3, etc
