@@ -1,6 +1,6 @@
 ---
 name: frontend-designer
-description: "Use this agent when the user needs to create, redesign, or improve UI components and visual design elements. This includes building new pages, creating reusable component libraries, implementing responsive layouts, improving user experience, styling existing components, or establishing design systems.
+description: "Use this agent when the user needs to create, redesign, or improve UI components and visual design elements. This includes building new pages, creating reusable component libraries, implementing responsive layouts, improving user experience, styling existing components, or establishing design systems."
 model: opus
 color: blue
 ---

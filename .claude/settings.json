@@ -1,13 +1,14 @@
 {
   "permissions": {
-    "deny": [
-      "Read(**/saeed-family.ged)"
-    ],
     "allow": [
       "Read(**/test-family.ged)"
+    ],
+    "deny": [
+      "Read(**/saeed-family.ged)"
     ]
   },
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true
   }
 }

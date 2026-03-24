@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEDCOM ↔ الزواج الإسلامي</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-2: #232733;
+    --border: rgba(255,255,255,0.1);
+    --border-active: rgba(255,255,255,0.25);
+    --text: rgba(255,255,255,0.85);
+    --text-dim: rgba(255,255,255,0.5);
+    --text-faint: rgba(255,255,255,0.3);
+    --accent: #60a5fa;
+    --accent-dim: rgba(96,165,250,0.15);
+    --green: #34d399;
+    --green-dim: rgba(52,211,153,0.15);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.15);
+    --rose: #fb7185;
+    --rose-dim: rgba(251,113,133,0.15);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.15);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.15);
+    --orange: #fb923c;
+    --orange-dim: rgba(251,146,60,0.15);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    font-size: 15px;
+  }
+
+  /* === SECTION HEADERS === */
+  .section-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* === MAPPING GRID === */
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .mapping-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mapping-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+
+  .mapping-card:hover {
+    border-color: var(--border-active);
+    transform: translateY(-2px);
+  }
+
+  .mapping-card.active {
+    border-color: var(--border-active);
+    background: var(--surface-2);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .arabic-name {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .gedcom-badge {
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    direction: ltr;
+    white-space: nowrap;
+  }
+
+  .english-name {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* Card color variants */
+  .card-marc::before { background: var(--green); }
+  .card-marc .gedcom-badge { background: var(--green-dim); color: var(--green); }
+  .card-marc .arabic-name { color: var(--green); }
+
+  .card-marr::before { background: var(--accent); }
+  .card-marr .gedcom-badge { background: var(--accent-dim); color: var(--accent); }
+  .card-marr .arabic-name { color: var(--accent); }
+
+  .card-enga::before { background: var(--purple); }
+  .card-enga .gedcom-badge { background: var(--purple-dim); color: var(--purple); }
+  .card-enga .arabic-name { color: var(--purple); }
+
+  .card-mars::before { background: var(--cyan); }
+  .card-mars .gedcom-badge { background: var(--cyan-dim); color: var(--cyan); }
+  .card-mars .arabic-name { color: var(--cyan); }
+
+  .card-div::before { background: var(--rose); }
+  .card-div .gedcom-badge { background: var(--rose-dim); color: var(--rose); }
+  .card-div .arabic-name { color: var(--rose); }
+
+  .card-marb::before { background: var(--orange); }
+  .card-marb .gedcom-badge { background: var(--orange-dim); color: var(--orange); }
+  .card-marb .arabic-name { color: var(--orange); }
+
+  .card-marl::before { background: var(--amber); }
+  .card-marl .gedcom-badge { background: var(--amber-dim); color: var(--amber); }
+  .card-marl .arabic-name { color: var(--amber); }
+
+  /* === TIMELINE === */
+  .timeline-section {
+    margin-bottom: 48px;
+  }
+
+  .timeline {
+    position: relative;
+    padding: 20px 40px 20px 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    right: 18px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--purple), var(--green), var(--accent), var(--rose));
+    border-radius: 3px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 32px;
+    padding-right: 48px;
+  }
+
+  .timeline-item:last-child { margin-bottom: 0; }
+
+  .timeline-dot {
+    position: absolute;
+    right: -52px;
+    top: 8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid;
+    background: var(--bg);
+    z-index: 1;
+  }
+
+  .timeline-dot.dot-enga { border-color: var(--purple); }
+  .timeline-dot.dot-marc { border-color: var(--green); }
+  .timeline-dot.dot-marr { border-color: var(--accent); }
+  .timeline-dot.dot-div { border-color: var(--rose); }
+
+  .timeline-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .timeline-title {
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .timeline-date {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    direction: ltr;
+    text-align: left;
+  }
+
+  .timeline-body {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .timeline-hijri {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+    direction: ltr;
+  }
+
+  .hijri-marc { background: var(--green-dim); color: var(--green); }
+  .hijri-marr { background: var(--accent-dim); color: var(--accent); }
+
+  /* === GEDCOM EXAMPLE === */
+  .gedcom-section {
+    margin-bottom: 48px;
+  }
+
+  .gedcom-example {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .gedcom-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .gedcom-tab {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    border: none;
+    background: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    font-family: var(--font);
+  }
+
+  .gedcom-tab:hover { color: var(--text); background: var(--surface-2); }
+  .gedcom-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .gedcom-code {
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    direction: ltr;
+    text-align: left;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .gedcom-code .tag { color: var(--accent); font-weight: 600; }
+  .gedcom-code .id { color: var(--amber); }
+  .gedcom-code .val { color: var(--green); }
+  .gedcom-code .comment { color: var(--text-faint); font-style: italic; }
+  .gedcom-code .highlight { background: var(--accent-dim); border-radius: 3px; padding: 1px 4px; }
+  .gedcom-code .highlight-green { background: var(--green-dim); border-radius: 3px; padding: 1px 4px; }
+  .gedcom-code .highlight-rose { background: var(--rose-dim); border-radius: 3px; padding: 1px 4px; }
+
+  /* === KEY INSIGHT BOX === */
+  .insight-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 48px;
+  }
+
+  .insight-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+
+  .insight-body {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  .insight-body strong { color: var(--text); font-weight: 600; }
+
+  /* === COMPARISON TABLE === */
+  .comparison-section { margin-bottom: 48px; }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .comparison-table th {
+    background: var(--surface-2);
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .comparison-table tr:last-child td { border-bottom: none; }
+
+  .comparison-table tr:hover td { background: var(--surface-2); }
+
+  .tag-cell {
+    font-family: var(--mono);
+    font-weight: 600;
+    direction: ltr;
+    text-align: left;
+  }
+
+  .check { color: var(--green); }
+  .cross { color: var(--rose); }
+  .maybe { color: var(--amber); }
+
+  /* === PROMPT OUTPUT === */
+  .prompt-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 40px;
+  }
+
+  .prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .prompt-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  .copy-btn {
+    padding: 6px 16px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(96,165,250,0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font);
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { background: rgba(96,165,250,0.25); }
+
+  .prompt-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* === CONTROLS === */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+    justify-content: center;
+  }
+
+  .control-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.2s;
+  }
+
+  .control-btn:hover { border-color: var(--border-active); color: var(--text); }
+  .control-btn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(96,165,250,0.3); }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    .mapping-grid { grid-template-columns: 1fr; }
+    .container { padding: 20px 16px; }
+    h1 { font-size: 22px; }
+    .comparison-table { font-size: 12px; }
+    .comparison-table th, .comparison-table td { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>أحداث الزواج في GEDCOM والإسلام</h1>
+  <p class="subtitle">كيف تتوافق علامات GEDCOM مع مراحل الزواج الإسلامي في السعودية</p>
+
+  <!-- Scenario Controls -->
+  <div class="controls">
+    <button class="control-btn active" onclick="showScenario('full')">زواج كامل مع عقد وعرس</button>
+    <button class="control-btn" onclick="showScenario('simple')">زواج بسيط (حدث واحد)</button>
+    <button class="control-btn" onclick="showScenario('divorce')">زواج وطلاق</button>
+  </div>
+
+  <!-- ═══ MAPPING CARDS ═══ -->
+  <h2 class="section-title">الربط بين العلامات والمفاهيم</h2>
+
+  <div class="mapping-grid">
+
+    <div class="mapping-card card-marc" onclick="highlightTag('MARC')">
+      <div class="card-header">
+        <div>
+          <div class="arabic-name">عقد القران</div>
+          <div class="english-name">Marriage Contract (Nikah)</div>
+        </div>
+        <span class="gedcom-badge">MARC</span>
+      </div>
+      <div class="card-desc">
+        العقد الشرعي والقانوني الذي يُوقَّع بحضور الشهود والولي مع تحديد المهر.
+        هذا هو الحدث الذي يصبح فيه الزوجان مرتبطين شرعاً.
+        <br><br>
+        <strong>في GEDCOM:</strong> يُسجَّل تحت العائلة كـ <code>1 MARC</code> مع تاريخ ومكان اختيارياً.
+      </div>
+    </div>
+
+    <div class="mapping-card card-marr" onclick="highlightTag('MARR')">
+      <div class="card-header">
+        <div>
+          <div class="arabic-name">حفل الزفاف / العرس</div>
+          <div class="english-name">Marriage / Wedding (Walima)</div>
+        </div>
+        <span class="gedcom-badge">MARR</span>
+      </div>
+      <div class="card-desc">
+        حفل الزفاف أو الوليمة — الاحتفال العلني بالزواج.
+        في السعودية، غالباً يكون بعد عقد القران بأيام أو أشهر.
+        <br><br>
+        <strong>في GEDCOM:</strong> يُسجَّل كـ <code>1 MARR</code> مع تاريخ ومكان وملاحظات.
+      </div>
+    </div>
+
+    <div class="mapping-card card-enga" onclick="highlightTag('ENGA')">
+      <div class="card-header">
+        <div>
+          <div class="arabic-name">الخطوبة</div>
+          <div class="english-name">Engagement</div>
+        </div>
+        <span class="gedcom-badge">ENGA</span>
+      </div>
+      <div class="card-desc">
+        الاتفاق على الزواج قبل العقد — الملكة / الشبكة.
+        ليس ملزماً شرعاً ولكنه عرف اجتماعي مهم.
+        <br><br>
+        <strong>في GEDCOM:</strong> يُسجَّل كـ <code>1 ENGA</code> (نادر الاستخدام).
+      </div>
+    </div>
+
+    <div class="mapping-card card-mars" onclick="highlightTag('MARS')">
+      <div class="card-header">
+        <div>
+          <div class="arabic-name">اتفاقية مالية</div>
+          <div class="english-name">Marriage Settlement</div>
+        </div>
+        <span class="gedcom-badge">MARS</span>
+      </div>
+      <div class="card-desc">
+        اتفاق مالي بين الطرفين قبل الزواج بخصوص الممتلكات والحقوق المالية.
+        مشابه لـ "عقد ما قبل الزواج" (prenup) في الغرب.
+        <br><br>
+        <strong>في GEDCOM:</strong> يُسجَّل كـ <code>1 MARS</code> (نادر جداً).
+      </div>
+    </div>
+
+    <div class="mapping-card card-div" onclick="highlightTag('DIV')">
+      <div class="card-header">
+        <div>
+          <div class="arabic-name">الطلاق</div>
+          <div class="english-name">Divorce</div>
+        </div>
+        <span class="gedcom-badge">DIV</span>
+      </div>
+      <div class="card-desc">
+        إنهاء عقد الزواج. في الإسلام يمر بمراحل (طلاق رجعي، بائن).
+        <br><br>
+        <strong>في GEDCOM:</strong> يُسجَّل كـ <code>1 DIV</code> مع تاريخ اختياري.
+      </div>
+    </div>
+
+    <div class="mapping-card card-marb" onclick="highlightTag('MARB')">
+      <div class="card-header">
+        <div>
+          <div class="arabic-name">إعلان نية الزواج</div>
+          <div class="english-name">Marriage Bann</div>
+        </div>
+        <span class="gedcom-badge">MARB</span>
+      </div>
+      <div class="card-desc">
+        إعلان رسمي عن نية الزواج — تقليد مسيحي أوروبي بالأساس.
+        لا يوجد له مقابل مباشر في التقاليد الإسلامية.
+        <br><br>
+        <strong>في GEDCOM:</strong> يُسجَّل كـ <code>1 MARB</code> (غير مستخدم عندنا).
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ KEY INSIGHT ═══ -->
+  <div class="insight-box">
+    <div class="insight-title">ملاحظة مهمة عن التاريخ الهجري</div>
+    <div class="insight-body">
+      في بياناتك، التاريخ الهجري يوضع أحياناً في القيمة المباشرة للعلامة (مثل: <code>1 MARC 12/2/1443</code>)،
+      بينما التاريخ الميلادي يكون تحت <code>2 DATE</code>.<br><br>
+      <strong>هذا ليس معياراً في GEDCOM</strong> — هو أسلوب خاص ببرنامج الأنساب المستخدم.
+      لذلك معالجة التاريخ الهجري تكون في <strong>مرحلة البذر (seed)</strong> وليس في المحلل العام (parser).
+      <br><br>
+      القيمة المباشرة بعد MARC/MARR تُعامل كـ <strong>وصف الحدث</strong> (description) — وهذا هو المكان المناسب لحفظ التاريخ الهجري.
+    </div>
+  </div>
+
+  <!-- ═══ TIMELINE ═══ -->
+  <div class="timeline-section">
+    <h2 class="section-title">المسار الزمني للزواج السعودي النموذجي</h2>
+
+    <div class="timeline" id="timeline">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ═══ GEDCOM EXAMPLES ═══ -->
+  <div class="gedcom-section">
+    <h2 class="section-title">أمثلة حقيقية من البيانات</h2>
+
+    <div class="gedcom-example">
+      <div class="gedcom-tabs">
+        <button class="gedcom-tab active" onclick="showTab('full-example')">زواج كامل (عقد + عرس)</button>
+        <button class="gedcom-tab" onclick="showTab('simple-example')">زواج بسيط</button>
+        <button class="gedcom-tab" onclick="showTab('divorce-example')">زواج مع طلاق</button>
+      </div>
+
+      <div class="gedcom-code" id="full-example">
+<span class="comment">; عائلة @84993337@ — زواج كامل مع عقد وعرس</span>
+0 <span class="id">@84993337@</span> <span class="tag">FAM</span>
+
+<span class="comment">; ─── عقد القران (MARC) ───</span>
+1 <span class="tag highlight-green">MARC</span> <span class="val">12/2/1443</span>          <span class="comment">; ← التاريخ الهجري كوصف</span>
+2 <span class="tag">DATE</span> <span class="val">11/7/2022</span>          <span class="comment">; ← التاريخ الميلادي</span>
+
+<span class="comment">; ─── حفل الزفاف (MARR) ───</span>
+1 <span class="tag highlight">MARR</span> <span class="val">7/10/1443</span>          <span class="comment">; ← التاريخ الهجري كوصف</span>
+2 <span class="tag">DATE</span> <span class="val">27/4/2023</span>          <span class="comment">; ← التاريخ الميلادي</span>
+2 <span class="tag">PLAC</span> <span class="val">الرياض,,الرياض,السعودية</span>
+2 <span class="tag">NOTE</span> <span class="id">@47338416@</span>       <span class="comment">; ← ملاحظة مرجعية</span>
+
+<span class="comment">; ─── أطراف العائلة ───</span>
+1 <span class="tag">HUSB</span> <span class="id">@30860778@</span>
+1 <span class="tag">WIFE</span> <span class="id">@90969944@</span>
+1 <span class="tag">CHIL</span> <span class="id">@33685190@</span>
+</div>
+
+      <div class="gedcom-code" id="simple-example" style="display:none">
+<span class="comment">; عائلة @5078702@ — زواج بسيط (حدث واحد فقط)</span>
+0 <span class="id">@5078702@</span> <span class="tag">FAM</span>
+
+<span class="comment">; ─── الزواج (MARR) بدون تفاصيل ───</span>
+1 <span class="tag highlight">MARR</span>                     <span class="comment">; ← فقط إشارة أن هناك زواج</span>
+
+<span class="comment">; ─── أطراف العائلة ───</span>
+1 <span class="tag">HUSB</span> <span class="id">@52192397@</span>
+1 <span class="tag">WIFE</span> <span class="id">@20352891@</span>
+1 <span class="tag">CHIL</span> <span class="id">@66968976@</span>
+1 <span class="tag">CHIL</span> <span class="id">@77512766@</span>
+1 <span class="tag">CHIL</span> <span class="id">@53183510@</span>
+1 <span class="tag">CHIL</span> <span class="id">@60556800@</span>
+
+<span class="comment">; ─── لا يوجد MARC (عقد) منفصل ───</span>
+<span class="comment">; كثير من الأزواج القدامى لا تُسجَّل تفاصيل عقدهم</span>
+</div>
+
+      <div class="gedcom-code" id="divorce-example" style="display:none">
+<span class="comment">; عائلة @47238137@ — زواج انتهى بطلاق</span>
+0 <span class="id">@47238137@</span> <span class="tag">FAM</span>
+
+<span class="comment">; ─── الزواج ───</span>
+1 <span class="tag highlight">MARR</span>                     <span class="comment">; ← تم الزواج</span>
+
+<span class="comment">; ─── الطلاق ───</span>
+1 <span class="tag highlight-rose">DIV</span>                      <span class="comment">; ← تم الطلاق</span>
+
+<span class="comment">; ─── أطراف العائلة ───</span>
+1 <span class="tag">HUSB</span> <span class="id">@27125350@</span>
+1 <span class="tag">WIFE</span> <span class="id">@65780429@</span>
+1 <span class="tag">CHIL</span> <span class="id">@22751264@</span>
+1 <span class="tag">CHIL</span> <span class="id">@86402880@</span>
+
+<span class="comment">; ─── ملاحظة: الأطفال يبقون مرتبطين بالعائلة حتى بعد الطلاق ───</span>
+</div>
+    </div>
+  </div>
+
+  <!-- ═══ COMPARISON TABLE ═══ -->
+  <div class="comparison-section">
+    <h2 class="section-title">جدول المقارنة</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>العلامة</th>
+          <th>المفهوم بالعربي</th>
+          <th>الوصف</th>
+          <th>مستخدم في بياناتنا؟</th>
+          <th>له تاريخ ومكان؟</th>
+          <th>أولوية التنفيذ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tag-cell" style="color: var(--green)">MARC</td>
+          <td>عقد القران / النكاح</td>
+          <td>العقد الشرعي مع الشهود والمهر</td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="check" style="font-weight:700">عالية</span></td>
+        </tr>
+        <tr>
+          <td class="tag-cell" style="color: var(--accent)">MARR</td>
+          <td>حفل الزفاف / العرس</td>
+          <td>الاحتفال والوليمة</td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="check" style="font-weight:700">عالية</span></td>
+        </tr>
+        <tr>
+          <td class="tag-cell" style="color: var(--rose)">DIV</td>
+          <td>الطلاق</td>
+          <td>إنهاء الزواج</td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="maybe">أحياناً</span></td>
+          <td><span class="check" style="font-weight:700">عالية</span></td>
+        </tr>
+        <tr>
+          <td class="tag-cell" style="color: var(--purple)">ENGA</td>
+          <td>الخطوبة</td>
+          <td>الاتفاق على الزواج</td>
+          <td><span class="cross">لا ✗</span></td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="maybe">منخفضة</span></td>
+        </tr>
+        <tr>
+          <td class="tag-cell" style="color: var(--cyan)">MARS</td>
+          <td>اتفاقية مالية</td>
+          <td>اتفاق ممتلكات ما قبل الزواج</td>
+          <td><span class="cross">لا ✗</span></td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="cross">لا حاجة</span></td>
+        </tr>
+        <tr>
+          <td class="tag-cell" style="color: var(--orange)">MARB</td>
+          <td>إعلان نية الزواج</td>
+          <td>تقليد مسيحي، لا مقابل إسلامي</td>
+          <td><span class="cross">لا ✗</span></td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="cross">لا حاجة</span></td>
+        </tr>
+        <tr>
+          <td class="tag-cell" style="color: var(--amber)">MARL</td>
+          <td>رخصة الزواج</td>
+          <td>الإذن الرسمي من المحكمة</td>
+          <td><span class="cross">لا ✗</span></td>
+          <td><span class="check">نعم ✓</span></td>
+          <td><span class="cross">لا حاجة</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ STRUCTURE BOX ═══ -->
+  <div class="insight-box" style="border-right-color: var(--accent);">
+    <div class="insight-title" style="color: var(--accent);">البنية المقترحة في قاعدة البيانات</div>
+    <div class="insight-body">
+      كل عائلة (Family) يمكن أن تحتوي على عدة أحداث زواج:<br><br>
+      <strong>1. عقد القران (MARC)</strong> — تاريخ + مكان + وصف (هجري) + ملاحظات<br>
+      <strong>2. حفل الزفاف (MARR)</strong> — تاريخ + مكان + وصف (هجري) + ملاحظات<br>
+      <strong>3. الطلاق (DIV)</strong> — تاريخ + مكان + ملاحظات<br><br>
+      القيمة المباشرة بعد العلامة (مثل <code>12/2/1443</code>) تُحفظ كـ <strong>description</strong> — وهي المكان المناسب للتاريخ الهجري.
+    </div>
+  </div>
+
+  <!-- ═══ PROMPT OUTPUT ═══ -->
+  <div class="prompt-section">
+    <div class="prompt-header">
+      <span class="prompt-label">الأمر المقترح للتنفيذ</span>
+      <button class="copy-btn" onclick="copyPrompt()">نسخ</button>
+    </div>
+    <div class="prompt-text" id="prompt-output"></div>
+  </div>
+
+</div>
+
+<script>
+  // ═══ TIMELINE DATA ═══
+  const scenarios = {
+    full: [
+      {
+        dot: 'dot-marc',
+        title: 'عقد القران',
+        tag: 'MARC',
+        dateHijri: '12/2/1443',
+        dateGreg: '11/7/2022',
+        body: 'تم توقيع العقد الشرعي بحضور الشهود والولي. المهر والشروط تم الاتفاق عليها.',
+        hijriClass: 'hijri-marc'
+      },
+      {
+        dot: 'dot-marr',
+        title: 'حفل الزفاف',
+        tag: 'MARR',
+        dateHijri: '7/10/1443',
+        dateGreg: '27/4/2023',
+        place: 'الرياض، السعودية',
+        body: 'حفل الزفاف والوليمة — بعد العقد بحوالي 9 أشهر. هذا هو "يوم العرس" الذي يحتفل فيه مع الأهل والأصدقاء.',
+        hijriClass: 'hijri-marr'
+      }
+    ],
+    simple: [
+      {
+        dot: 'dot-marr',
+        title: 'الزواج',
+        tag: 'MARR',
+        dateHijri: null,
+        dateGreg: null,
+        body: 'تم تسجيل الزواج بدون تفاصيل إضافية. هذا شائع للأزواج القدامى حيث لا تتوفر تفاصيل العقد أو الحفل.',
+        hijriClass: null
+      }
+    ],
+    divorce: [
+      {
+        dot: 'dot-marr',
+        title: 'الزواج',
+        tag: 'MARR',
+        dateHijri: null,
+        dateGreg: null,
+        body: 'تم الزواج.',
+        hijriClass: null
+      },
+      {
+        dot: 'dot-div',
+        title: 'الطلاق',
+        tag: 'DIV',
+        dateHijri: null,
+        dateGreg: null,
+        body: 'انتهى الزواج بالطلاق. الأطفال يبقون مرتبطين بسجل العائلة.',
+        hijriClass: null
+      }
+    ]
+  };
+
+  let currentScenario = 'full';
+
+  function showScenario(name) {
+    currentScenario = name;
+    document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    renderTimeline();
+    // Also switch tab
+    if (name === 'full') showTab('full-example');
+    else if (name === 'simple') showTab('simple-example');
+    else if (name === 'divorce') showTab('divorce-example');
+    updatePrompt();
+  }
+
+  function renderTimeline() {
+    const timeline = document.getElementById('timeline');
+    const items = scenarios[currentScenario];
+    timeline.innerHTML = items.map(item => `
+      <div class="timeline-item">
+        <div class="timeline-dot ${item.dot}"></div>
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <span class="timeline-title">${item.title} <span class="gedcom-badge" style="font-size:11px; padding:2px 8px; vertical-align:middle;">${item.tag}</span></span>
+            ${item.dateGreg ? `<span class="timeline-date">${item.dateGreg} م</span>` : '<span class="timeline-date" style="opacity:0.3">بدون تاريخ</span>'}
+          </div>
+          <div class="timeline-body">
+            ${item.body}
+            ${item.place ? `<br>المكان: <strong>${item.place}</strong>` : ''}
+            ${item.dateHijri ? `<br><span class="timeline-hijri ${item.hijriClass}">${item.dateHijri} هـ</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function showTab(tabId) {
+    document.querySelectorAll('.gedcom-code').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.gedcom-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).style.display = 'block';
+    event?.target?.classList?.add('active');
+    // If called programmatically, find the right tab
+    const tabs = document.querySelectorAll('.gedcom-tab');
+    tabs.forEach(tab => {
+      if (tab.textContent.includes('كامل') && tabId === 'full-example') tab.classList.add('active');
+      if (tab.textContent.includes('بسيط') && tabId === 'simple-example') tab.classList.add('active');
+      if (tab.textContent.includes('طلاق') && tabId === 'divorce-example') tab.classList.add('active');
+    });
+  }
+
+  function highlightTag(tag) {
+    // Visual feedback on card click
+    document.querySelectorAll('.mapping-card').forEach(c => c.classList.remove('active'));
+    const card = document.querySelector(`.card-${tag.toLowerCase()}`);
+    if (card) card.classList.add('active');
+  }
+
+  function updatePrompt() {
+    const prompt = document.getElementById('prompt-output');
+    prompt.textContent = `Extend the GEDCOM parser and database schema to support family/marriage events.
+
+Add these fields to the Family model (prisma schema) and Family type (gedcom types):
+- marriageDate, marriagePlace, marriageDescription, marriageNotes (from MARR tag)
+- marriageContractDate, marriageContractPlace, marriageContractDescription, marriageContractNotes (from MARC tag)
+- divorceDate, divorcePlace, divorceDescription, divorceNotes (from DIV tag)
+- isDivorced boolean (set to true when DIV tag is present)
+
+Parser changes:
+- Parse MARR under FAM records with sub-tags: DATE → marriageDate, PLAC → marriagePlace, NOTE → marriageNotes
+- Parse MARC under FAM records with sub-tags: DATE → marriageContractDate, PLAC → marriageContractPlace, NOTE → marriageContractNotes
+- Parse DIV under FAM records with sub-tags: DATE → divorceDate, PLAC → divorcePlace, NOTE → divorceNotes
+- The inline value after MARR/MARC/DIV (e.g., "1 MARC 12/2/1443") is the event description (often Hijri date) — store as marriageContractDescription/marriageDescription/divorceDescription
+- Resolve standalone NOTE references (@ID@) for marriage/divorce notes, same as individual notes
+- Handle CONT/CONC continuations for marriage/divorce notes
+
+Seed changes:
+- Map all new family fields from parsed GEDCOM to database during seeding
+
+UI changes:
+- Show marriage contract (عقد القران) and wedding (حفل الزفاف) info in the sidebar when viewing a married couple
+- Show divorce (الطلاق) info if the family has a divorce record
+- In the IndividualForm/FamilyForm, allow editing these marriage event fields
+
+The Hijri date in the description field is NOT standard GEDCOM — it's a custom usage. Handle it in the seed layer, not the parser.`;
+  }
+
+  function copyPrompt() {
+    const text = document.getElementById('prompt-output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'تم النسخ!';
+      setTimeout(() => btn.textContent = 'نسخ', 1500);
+    });
+  }
+
+  // Init
+  renderTimeline();
+  updatePrompt();
+</script>
+
+</body>
+</html>

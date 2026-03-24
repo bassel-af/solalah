@@ -1,0 +1,193 @@
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-dark-900);
+  color: var(--alpha-white-85);
+  direction: rtl;
+  padding: var(--space-8) var(--space-6);
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.pageTitle {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--alpha-white-85);
+  text-align: center;
+  margin: 0 0 var(--space-4);
+}
+
+.pageSubtitle {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-40);
+  text-align: center;
+  margin: 0 0 var(--space-10);
+  line-height: 1.8;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section {
+  margin-bottom: var(--space-10);
+  padding: var(--space-8);
+  border-radius: 12px;
+  border: 1px solid var(--alpha-white-10);
+  background: var(--alpha-white-04);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--alpha-white-85);
+  margin: 0 0 var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--alpha-white-10);
+}
+
+.desc {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-70);
+  line-height: 1.8;
+  margin: 0 0 var(--space-6);
+}
+
+/* Tag definition block */
+.tagBlock {
+  margin-bottom: var(--space-8);
+}
+
+.tagBlock:last-child {
+  margin-bottom: 0;
+}
+
+.tagHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.tagBadge {
+  direction: ltr;
+  text-align: left;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.tagBadgeCustom {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.tagBadgeStandard {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.tagBadgeDivorce {
+  background: rgba(251, 113, 133, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(251, 113, 133, 0.25);
+}
+
+.tagName {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--alpha-white-85);
+}
+
+.tagDesc {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-60);
+  line-height: 1.8;
+  margin: 0 0 var(--space-4);
+}
+
+/* GEDCOM code examples */
+.codeBlock {
+  direction: ltr;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--alpha-white-08);
+  border-radius: 8px;
+  padding: var(--space-4) var(--space-5);
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.8;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--alpha-white-60);
+}
+
+.codeTag {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.codeCustomTag {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.codeId {
+  color: #fbbf24;
+}
+
+.codeVal {
+  color: #a78bfa;
+}
+
+.codeComment {
+  color: var(--alpha-white-25);
+  font-style: italic;
+}
+
+.note {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-50);
+  line-height: 1.7;
+  padding: var(--space-4);
+  border-radius: 8px;
+  border-right: 3px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+  margin-top: var(--space-4);
+}
+
+.lastUpdated {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-25);
+  margin-top: var(--space-10);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--alpha-white-08);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .section {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .pageTitle {
+    font-size: var(--font-size-2xl);
+  }
+
+  .tagHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
