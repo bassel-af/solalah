@@ -5,6 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 import { FAMILIES } from '../src/config/families';
 import { parseGedcom } from '../src/lib/gedcom/parser';
+import { extractSubtree } from '../src/lib/gedcom/graph';
 import { seedTreeFromGedcomData } from '../src/lib/tree/seed-helpers';
 
 // We can't use the @/ alias or the singleton from src/lib/db.ts here
@@ -62,7 +63,12 @@ async function main() {
         const gedcomPath = path.resolve(__dirname, '..', 'public', config.gedcomFile.replace(/^\//, ''));
         if (fs.existsSync(gedcomPath)) {
           const gedcomText = fs.readFileSync(gedcomPath, 'utf-8');
-          const gedcomData = parseGedcom(gedcomText);
+          const fullData = parseGedcom(gedcomText);
+          const gedcomData = extractSubtree(fullData, config.rootId);
+
+          const fullCount = Object.keys(fullData.individuals).length;
+          const subtreeCount = Object.keys(gedcomData.individuals).length;
+          console.log(`    Subtree: ${subtreeCount} of ${fullCount} individuals (root: ${config.rootId})`);
 
           const result = await seedTreeFromGedcomData(workspace.id, gedcomData, prisma);
 

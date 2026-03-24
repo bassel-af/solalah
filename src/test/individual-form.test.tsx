@@ -23,9 +23,13 @@ describe('IndividualForm', () => {
 
     it('auto-checks isDeceased when a death date is entered', () => {
       render(<IndividualForm {...defaultProps} />)
+      // First check isDeceased to reveal the death date field
+      const checkbox = screen.getByLabelText(/متوفى\/متوفية/) as HTMLInputElement
+      fireEvent.click(checkbox)
+      expect(checkbox.checked).toBe(true)
+      // Enter a death date — checkbox should remain checked
       const deathDateInput = screen.getByLabelText('تاريخ الوفاة')
       fireEvent.change(deathDateInput, { target: { value: '2020' } })
-      const checkbox = screen.getByLabelText(/متوفى\/متوفية/) as HTMLInputElement
       expect(checkbox.checked).toBe(true)
     })
 

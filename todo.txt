@@ -11,6 +11,13 @@ be indexed.
 Undo - Redo
 Version control
 
-Marriage place
+Marriage place, dates, etc
+Marriage notes
 كتب الكتاب
 Check other inputs in MacFamilyTree
+
+Death notes
+Birth notes
+
+Show also tree above descendent in someway.
+

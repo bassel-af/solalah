@@ -1,4 +1,4 @@
-import type { Individual, GedcomData } from './types';
+import type { Individual, Family, GedcomData } from './types';
 
 /**
  * Get all ancestors of a person (parents, grandparents, etc.)
@@ -232,4 +232,90 @@ export function calculateDescendantCounts(
   }
 
   return descendantCount;
+}
+
+/**
+ * Extract a subtree rooted at the given individual.
+ *
+ * Returns a new GedcomData containing only:
+ * - The root individual + all descendants + all their spouses
+ * - Families where at least one of (husband, wife) is a root-or-descendant
+ *
+ * Individuals and families are deep-copied; the original data is not mutated.
+ * Cross-references (familiesAsSpouse, familyAsChild, children, husband, wife)
+ * are filtered to only reference entities in the extracted set.
+ */
+export function extractSubtree(data: GedcomData, rootId: string): GedcomData {
+  const { individuals, families } = data;
+
+  // Handle nonexistent root
+  if (!individuals[rootId]) {
+    return { individuals: {}, families: {} };
+  }
+
+  // 1. Collect root + all descendants (the "core" set)
+  const coreIds = new Set<string>([rootId]);
+  const descendants = getAllDescendants(data, rootId);
+  for (const id of descendants) {
+    coreIds.add(id);
+  }
+
+  // 2. Collect spouses of core members (but NOT spouses of spouses)
+  const allIds = new Set<string>(coreIds);
+  for (const personId of coreIds) {
+    const person = individuals[personId];
+    if (!person) continue;
+
+    for (const familyId of person.familiesAsSpouse) {
+      const family = families[familyId];
+      if (!family) continue;
+
+      const spouseId = family.husband === personId ? family.wife : family.husband;
+      if (spouseId && individuals[spouseId]) {
+        allIds.add(spouseId);
+      }
+    }
+  }
+
+  // 3. Filter families: include only if at least one of (husband, wife)
+  //    is in the core set (root or descendant). This prevents pulling in
+  //    families that only involve a married-in spouse's other relationships.
+  const includedFamilyIds = new Set<string>();
+  const filteredFamilies: Record<string, Family> = {};
+
+  for (const [famId, family] of Object.entries(families)) {
+    const husbandInCore = family.husband !== null && coreIds.has(family.husband);
+    const wifeInCore = family.wife !== null && coreIds.has(family.wife);
+
+    if (husbandInCore || wifeInCore) {
+      const husbandInAll = family.husband !== null && allIds.has(family.husband);
+      const wifeInAll = family.wife !== null && allIds.has(family.wife);
+
+      includedFamilyIds.add(famId);
+      filteredFamilies[famId] = {
+        ...family,
+        husband: husbandInAll ? family.husband : null,
+        wife: wifeInAll ? family.wife : null,
+        children: family.children.filter((childId) => allIds.has(childId)),
+      };
+    }
+  }
+
+  // 4. Filter individuals and update their cross-references
+  const filteredIndividuals: Record<string, Individual> = {};
+
+  for (const id of allIds) {
+    const person = individuals[id];
+    if (!person) continue;
+
+    filteredIndividuals[id] = {
+      ...person,
+      familiesAsSpouse: person.familiesAsSpouse.filter((famId) => includedFamilyIds.has(famId)),
+      familyAsChild: person.familyAsChild && includedFamilyIds.has(person.familyAsChild)
+        ? person.familyAsChild
+        : null,
+    };
+  }
+
+  return { individuals: filteredIndividuals, families: filteredFamilies };
 }
