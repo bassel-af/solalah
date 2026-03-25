@@ -64,7 +64,7 @@ function LoginForm() {
         <iconify-icon icon="material-symbols:account-tree" width="48" height="48" />
       </div>
       <h1 className={styles.title}>تسجيل الدخول</h1>
-      <p className={styles.subtitle}>أدخل بياناتك للوصول إلى منصة صلة</p>
+      <p className={styles.subtitle}>أدخل بياناتك للوصول إلى منصة سلالة</p>
 
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}

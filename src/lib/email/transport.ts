@@ -29,7 +29,7 @@ interface SendEmailParams {
 
 export async function sendEmail({ to, subject, html, text }: SendEmailParams) {
   const senderEmail = process.env.SMTP_SENDER_EMAIL || 'noreply@solalah.com';
-  const senderName = process.env.SMTP_SENDER_NAME || 'صلالة';
+  const senderName = process.env.SMTP_SENDER_NAME || 'سلالة';
 
   return emailTransport.sendMail({
     from: `"${senderName}" <${senderEmail}>`,

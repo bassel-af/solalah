@@ -3,7 +3,7 @@ import styles from './policy.module.css';
 
 export const metadata: Metadata = {
   title: 'السياسات والشروط | Policies',
-  description: 'سياسة الاستخدام والخصوصية لمنصة صلالة',
+  description: 'سياسة الاستخدام والخصوصية لمنصة سلالة',
 };
 
 export default function PolicyPage() {
@@ -19,7 +19,7 @@ export default function PolicyPage() {
 
           <div className={styles.arabicBlock}>
             <p>
-              منصة صلالة هي منصة عائلية خاصة مصممة لتوثيق الأنساب والتواصل بين
+              منصة سلالة هي منصة عائلية خاصة مصممة لتوثيق الأنساب والتواصل بين
               أفراد العائلة. باستخدامك للمنصة، فإنك توافق على الشروط التالية:
             </p>
             <p>

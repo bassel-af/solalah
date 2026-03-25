@@ -94,7 +94,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       select: { displayName: true },
     });
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4000';
     const inviteUrl = `${siteUrl}/invite/${invitation.id}`;
 
     const emailContent = buildInviteEmail({

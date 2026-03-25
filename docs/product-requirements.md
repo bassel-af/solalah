@@ -572,12 +572,7 @@ Notification
 - Family DELETE wrapped in `$transaction` for atomicity (was sequential)
 - POST /places requires `tree_editor` permission (was `workspace_member`)
 
-### Phase 4 — User-Tree Linking + Branch Pointers
-
-**User-tree linking:**
-- Flow A: invite-with-link (admin specifies individual at invite time, user confirms)
-- Flow B: member requests link, admin approves/rejects with notification
-- Link status displayed on member profiles within workspace
+### Phase 4 — Branch Pointers
 
 **Branch pointers:**
 - Add `branch_sharing_policy` column to `workspaces` table
@@ -599,24 +594,35 @@ Notification
 ### Phase 6 — Content
 
 - News posts (workspace-scoped): rich text, media attachments, reactions, comments, pinning
-- Albums (workspace-scoped): photo/video collections, tagging to individuals in the tree
 - Events (workspace-scoped): calendar entries with RSVP, auto-generated birthdays/anniversaries from tree data
-- Storage tracking and quota enforcement
 
 ### Phase 7 — Polish & Growth
 
-- Audit log for all tree edits (TreeEditLog)
+- Magic link sign-in (passwordless email login)
 - Mobile app (Expo / React Native) — tracked separately
 - Phone OTP sign-in activated (SMS gateway configured)
-- Notifications (in-app + email)
 - Public sharing links for specific content (opt-in)
+
+### Phase 8 — Audit & Content
+
+- Audit log for all tree edits (TreeEditLog)
+
+### Phase 9 — Albums & Notifications
+
+- Albums (workspace-scoped): photo/video collections, tagging to individuals in the tree
+- Storage tracking and quota enforcement
+- Notifications (in-app + email)
+
+### Phase 10 — User-Tree Linking & Cross-Workspace Identity
+
+- User-tree linking: Flow A (invite-with-link), Flow B (member requests link with admin approval), link status on member profiles
 - Cross-workspace identity linking: a lightweight link recognizing the same real person across workspaces — each workspace retains its own copy of the individual (no shared data, no sync). The link is informational only.
 
 ---
 
 ## 8. Out of Scope (for now)
 
-- **Cross-workspace identity linking**: recognizing that an individual in workspace A and an individual in workspace B are the same real person. Each workspace owns its own copy of the individual — the link is informational only, no shared data or sync. The user account and `UserTreeLink` table already serve as the practical link. Full linking UI is deferred to Phase 6+. The data model must not prevent it.
+- **User-tree linking + cross-workspace identity**: deferred to Phase 10. The `UserTreeLink` table exists in the schema but is not active. Full linking UI is deferred. The data model must not prevent it.
 - **Public workspace discovery**: workspaces are private and not discoverable
 - **Real-time collaboration** (e.g., live cursors in tree editing)
 - **Native mobile app**: tracked in a separate document

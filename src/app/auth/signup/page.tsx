@@ -72,7 +72,7 @@ function SignupForm() {
         <iconify-icon icon="material-symbols:account-tree" width="48" height="48" />
       </div>
       <h1 className={styles.title}>إنشاء حساب</h1>
-      <p className={styles.subtitle}>سجّل حساباً جديداً في منصة صلة</p>
+      <p className={styles.subtitle}>سجّل حساباً جديداً في منصة سلالة</p>
 
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}

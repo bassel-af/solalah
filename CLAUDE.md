@@ -27,6 +27,8 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - `npx prisma migrate dev` - Run Prisma migrations
 - `npx prisma generate` - Regenerate Prisma client
 - `npx prisma studio` - Open Prisma Studio (database browser)
+- `pnpm seed` - Seed workspaces + tree data + places for local dev (requires admin user in DB first; see `docs/setup.md`)
+- `pnpm seed:places` - Seed Place table from preprocessed GeoNames data only
 
 ## Technology Stack
 
@@ -194,7 +196,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Secrets in `docker/.env` (gitignored) — all security-sensitive vars use `:?` syntax (Docker fails to start if missing)
 
 **Prisma** (`prisma/schema.prisma`):
-- 16 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, TreeEditLog, Post, Album, AlbumMedia, Event, EventRsvp, Notification
+- 17 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, TreeEditLog, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place
 - `User` has `calendarPreference` field (default: `'hijri'`)
 - `Individual` has `birthHijriDate`, `deathHijriDate`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`
 - `Family` has marriage contract (MARC), marriage (MARR), and divorce (DIV) event fields: `{type}Date`, `{type}HijriDate`, `{type}Place`, `{type}Description`, `{type}Notes`, plus `isDivorced`
@@ -253,6 +255,10 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `DELETE /api/workspaces/[id]/tree/families/[id]/children/[individualId]` — remove child from family
 - `POST /api/workspaces/[id]/tree/families/[familyId]/children/[individualId]/move` — move child to another family
 
+**Places API Route** (`src/app/api/workspaces/[id]/places/`):
+- `GET /api/workspaces/[id]/places?q=...` — search places (global seed + workspace custom)
+- `POST /api/workspaces/[id]/places` — create custom place for workspace
+
 **User API Routes** (`src/app/api/users/`):
 - `GET /api/users/me/preferences` — get user preferences (calendar preference)
 - `PATCH /api/users/me/preferences` — update user preferences
@@ -271,8 +277,13 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `join-code.ts` — `crypto.randomBytes()` with 8 random characters (A-Z0-9), format: `SLUG_PREFIX-XXXXXXXX`
 - `labels.ts` — `roleLabel()` maps workspace roles to Arabic display labels
 
-**Seed** (`src/lib/seed/seed-workspaces.ts`):
-- `seedWorkspacesFromFamilies()` — creates workspaces from family configurations for local development
+**Seed** (`src/lib/seed/`):
+- `seed-workspaces.ts` — creates workspaces from family configurations for local development
+- `seed-places.ts` — seeds Place table from preprocessed GeoNames JSON (`prisma/seed-data/places.json`)
+- `geonames-parser.ts` — TSV line parsers for raw GeoNames data (used by `scripts/preprocess-geonames.ts`)
+
+**Places** (`src/lib/places/`):
+- `schemas.ts` — Zod schemas for place search and creation API
 
 **Dashboard & Workspace UI**:
 - `/dashboard` — workspace list (مساحات العائلة), create button, logout
@@ -288,6 +299,12 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `.env` — `DATABASE_URL` (used by Prisma CLI)
 - `.env.local` — `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`
 - `docker/.env` — Docker Compose secrets (gitignored)
+
+### Testing
+
+- All test files are centralized in `src/test/` (not co-located with source)
+- Test fixtures (GEDCOM files) in `src/test/fixtures/`
+- Naming: `*.test.ts` / `*.test.tsx`
 
 ### Dev Tools
 

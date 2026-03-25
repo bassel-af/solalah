@@ -54,7 +54,7 @@ export default function DashboardPage() {
   return (
     <main className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.headerTitle}>صلة</h1>
+        <h1 className={styles.headerTitle}>سلالة</h1>
         <button onClick={handleLogout} className={styles.logoutButton}>
           تسجيل الخروج
         </button>
