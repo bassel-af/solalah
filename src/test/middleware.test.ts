@@ -42,7 +42,9 @@ describe('middleware', () => {
       '/auth/signup',
       '/auth/callback',
       '/auth/confirm',
+      '/auth/forgot-password',
       '/policy',
+      '/islamic-gedcom',
       '/test',
     ])('allows %s without auth', async (path) => {
       const request = makeRequest(path);

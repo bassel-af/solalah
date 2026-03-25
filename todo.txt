@@ -1,14 +1,13 @@
 Phase 3:
-Security
-Build
+- We need to control search engines indexing. Only
+the landing and policy pages shall be indexed.
+- Build
 
 Phase 4:
 - Show also members in tree above descendents in someway.
-- We need to control search engines indexing. Only
-the landing and policy pages shall be indexed.
 - Branch linking and sharing and extending.
 
-Phase 5:
+Next phases:
 - Assign existing relative (assign parent that already exists to person with no parent)
 الإخوة من الرضاعة من نفس الأقارب في شجرة العائلة وليس من خارجها
 وتعديل على الستاندارد الخاص بجيدكوم

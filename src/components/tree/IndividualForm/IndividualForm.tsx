@@ -204,7 +204,7 @@ export function IndividualForm({
               id="birthPlace"
               label="مكان الميلاد"
               value={formData.birthPlace}
-              placeId={formData.birthPlaceId}
+
               onChange={(val, pid) => {
                 updateField('birthPlace', val);
                 updateField('birthPlaceId', pid);
@@ -277,7 +277,7 @@ export function IndividualForm({
                   id="deathPlace"
                   label="مكان الوفاة"
                   value={formData.deathPlace}
-                  placeId={formData.deathPlaceId}
+
                   onChange={(val, pid) => {
                     updateField('deathPlace', val);
                     updateField('deathPlaceId', pid);

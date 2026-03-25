@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   '/auth/confirm',
   '/auth/forgot-password',
   '/policy',
+  '/islamic-gedcom',
   '/test', // test route for browser testing
 ];
 

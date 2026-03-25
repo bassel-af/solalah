@@ -212,7 +212,7 @@ export function FamilyEventForm({
                   id="marriageContractPlace"
                   label="المكان"
                   value={formData.marriageContractPlace}
-                  placeId={formData.marriageContractPlaceId}
+
                   onChange={(val, pid) => {
                     updateField('marriageContractPlace', val);
                     updateField('marriageContractPlaceId', pid);
@@ -285,7 +285,7 @@ export function FamilyEventForm({
                   id="marriagePlace"
                   label="المكان"
                   value={formData.marriagePlace}
-                  placeId={formData.marriagePlaceId}
+
                   onChange={(val, pid) => {
                     updateField('marriagePlace', val);
                     updateField('marriagePlaceId', pid);
@@ -370,7 +370,7 @@ export function FamilyEventForm({
                       id="divorcePlace"
                       label="المكان"
                       value={formData.divorcePlace}
-                      placeId={formData.divorcePlaceId}
+
                       onChange={(val, pid) => {
                         updateField('divorcePlace', val);
                         updateField('divorcePlaceId', pid);

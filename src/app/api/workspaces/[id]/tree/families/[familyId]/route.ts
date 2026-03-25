@@ -120,23 +120,24 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Delete child associations first
-  await prisma.familyChild.deleteMany({
-    where: { familyId },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.familyChild.deleteMany({
+      where: { familyId },
+    });
 
-  await prisma.family.delete({
-    where: { id: familyId },
-  });
+    await tx.family.delete({
+      where: { id: familyId },
+    });
 
-  await prisma.treeEditLog.create({
-    data: {
-      treeId: tree.id,
-      userId: result.user.id,
-      action: 'delete',
-      entityType: 'family',
-      entityId: familyId,
-    },
+    await tx.treeEditLog.create({
+      data: {
+        treeId: tree.id,
+        userId: result.user.id,
+        action: 'delete',
+        entityType: 'family',
+        entityId: familyId,
+      },
+    });
   });
 
   return new NextResponse(null, { status: 204 });

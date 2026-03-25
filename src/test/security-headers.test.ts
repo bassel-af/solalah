@@ -31,4 +31,20 @@ describe('Security headers in next.config', () => {
       'max-age=31536000; includeSubDomains'
     )
   })
+
+  it('sets X-Robots-Tag noindex nofollow on API routes', async () => {
+    const mod = await import('../../next.config')
+    const config = mod.default
+    const headerEntries = await config.headers!()
+
+    const apiEntry = headerEntries.find(
+      (entry: { source: string }) => entry.source === '/api/:path*'
+    )
+    expect(apiEntry).toBeDefined()
+
+    const headerMap = new Map(
+      apiEntry!.headers.map((h: { key: string; value: string }) => [h.key, h.value])
+    )
+    expect(headerMap.get('X-Robots-Tag')).toBe('noindex, nofollow')
+  })
 })

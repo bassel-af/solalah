@@ -79,6 +79,15 @@ function mockMember() {
   });
 }
 
+function mockTreeEditor() {
+  mockMembershipFindUnique.mockResolvedValue({
+    userId: fakeUser.id,
+    workspaceId: wsId,
+    role: 'workspace_member',
+    permissions: ['tree_editor'],
+  });
+}
+
 const routeParams = { params: Promise.resolve({ id: wsId }) };
 
 // ============================================================================
@@ -197,7 +206,7 @@ describe('POST /api/workspaces/[id]/places', () => {
 
   test('returns 400 for missing nameAr', async () => {
     mockAuth();
-    mockMember();
+    mockTreeEditor();
     const { POST } = await import('@/app/api/workspaces/[id]/places/route');
     const req = makeRequest(
       `http://localhost:3000/api/workspaces/${wsId}/places`,
@@ -209,7 +218,7 @@ describe('POST /api/workspaces/[id]/places', () => {
 
   test('creates a workspace-scoped place', async () => {
     mockAuth();
-    mockMember();
+    mockTreeEditor();
     mockPlaceFindFirst.mockResolvedValue(null); // no existing
     const newPlace = {
       id: 'place-new-1',
@@ -235,7 +244,7 @@ describe('POST /api/workspaces/[id]/places', () => {
 
   test('returns existing place if nameAr already exists for workspace', async () => {
     mockAuth();
-    mockMember();
+    mockTreeEditor();
     const existingPlace = {
       id: 'place-existing-1',
       nameAr: 'الخرج',

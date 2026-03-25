@@ -27,35 +27,36 @@ const mockFamilyChildDeleteMany = vi.fn();
 const mockFamilyChildFindUnique = vi.fn();
 const mockTreeEditLogCreate = vi.fn();
 
-vi.mock('@/lib/db', () => ({
-  prisma: {
-    workspaceMembership: {
-      findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
-    },
-    familyTree: {
-      findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
-      create: (...args: unknown[]) => mockFamilyTreeCreate(...args),
-    },
-    individual: {
-      findFirst: (...args: unknown[]) => mockIndividualFindFirst(...args),
-    },
-    family: {
-      create: (...args: unknown[]) => mockFamilyCreate(...args),
-      findFirst: (...args: unknown[]) => mockFamilyFindFirst(...args),
-      update: (...args: unknown[]) => mockFamilyUpdate(...args),
-      delete: (...args: unknown[]) => mockFamilyDelete(...args),
-    },
-    familyChild: {
-      create: (...args: unknown[]) => mockFamilyChildCreate(...args),
-      delete: (...args: unknown[]) => mockFamilyChildDelete(...args),
-      deleteMany: (...args: unknown[]) => mockFamilyChildDeleteMany(...args),
-      findUnique: (...args: unknown[]) => mockFamilyChildFindUnique(...args),
-    },
-    treeEditLog: {
-      create: (...args: unknown[]) => mockTreeEditLogCreate(...args),
-    },
+const mockPrisma = {
+  workspaceMembership: {
+    findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
   },
-}));
+  familyTree: {
+    findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
+    create: (...args: unknown[]) => mockFamilyTreeCreate(...args),
+  },
+  individual: {
+    findFirst: (...args: unknown[]) => mockIndividualFindFirst(...args),
+  },
+  family: {
+    create: (...args: unknown[]) => mockFamilyCreate(...args),
+    findFirst: (...args: unknown[]) => mockFamilyFindFirst(...args),
+    update: (...args: unknown[]) => mockFamilyUpdate(...args),
+    delete: (...args: unknown[]) => mockFamilyDelete(...args),
+  },
+  familyChild: {
+    create: (...args: unknown[]) => mockFamilyChildCreate(...args),
+    delete: (...args: unknown[]) => mockFamilyChildDelete(...args),
+    deleteMany: (...args: unknown[]) => mockFamilyChildDeleteMany(...args),
+    findUnique: (...args: unknown[]) => mockFamilyChildFindUnique(...args),
+  },
+  treeEditLog: {
+    create: (...args: unknown[]) => mockTreeEditLogCreate(...args),
+  },
+  $transaction: (fn: (tx: unknown) => Promise<unknown>) => fn(mockPrisma),
+};
+
+vi.mock('@/lib/db', () => ({ prisma: mockPrisma }));
 
 import { NextRequest } from 'next/server';
 

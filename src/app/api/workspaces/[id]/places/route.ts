@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireWorkspaceMember, isErrorResponse } from '@/lib/api/workspace-auth';
+import { requireWorkspaceMember, requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { searchPlacesSchema, createPlaceSchema } from '@/lib/places/schemas';
 import { stripArabicDiacritics, ARABIC_DIACRITICS_CHARS } from '@/lib/utils/search';
 
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id: workspaceId } = await params;
 
-  const authResult = await requireWorkspaceMember(request, workspaceId);
+  const authResult = await requireTreeEditor(request, workspaceId);
   if (isErrorResponse(authResult)) return authResult;
 
   let body: unknown;
