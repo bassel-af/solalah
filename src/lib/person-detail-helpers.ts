@@ -98,7 +98,7 @@ export function getAlternativeFamilies(
 
 /** Build initial data for edit form including new Phase 3 fields */
 export function buildEditInitialData(person: Individual): Record<string, unknown> {
-  return {
+  const result: Record<string, unknown> = {
     givenName: person.givenName,
     surname: person.surname,
     sex: person.sex ?? '',
@@ -116,11 +116,14 @@ export function buildEditInitialData(person: Individual): Record<string, unknown
     isPrivate: person.isPrivate,
     notes: person.notes,
   };
+  if (person.birthPlaceId !== undefined) result.birthPlaceId = person.birthPlaceId;
+  if (person.deathPlaceId !== undefined) result.deathPlaceId = person.deathPlaceId;
+  return result;
 }
 
 /** Build initial data for family event form from a Family object */
 export function buildFamilyEventInitialData(family: Family) {
-  return {
+  const result: Record<string, unknown> = {
     marriageContractDate: family.marriageContract.date,
     marriageContractHijriDate: family.marriageContract.hijriDate,
     marriageContractPlace: family.marriageContract.place,
@@ -138,13 +141,17 @@ export function buildFamilyEventInitialData(family: Family) {
     divorceDescription: family.divorce.description,
     divorceNotes: family.divorce.notes,
   };
+  if (family.marriageContract.placeId !== undefined) result.marriageContractPlaceId = family.marriageContract.placeId;
+  if (family.marriage.placeId !== undefined) result.marriagePlaceId = family.marriage.placeId;
+  if (family.divorce.placeId !== undefined) result.divorcePlaceId = family.divorce.placeId;
+  return result;
 }
 
 /** Serialize IndividualFormData to API payload (empty strings → null) */
 export function serializeIndividualForm(formData: {
   givenName: string; surname: string; sex: string;
-  birthDate: string; birthPlace: string; birthDescription: string; birthNotes: string; birthHijriDate: string;
-  deathDate: string; deathPlace: string; deathDescription: string; deathNotes: string; deathHijriDate: string;
+  birthDate: string; birthPlace: string; birthPlaceId?: string | null; birthDescription: string; birthNotes: string; birthHijriDate: string;
+  deathDate: string; deathPlace: string; deathPlaceId?: string | null; deathDescription: string; deathNotes: string; deathHijriDate: string;
   isDeceased: boolean; isPrivate: boolean; notes: string;
 }): Record<string, unknown> {
   return {
@@ -153,11 +160,13 @@ export function serializeIndividualForm(formData: {
     sex: formData.sex || null,
     birthDate: formData.birthDate || null,
     birthPlace: formData.birthPlace || null,
+    birthPlaceId: formData.birthPlaceId ?? null,
     birthDescription: formData.birthDescription || null,
     birthNotes: formData.birthNotes || null,
     birthHijriDate: formData.birthHijriDate || null,
     deathDate: formData.deathDate || null,
     deathPlace: formData.deathPlace || null,
+    deathPlaceId: formData.deathPlaceId ?? null,
     deathDescription: formData.deathDescription || null,
     deathNotes: formData.deathNotes || null,
     deathHijriDate: formData.deathHijriDate || null,

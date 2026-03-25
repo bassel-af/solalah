@@ -100,56 +100,67 @@ export async function seedTreeFromGedcomData(
 
     // 6. Create individuals
     await tx.individual.createMany({
-      data: individualEntries.map((ind) => ({
-        id: gedcomToDbId[ind.id],
-        treeId,
-        gedcomId: ind.id,
-        givenName: ind.givenName || null,
-        surname: ind.surname || null,
-        fullName: ind.name || null,
-        sex: ind.sex,
-        birthDate: ind.birth || null,
-        birthPlace: ind.birthPlace || null,
-        birthDescription: ind.birthDescription || null,
-        birthNotes: ind.birthNotes || null,
-        birthHijriDate: ind.birthHijriDate || null,
-        deathDate: ind.death || null,
-        deathPlace: ind.deathPlace || null,
-        deathDescription: ind.deathDescription || null,
-        deathNotes: ind.deathNotes || null,
-        deathHijriDate: ind.deathHijriDate || null,
-        notes: ind.notes || null,
-        isDeceased: ind.isDeceased,
-        isPrivate: ind.isPrivate,
-      })),
+      data: individualEntries.map((ind) => {
+        const record: Record<string, unknown> = {
+          id: gedcomToDbId[ind.id],
+          treeId,
+          gedcomId: ind.id,
+          givenName: ind.givenName || null,
+          surname: ind.surname || null,
+          fullName: ind.name || null,
+          sex: ind.sex,
+          birthDate: ind.birth || null,
+          birthPlace: ind.birthPlace || null,
+          birthDescription: ind.birthDescription || null,
+          birthNotes: ind.birthNotes || null,
+          birthHijriDate: ind.birthHijriDate || null,
+          deathDate: ind.death || null,
+          deathPlace: ind.deathPlace || null,
+          deathDescription: ind.deathDescription || null,
+          deathNotes: ind.deathNotes || null,
+          deathHijriDate: ind.deathHijriDate || null,
+          notes: ind.notes || null,
+          isDeceased: ind.isDeceased,
+          isPrivate: ind.isPrivate,
+        }
+        if (ind.birthPlaceId) record.birthPlaceId = ind.birthPlaceId
+        if (ind.deathPlaceId) record.deathPlaceId = ind.deathPlaceId
+        return record
+      }),
     })
 
     // 7. Create families
     if (familyEntries.length > 0) {
       await tx.family.createMany({
-        data: familyEntries.map((fam) => ({
-          id: familyGedcomToDbId[fam.id],
-          treeId,
-          gedcomId: fam.id,
-          husbandId: fam.husband ? gedcomToDbId[fam.husband] ?? null : null,
-          wifeId: fam.wife ? gedcomToDbId[fam.wife] ?? null : null,
-          marriageContractDate: fam.marriageContract.date || null,
-          marriageContractHijriDate: fam.marriageContract.hijriDate || null,
-          marriageContractPlace: fam.marriageContract.place || null,
-          marriageContractDescription: fam.marriageContract.description || null,
-          marriageContractNotes: fam.marriageContract.notes || null,
-          marriageDate: fam.marriage.date || null,
-          marriageHijriDate: fam.marriage.hijriDate || null,
-          marriagePlace: fam.marriage.place || null,
-          marriageDescription: fam.marriage.description || null,
-          marriageNotes: fam.marriage.notes || null,
-          isDivorced: fam.isDivorced,
-          divorceDate: fam.divorce.date || null,
-          divorceHijriDate: fam.divorce.hijriDate || null,
-          divorcePlace: fam.divorce.place || null,
-          divorceDescription: fam.divorce.description || null,
-          divorceNotes: fam.divorce.notes || null,
-        })),
+        data: familyEntries.map((fam) => {
+          const record: Record<string, unknown> = {
+            id: familyGedcomToDbId[fam.id],
+            treeId,
+            gedcomId: fam.id,
+            husbandId: fam.husband ? gedcomToDbId[fam.husband] ?? null : null,
+            wifeId: fam.wife ? gedcomToDbId[fam.wife] ?? null : null,
+            marriageContractDate: fam.marriageContract.date || null,
+            marriageContractHijriDate: fam.marriageContract.hijriDate || null,
+            marriageContractPlace: fam.marriageContract.place || null,
+            marriageContractDescription: fam.marriageContract.description || null,
+            marriageContractNotes: fam.marriageContract.notes || null,
+            marriageDate: fam.marriage.date || null,
+            marriageHijriDate: fam.marriage.hijriDate || null,
+            marriagePlace: fam.marriage.place || null,
+            marriageDescription: fam.marriage.description || null,
+            marriageNotes: fam.marriage.notes || null,
+            isDivorced: fam.isDivorced,
+            divorceDate: fam.divorce.date || null,
+            divorceHijriDate: fam.divorce.hijriDate || null,
+            divorcePlace: fam.divorce.place || null,
+            divorceDescription: fam.divorce.description || null,
+            divorceNotes: fam.divorce.notes || null,
+          }
+          if (fam.marriageContract.placeId) record.marriageContractPlaceId = fam.marriageContract.placeId
+          if (fam.marriage.placeId) record.marriagePlaceId = fam.marriage.placeId
+          if (fam.divorce.placeId) record.divorcePlaceId = fam.divorce.placeId
+          return record
+        }),
       })
 
       // 8. Create family_children

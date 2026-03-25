@@ -691,4 +691,104 @@ describe('seedTreeFromGedcomData', () => {
     expect(fam.divorceDate).toBeNull();
     expect(fam.divorceHijriDate).toBeNull();
   });
+
+  test('includes birthPlaceId and deathPlaceId when present on Individual', async () => {
+    const gedcomData = makeGedcomData({
+      individuals: {
+        '@I1@': makeTestIndividual({
+          id: '@I1@',
+          name: 'Ahmad',
+          givenName: 'Ahmad',
+          birthPlace: 'مكة المكرمة',
+          birthPlaceId: 'place-uuid-mecca',
+          deathPlace: 'المدينة المنورة',
+          deathPlaceId: 'place-uuid-medina',
+          isDeceased: true,
+        }),
+      },
+    });
+
+    mockFamilyTreeFindUnique.mockResolvedValue(null);
+    mockFamilyTreeCreate.mockResolvedValue({ id: treeId, workspaceId, individuals: [], families: [] });
+    mockIndividualCount.mockResolvedValue(0);
+    mockIndividualCreateMany.mockResolvedValue({ count: 1 });
+
+    await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
+
+    const individualData = mockIndividualCreateMany.mock.calls[0][0].data;
+    const ind = individualData[0];
+    expect(ind.birthPlaceId).toBe('place-uuid-mecca');
+    expect(ind.deathPlaceId).toBe('place-uuid-medina');
+  });
+
+  test('does not include birthPlaceId when not present on Individual', async () => {
+    const gedcomData = makeGedcomData({
+      individuals: {
+        '@I1@': makeTestIndividual({
+          id: '@I1@',
+          name: 'Ahmad',
+          givenName: 'Ahmad',
+          birthPlace: 'الرياض',
+          // no birthPlaceId
+        }),
+      },
+    });
+
+    mockFamilyTreeFindUnique.mockResolvedValue(null);
+    mockFamilyTreeCreate.mockResolvedValue({ id: treeId, workspaceId, individuals: [], families: [] });
+    mockIndividualCount.mockResolvedValue(0);
+    mockIndividualCreateMany.mockResolvedValue({ count: 1 });
+
+    await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
+
+    const individualData = mockIndividualCreateMany.mock.calls[0][0].data;
+    const ind = individualData[0];
+    expect(ind.birthPlaceId).toBeUndefined();
+    expect(ind.deathPlaceId).toBeUndefined();
+  });
+
+  test('includes family event placeId fields when present', async () => {
+    const gedcomData = makeGedcomData({
+      individuals: {
+        '@I1@': makeTestIndividual({
+          id: '@I1@', name: 'Father', givenName: 'Father', sex: 'M',
+          familiesAsSpouse: ['@F1@'],
+        }),
+      },
+      families: {
+        '@F1@': makeTestFamily({
+          id: '@F1@',
+          husband: '@I1@',
+          marriageContract: {
+            date: '2020', hijriDate: '', place: 'مكة المكرمة', description: '', notes: '',
+            placeId: 'place-uuid-marc',
+          },
+          marriage: {
+            date: '2021', hijriDate: '', place: 'جدة', description: '', notes: '',
+            placeId: 'place-uuid-marr',
+          },
+          isDivorced: true,
+          divorce: {
+            date: '2022', hijriDate: '', place: 'الرياض', description: '', notes: '',
+            placeId: 'place-uuid-div',
+          },
+        }),
+      },
+    });
+
+    mockFamilyTreeFindUnique.mockResolvedValue(null);
+    mockFamilyTreeCreate.mockResolvedValue({ id: treeId, workspaceId, individuals: [], families: [] });
+    mockIndividualCount.mockResolvedValue(0);
+    mockIndividualCreateMany.mockResolvedValue({ count: 1 });
+    mockFamilyCreateMany.mockResolvedValue({ count: 1 });
+    mockFamilyChildCreateMany.mockResolvedValue({ count: 0 });
+
+    await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
+
+    const familyData = mockFamilyCreateMany.mock.calls[0][0].data;
+    const fam = familyData[0];
+    expect(fam.marriageContractPlaceId).toBe('place-uuid-marc');
+    expect(fam.marriagePlaceId).toBe('place-uuid-marr');
+    expect(fam.divorcePlaceId).toBe('place-uuid-div');
+  });
 });

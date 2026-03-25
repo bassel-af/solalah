@@ -193,10 +193,12 @@ model Individual {
   sex         String?  // M, F, or null
   birthDate   String?  @map("birth_date")
   birthPlace  String?  @map("birth_place")
+  birthPlaceId String? @map("birth_place_id") @db.Uuid
   birthDescription String? @map("birth_description") @db.VarChar(500)
   birthNotes  String?  @map("birth_notes") @db.Text
   deathDate   String?  @map("death_date")
   deathPlace  String?  @map("death_place")
+  deathPlaceId String? @map("death_place_id") @db.Uuid
   deathDescription String? @map("death_description") @db.VarChar(500)
   deathNotes  String?  @map("death_notes") @db.Text
   birthHijriDate String? @map("birth_hijri_date")
@@ -211,6 +213,8 @@ model Individual {
   // Relations
   tree               FamilyTree           @relation(fields: [treeId], references: [id], onDelete: Cascade)
   createdBy          User?                @relation("IndividualCreator", fields: [createdById], references: [id])
+  birthPlaceRef      Place?               @relation("IndividualBirthPlace", fields: [birthPlaceId], references: [id])
+  deathPlaceRef      Place?               @relation("IndividualDeathPlace", fields: [deathPlaceId], references: [id])
   familiesAsHusband  Family[]             @relation("FamilyHusband")
   familiesAsWife     Family[]             @relation("FamilyWife")
   familyChildren     FamilyChild[]
@@ -232,6 +236,7 @@ model Family {
   marriageContractDate        String? @map("marriage_contract_date")
   marriageContractHijriDate   String? @map("marriage_contract_hijri_date")
   marriageContractPlace       String? @map("marriage_contract_place")
+  marriageContractPlaceId     String? @map("marriage_contract_place_id") @db.Uuid
   marriageContractDescription String? @map("marriage_contract_description") @db.VarChar(500)
   marriageContractNotes       String? @map("marriage_contract_notes") @db.Text
 
@@ -239,6 +244,7 @@ model Family {
   marriageDate        String? @map("marriage_date")
   marriageHijriDate   String? @map("marriage_hijri_date")
   marriagePlace       String? @map("marriage_place")
+  marriagePlaceId     String? @map("marriage_place_id") @db.Uuid
   marriageDescription String? @map("marriage_description") @db.VarChar(500)
   marriageNotes       String? @map("marriage_notes") @db.Text
 
@@ -247,14 +253,18 @@ model Family {
   divorceDate          String? @map("divorce_date")
   divorceHijriDate     String? @map("divorce_hijri_date")
   divorcePlace         String? @map("divorce_place")
+  divorcePlaceId       String? @map("divorce_place_id") @db.Uuid
   divorceDescription   String? @map("divorce_description") @db.VarChar(500)
   divorceNotes         String? @map("divorce_notes") @db.Text
 
   // Relations
-  tree     FamilyTree    @relation(fields: [treeId], references: [id], onDelete: Cascade)
-  husband  Individual?   @relation("FamilyHusband", fields: [husbandId], references: [id])
-  wife     Individual?   @relation("FamilyWife", fields: [wifeId], references: [id])
-  children FamilyChild[]
+  tree                     FamilyTree    @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  husband                  Individual?   @relation("FamilyHusband", fields: [husbandId], references: [id])
+  wife                     Individual?   @relation("FamilyWife", fields: [wifeId], references: [id])
+  marriageContractPlaceRef Place?        @relation("FamilyMarriageContractPlace", fields: [marriageContractPlaceId], references: [id])
+  marriagePlaceRef         Place?        @relation("FamilyMarriagePlace", fields: [marriagePlaceId], references: [id])
+  divorcePlaceRef          Place?        @relation("FamilyDivorcePlace", fields: [divorcePlaceId], references: [id])
+  children                 FamilyChild[]
 
   @@unique([treeId, gedcomId])
   @@map("families")
@@ -438,6 +448,13 @@ model Place {
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   parent    Place?     @relation("PlaceHierarchy", fields: [parentId], references: [id])
   children  Place[]    @relation("PlaceHierarchy")
+
+  // Reverse relations for FK references
+  individualsBirthPlace         Individual[] @relation("IndividualBirthPlace")
+  individualsDeathPlace         Individual[] @relation("IndividualDeathPlace")
+  familiesMarriageContractPlace Family[]     @relation("FamilyMarriageContractPlace")
+  familiesMarriagePlace         Family[]     @relation("FamilyMarriagePlace")
+  familiesDivorcePlace          Family[]     @relation("FamilyDivorcePlace")
 
   @@unique([workspaceId, nameAr])
   @@map("places")

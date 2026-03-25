@@ -13,11 +13,13 @@ export interface IndividualFormData {
   sex: 'M' | 'F' | '';
   birthDate: string;
   birthPlace: string;
+  birthPlaceId?: string | null;
   birthDescription: string;
   birthNotes: string;
   birthHijriDate: string;
   deathDate: string;
   deathPlace: string;
+  deathPlaceId?: string | null;
   deathDescription: string;
   deathNotes: string;
   deathHijriDate: string;
@@ -202,7 +204,11 @@ export function IndividualForm({
               id="birthPlace"
               label="مكان الميلاد"
               value={formData.birthPlace}
-              onChange={(val) => updateField('birthPlace', val)}
+              placeId={formData.birthPlaceId}
+              onChange={(val, pid) => {
+                updateField('birthPlace', val);
+                updateField('birthPlaceId', pid);
+              }}
               workspaceId={workspaceId}
               placeholder="مثال: مكة المكرمة"
             />
@@ -271,7 +277,11 @@ export function IndividualForm({
                   id="deathPlace"
                   label="مكان الوفاة"
                   value={formData.deathPlace}
-                  onChange={(val) => updateField('deathPlace', val)}
+                  placeId={formData.deathPlaceId}
+                  onChange={(val, pid) => {
+                    updateField('deathPlace', val);
+                    updateField('deathPlaceId', pid);
+                  }}
                   workspaceId={workspaceId}
                   placeholder="مثال: المدينة المنورة"
                 />

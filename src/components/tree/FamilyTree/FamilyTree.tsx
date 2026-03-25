@@ -506,7 +506,7 @@ function buildTreeData(
         style: { stroke: edgeColor, strokeWidth: 2 },
         className: edgeClassName,
         pathOptions: { offset: edgeOffset, borderRadius: 8 },
-      });
+      } as Edge);
       // Add to queue for BFS traversal
       queue.push([childId, depth + 1]);
     }

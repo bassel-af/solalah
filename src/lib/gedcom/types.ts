@@ -2,6 +2,7 @@ export interface FamilyEvent {
   date: string;
   hijriDate: string;
   place: string;
+  placeId?: string;
   description: string;
   notes: string;
 }
@@ -15,11 +16,13 @@ export interface Individual {
   sex: 'M' | 'F' | null;
   birth: string;
   birthPlace: string;
+  birthPlaceId?: string;
   birthDescription: string;
   birthNotes: string;
   birthHijriDate: string;
   death: string;
   deathPlace: string;
+  deathPlaceId?: string;
   deathDescription: string;
   deathNotes: string;
   deathHijriDate: string;

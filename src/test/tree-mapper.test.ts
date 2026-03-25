@@ -1,77 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper'
+import type { DbTree, DbIndividual, DbFamily } from '@/lib/tree/mapper'
 import type { GedcomData } from '@/lib/gedcom/types'
 
 // ---------------------------------------------------------------------------
 // Helper: build minimal DB-shaped objects that mirror Prisma query results
-// with `include: { individuals, families: { include: { children: true } } }`
 // ---------------------------------------------------------------------------
-
-interface DbIndividual {
-  id: string
-  treeId: string
-  gedcomId: string | null
-  givenName: string | null
-  surname: string | null
-  fullName: string | null
-  sex: string | null
-  birthDate: string | null
-  birthPlace: string | null
-  birthNotes: string | null
-  birthDescription: string | null
-  birthHijriDate: string | null
-  deathDate: string | null
-  deathPlace: string | null
-  deathNotes: string | null
-  deathDescription: string | null
-  deathHijriDate: string | null
-  notes: string | null
-  isDeceased: boolean
-  isPrivate: boolean
-  createdById: string | null
-  updatedAt: Date
-  createdAt: Date
-}
-
-interface DbFamilyChild {
-  familyId: string
-  individualId: string
-}
-
-interface DbFamily {
-  id: string
-  treeId: string
-  gedcomId: string | null
-  husbandId: string | null
-  wifeId: string | null
-  children: DbFamilyChild[]
-  // Marriage contract
-  marriageContractDate: string | null
-  marriageContractHijriDate: string | null
-  marriageContractPlace: string | null
-  marriageContractDescription: string | null
-  marriageContractNotes: string | null
-  // Marriage
-  marriageDate: string | null
-  marriageHijriDate: string | null
-  marriagePlace: string | null
-  marriageDescription: string | null
-  marriageNotes: string | null
-  // Divorce
-  isDivorced: boolean
-  divorceDate: string | null
-  divorceHijriDate: string | null
-  divorcePlace: string | null
-  divorceDescription: string | null
-  divorceNotes: string | null
-}
-
-interface DbTree {
-  id: string
-  workspaceId: string
-  individuals: DbIndividual[]
-  families: DbFamily[]
-}
 
 function makeIndividual(overrides: Partial<DbIndividual> & { id: string; treeId: string }): DbIndividual {
   return {
@@ -82,11 +16,13 @@ function makeIndividual(overrides: Partial<DbIndividual> & { id: string; treeId:
     sex: null,
     birthDate: null,
     birthPlace: null,
+    birthPlaceId: null,
     birthNotes: null,
     birthDescription: null,
     birthHijriDate: null,
     deathDate: null,
     deathPlace: null,
+    deathPlaceId: null,
     deathNotes: null,
     deathDescription: null,
     deathHijriDate: null,
@@ -109,17 +45,20 @@ function makeFamily(overrides: Partial<DbFamily> & { id: string; treeId: string 
     marriageContractDate: null,
     marriageContractHijriDate: null,
     marriageContractPlace: null,
+    marriageContractPlaceId: null,
     marriageContractDescription: null,
     marriageContractNotes: null,
     marriageDate: null,
     marriageHijriDate: null,
     marriagePlace: null,
+    marriagePlaceId: null,
     marriageDescription: null,
     marriageNotes: null,
     isDivorced: false,
     divorceDate: null,
     divorceHijriDate: null,
     divorcePlace: null,
+    divorcePlaceId: null,
     divorceDescription: null,
     divorceNotes: null,
     ...overrides,

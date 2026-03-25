@@ -107,7 +107,7 @@ async function downloadAll(): Promise<void> {
   console.log('\n--- Step 1: Downloading GeoNames files ---');
   fs.mkdirSync(DATA_DIR, { recursive: true });
 
-  for (const [key, config] of Object.entries(FILES)) {
+  for (const [, config] of Object.entries(FILES)) {
     const destFile = 'zipName' in config ? config.zipName : config.fileName;
     const destPath = path.join(DATA_DIR, destFile);
     await downloadFile(config.url, destPath);

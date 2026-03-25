@@ -234,7 +234,7 @@ describe('PlaceComboBox', () => {
     });
 
     fireEvent.mouseDown(screen.getByText('مكة المكرمة'));
-    expect(onChange).toHaveBeenCalledWith('مكة المكرمة');
+    expect(onChange).toHaveBeenCalledWith('مكة المكرمة', 'p1');
   });
 
   it('closes dropdown after selection', async () => {
@@ -282,7 +282,7 @@ describe('PlaceComboBox', () => {
     const onChange = vi.fn();
     render(<PlaceComboBox {...defaultProps} value="مكة" onChange={onChange} />);
     fireEvent.click(screen.getByLabelText('مسح'));
-    expect(onChange).toHaveBeenCalledWith('');
+    expect(onChange).toHaveBeenCalledWith('', null);
   });
 
   // -------------------------------------------------------------------------
@@ -341,7 +341,7 @@ describe('PlaceComboBox', () => {
     // Arrow down to first item then Enter
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onChange).toHaveBeenCalledWith('مكة المكرمة');
+    expect(onChange).toHaveBeenCalledWith('مكة المكرمة', 'p1');
   });
 
   it('navigates items with ArrowDown and ArrowUp', async () => {
@@ -371,7 +371,7 @@ describe('PlaceComboBox', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'ArrowUp' });
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onChange).toHaveBeenCalledWith('مكة المكرمة');
+    expect(onChange).toHaveBeenCalledWith('مكة المكرمة', 'p1');
   });
 
   // -------------------------------------------------------------------------

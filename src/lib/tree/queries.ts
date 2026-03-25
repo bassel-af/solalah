@@ -4,11 +4,34 @@ import { prisma } from '@/lib/db'
 // Shared include shape for tree queries
 // ---------------------------------------------------------------------------
 
+const PLACE_SELECT = {
+  select: {
+    id: true,
+    nameAr: true,
+    parent: {
+      select: {
+        nameAr: true,
+        parent: {
+          select: { nameAr: true },
+        },
+      },
+    },
+  },
+} as const
+
 const TREE_INCLUDES = {
-  individuals: true,
+  individuals: {
+    include: {
+      birthPlaceRef: PLACE_SELECT,
+      deathPlaceRef: PLACE_SELECT,
+    },
+  },
   families: {
     include: {
       children: true,
+      marriageContractPlaceRef: PLACE_SELECT,
+      marriagePlaceRef: PLACE_SELECT,
+      divorcePlaceRef: PLACE_SELECT,
     },
   },
 } as const

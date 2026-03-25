@@ -38,11 +38,34 @@ import {
 const WORKSPACE_ID = 'ws-001'
 const TREE_ID = 'tree-001'
 
+const PLACE_SELECT = {
+  select: {
+    id: true,
+    nameAr: true,
+    parent: {
+      select: {
+        nameAr: true,
+        parent: {
+          select: { nameAr: true },
+        },
+      },
+    },
+  },
+}
+
 const TREE_INCLUDES = {
-  individuals: true,
+  individuals: {
+    include: {
+      birthPlaceRef: PLACE_SELECT,
+      deathPlaceRef: PLACE_SELECT,
+    },
+  },
   families: {
     include: {
       children: true,
+      marriageContractPlaceRef: PLACE_SELECT,
+      marriagePlaceRef: PLACE_SELECT,
+      divorcePlaceRef: PLACE_SELECT,
     },
   },
 }

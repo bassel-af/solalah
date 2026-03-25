@@ -12,17 +12,20 @@ export interface FamilyEventFormData {
   marriageContractDate: string;
   marriageContractHijriDate: string;
   marriageContractPlace: string;
+  marriageContractPlaceId?: string | null;
   marriageContractDescription: string;
   marriageContractNotes: string;
   marriageDate: string;
   marriageHijriDate: string;
   marriagePlace: string;
+  marriagePlaceId?: string | null;
   marriageDescription: string;
   marriageNotes: string;
   isDivorced: boolean;
   divorceDate: string;
   divorceHijriDate: string;
   divorcePlace: string;
+  divorcePlaceId?: string | null;
   divorceDescription: string;
   divorceNotes: string;
 }
@@ -209,7 +212,11 @@ export function FamilyEventForm({
                   id="marriageContractPlace"
                   label="المكان"
                   value={formData.marriageContractPlace}
-                  onChange={(val) => updateField('marriageContractPlace', val)}
+                  placeId={formData.marriageContractPlaceId}
+                  onChange={(val, pid) => {
+                    updateField('marriageContractPlace', val);
+                    updateField('marriageContractPlaceId', pid);
+                  }}
                   workspaceId={workspaceId}
                   placeholder="مثال: مكة المكرمة"
                 />
@@ -278,7 +285,11 @@ export function FamilyEventForm({
                   id="marriagePlace"
                   label="المكان"
                   value={formData.marriagePlace}
-                  onChange={(val) => updateField('marriagePlace', val)}
+                  placeId={formData.marriagePlaceId}
+                  onChange={(val, pid) => {
+                    updateField('marriagePlace', val);
+                    updateField('marriagePlaceId', pid);
+                  }}
                   workspaceId={workspaceId}
                   placeholder="مثال: جدة"
                 />
@@ -359,7 +370,11 @@ export function FamilyEventForm({
                       id="divorcePlace"
                       label="المكان"
                       value={formData.divorcePlace}
-                      onChange={(val) => updateField('divorcePlace', val)}
+                      placeId={formData.divorcePlaceId}
+                      onChange={(val, pid) => {
+                        updateField('divorcePlace', val);
+                        updateField('divorcePlaceId', pid);
+                      }}
                       workspaceId={workspaceId}
                       placeholder="المكان"
                     />

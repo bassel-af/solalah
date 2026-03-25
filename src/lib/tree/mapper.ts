@@ -9,6 +9,27 @@ export interface DbFamilyChild {
   individualId: string
 }
 
+export interface DbPlaceRef {
+  id: string
+  nameAr: string
+  parent?: { nameAr: string; parent?: { nameAr: string } | null } | null
+}
+
+/** Build display string from place ref: "city، country" or just "city" */
+function placeDisplayName(ref: DbPlaceRef | null | undefined): string {
+  if (!ref) return ''
+  // Walk up to find the top-level ancestor (country)
+  const city = ref.nameAr
+  let country: string | undefined
+  if (ref.parent?.parent) {
+    country = ref.parent.parent.nameAr
+  } else if (ref.parent) {
+    country = ref.parent.nameAr
+  }
+  if (country && country !== city) return `${city}، ${country}`
+  return city
+}
+
 export interface DbIndividual {
   id: string
   treeId: string
@@ -19,11 +40,15 @@ export interface DbIndividual {
   sex: string | null
   birthDate: string | null
   birthPlace: string | null
+  birthPlaceId: string | null
+  birthPlaceRef?: DbPlaceRef | null
   birthDescription: string | null
   birthNotes: string | null
   birthHijriDate: string | null
   deathDate: string | null
   deathPlace: string | null
+  deathPlaceId: string | null
+  deathPlaceRef?: DbPlaceRef | null
   deathDescription: string | null
   deathNotes: string | null
   deathHijriDate: string | null
@@ -46,12 +71,16 @@ export interface DbFamily {
   marriageContractDate: string | null
   marriageContractHijriDate: string | null
   marriageContractPlace: string | null
+  marriageContractPlaceId: string | null
+  marriageContractPlaceRef?: DbPlaceRef | null
   marriageContractDescription: string | null
   marriageContractNotes: string | null
   // Marriage
   marriageDate: string | null
   marriageHijriDate: string | null
   marriagePlace: string | null
+  marriagePlaceId: string | null
+  marriagePlaceRef?: DbPlaceRef | null
   marriageDescription: string | null
   marriageNotes: string | null
   // Divorce
@@ -59,6 +88,8 @@ export interface DbFamily {
   divorceDate: string | null
   divorceHijriDate: string | null
   divorcePlace: string | null
+  divorcePlaceId: string | null
+  divorcePlaceRef?: DbPlaceRef | null
   divorceDescription: string | null
   divorceNotes: string | null
 }
@@ -130,7 +161,11 @@ function mapIndividual(
   const { name, givenName, surname } = formatName(dbInd)
   const sex = mapSex(dbInd.sex)
 
-  return {
+  // Resolve place names: prefer placeRef display (city، country), fall back to string field
+  const birthPlace = dbInd.birthPlaceRef ? placeDisplayName(dbInd.birthPlaceRef) : (dbInd.birthPlace ?? '')
+  const deathPlace = dbInd.deathPlaceRef ? placeDisplayName(dbInd.deathPlaceRef) : (dbInd.deathPlace ?? '')
+
+  const result: Individual = {
     id: dbInd.id,
     type: 'INDI',
     name,
@@ -138,12 +173,12 @@ function mapIndividual(
     surname,
     sex,
     birth: dbInd.birthDate ?? '',
-    birthPlace: dbInd.birthPlace ?? '',
+    birthPlace,
     birthDescription: dbInd.birthDescription ?? '',
     birthNotes: dbInd.birthNotes ?? '',
     birthHijriDate: dbInd.birthHijriDate ?? '',
     death: dbInd.deathDate ?? '',
-    deathPlace: dbInd.deathPlace ?? '',
+    deathPlace,
     deathDescription: dbInd.deathDescription ?? '',
     deathNotes: dbInd.deathNotes ?? '',
     deathHijriDate: dbInd.deathHijriDate ?? '',
@@ -153,6 +188,11 @@ function mapIndividual(
     familiesAsSpouse: spouseFamilies.get(dbInd.id) ?? [],
     familyAsChild: childOfFamily.get(dbInd.id) ?? null,
   }
+
+  if (dbInd.birthPlaceId) result.birthPlaceId = dbInd.birthPlaceId
+  if (dbInd.deathPlaceId) result.deathPlaceId = dbInd.deathPlaceId
+
+  return result
 }
 
 function formatName(dbInd: DbIndividual): { name: string; givenName: string; surname: string } {
@@ -192,7 +232,7 @@ export function redactPrivateIndividuals(data: GedcomData): GedcomData {
 
   for (const [id, ind] of Object.entries(data.individuals)) {
     if (ind.isPrivate) {
-      redacted[id] = {
+      const redactedInd: Individual = {
         ...ind,
         name: PRIVATE_PLACEHOLDER,
         givenName: PRIVATE_PLACEHOLDER,
@@ -209,6 +249,10 @@ export function redactPrivateIndividuals(data: GedcomData): GedcomData {
         deathHijriDate: '',
         notes: '',
       }
+      // Remove placeId fields from redacted individuals
+      delete redactedInd.birthPlaceId
+      delete redactedInd.deathPlaceId
+      redacted[id] = redactedInd
     } else {
       redacted[id] = ind
     }
@@ -222,33 +266,42 @@ export function redactPrivateIndividuals(data: GedcomData): GedcomData {
 // ---------------------------------------------------------------------------
 
 function mapFamily(dbFam: DbFamily): Family {
+  const marriageContract: Family['marriageContract'] = {
+    date: dbFam.marriageContractDate ?? '',
+    hijriDate: dbFam.marriageContractHijriDate ?? '',
+    place: dbFam.marriageContractPlaceRef ? placeDisplayName(dbFam.marriageContractPlaceRef) : (dbFam.marriageContractPlace ?? ''),
+    description: dbFam.marriageContractDescription ?? '',
+    notes: dbFam.marriageContractNotes ?? '',
+  }
+  if (dbFam.marriageContractPlaceId) marriageContract.placeId = dbFam.marriageContractPlaceId
+
+  const marriage: Family['marriage'] = {
+    date: dbFam.marriageDate ?? '',
+    hijriDate: dbFam.marriageHijriDate ?? '',
+    place: dbFam.marriagePlaceRef ? placeDisplayName(dbFam.marriagePlaceRef) : (dbFam.marriagePlace ?? ''),
+    description: dbFam.marriageDescription ?? '',
+    notes: dbFam.marriageNotes ?? '',
+  }
+  if (dbFam.marriagePlaceId) marriage.placeId = dbFam.marriagePlaceId
+
+  const divorce: Family['divorce'] = {
+    date: dbFam.divorceDate ?? '',
+    hijriDate: dbFam.divorceHijriDate ?? '',
+    place: dbFam.divorcePlaceRef ? placeDisplayName(dbFam.divorcePlaceRef) : (dbFam.divorcePlace ?? ''),
+    description: dbFam.divorceDescription ?? '',
+    notes: dbFam.divorceNotes ?? '',
+  }
+  if (dbFam.divorcePlaceId) divorce.placeId = dbFam.divorcePlaceId
+
   return {
     id: dbFam.id,
     type: 'FAM',
     husband: dbFam.husbandId ?? null,
     wife: dbFam.wifeId ?? null,
     children: dbFam.children.map((fc) => fc.individualId),
-    marriageContract: {
-      date: dbFam.marriageContractDate ?? '',
-      hijriDate: dbFam.marriageContractHijriDate ?? '',
-      place: dbFam.marriageContractPlace ?? '',
-      description: dbFam.marriageContractDescription ?? '',
-      notes: dbFam.marriageContractNotes ?? '',
-    },
-    marriage: {
-      date: dbFam.marriageDate ?? '',
-      hijriDate: dbFam.marriageHijriDate ?? '',
-      place: dbFam.marriagePlace ?? '',
-      description: dbFam.marriageDescription ?? '',
-      notes: dbFam.marriageNotes ?? '',
-    },
-    divorce: {
-      date: dbFam.divorceDate ?? '',
-      hijriDate: dbFam.divorceHijriDate ?? '',
-      place: dbFam.divorcePlace ?? '',
-      description: dbFam.divorceDescription ?? '',
-      notes: dbFam.divorceNotes ?? '',
-    },
+    marriageContract,
+    marriage,
+    divorce,
     isDivorced: dbFam.isDivorced,
   }
 }

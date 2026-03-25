@@ -20,7 +20,8 @@ export interface PlaceComboBoxProps {
   id: string;
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  placeId?: string | null;
+  onChange: (value: string, placeId: string | null) => void;
   workspaceId: string;
   placeholder?: string;
   disabled?: boolean;
@@ -37,12 +38,14 @@ export function PlaceComboBox({
   id,
   label,
   value,
+  placeId: _placeId,
   onChange,
   workspaceId,
   placeholder,
   disabled = false,
   error,
 }: PlaceComboBoxProps) {
+  void _placeId; // tracked by parent; used for initial state only
   const [inputValue, setInputValue] = useState(value);
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -174,8 +177,8 @@ export function PlaceComboBox({
   // -------------------------------------------------------------------------
 
   const selectPlace = useCallback(
-    (nameAr: string) => {
-      onChange(nameAr);
+    (nameAr: string, selectedPlaceId: string) => {
+      onChange(nameAr, selectedPlaceId);
       setInputValue(nameAr);
       setIsOpen(false);
       setResults([]);
@@ -187,7 +190,6 @@ export function PlaceComboBox({
 
   const finishCreate = useCallback(
     async (nameAr: string, parentId?: string) => {
-      onChange(nameAr);
       setInputValue(nameAr);
       setIsOpen(false);
       setResults([]);
@@ -198,15 +200,22 @@ export function PlaceComboBox({
       setParentResults([]);
       setParentHighlightedIndex(-1);
 
+      let createdPlaceId: string | null = null;
       try {
-        await apiFetch(`/api/workspaces/${workspaceId}/places`, {
+        const res = await apiFetch(`/api/workspaces/${workspaceId}/places`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nameAr, parentId }),
         });
+        if (res.ok) {
+          const json = await res.json();
+          createdPlaceId = json.data?.id ?? null;
+        }
       } catch {
         // Place still works as a string value even if DB save fails
       }
+
+      onChange(nameAr, createdPlaceId);
     },
     [onChange, workspaceId],
   );
@@ -222,7 +231,7 @@ export function PlaceComboBox({
   }, []);
 
   const handleClear = useCallback(() => {
-    onChange('');
+    onChange('', null);
     setInputValue('');
     setIsOpen(false);
     setResults([]);
@@ -276,7 +285,7 @@ export function PlaceComboBox({
       if (e.key === 'Enter') {
         e.preventDefault();
         if (highlightedIndex >= 0 && highlightedIndex < results.length) {
-          selectPlace(results[highlightedIndex].nameAr);
+          selectPlace(results[highlightedIndex].nameAr, results[highlightedIndex].id);
         } else if (
           highlightedIndex === results.length &&
           showCreate
@@ -439,7 +448,7 @@ export function PlaceComboBox({
                       .join(' ')}
                     onMouseDown={(e) => {
                       e.preventDefault(); // prevent blur
-                      selectPlace(place.nameAr);
+                      selectPlace(place.nameAr, place.id);
                     }}
                     onMouseEnter={() => setHighlightedIndex(index)}
                   >

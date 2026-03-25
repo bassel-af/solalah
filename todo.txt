@@ -1,8 +1,6 @@
 Structure directories and files.
 
 تعريب مكان الميلاد
-مكان الميلاد يتم اختياره وليس فقط كتابته
-
 
 Show also members in tree above descendents in someway.
 
@@ -17,6 +15,8 @@ be indexed.
 Check other inputs in MacFamilyTree
 
 link redirects
+
+title - الكنية, standard or not in gedcom. shall we create tag?
 
 المحارم
 
