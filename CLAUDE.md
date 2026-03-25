@@ -78,8 +78,9 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 **Relationships** (`src/lib/gedcom/relationships.ts`):
 - `getPersonRelationships()` - Returns `{ parents, siblings, paternalUncles, spouses, children }`
 
-**Search** (`src/lib/gedcom/search.ts`):
+**Search** (`src/lib/utils/search.ts`):
 - `matchesSearch()` - Multi-word, diacritic-stripping, case-insensitive Arabic/Latin search
+- `stripArabicDiacritics()` - Removes Arabic tashkeel; `ARABIC_DIACRITICS_CHARS` constant shared with SQL
 
 **Types** (`src/lib/gedcom/types.ts`):
 - `FamilyEvent` - Event record with `date`, `hijriDate`, `place`, `description`, `notes`

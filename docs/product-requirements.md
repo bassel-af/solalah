@@ -471,8 +471,15 @@ Notification
 
 **✅ Birth/death places in UI:**
 - `birthPlace` and `deathPlace` added to `Individual` type, GEDCOM parser (`PLAC` tag), mapper, and seed helpers
-- PersonDetail hero shows "الميلاد: 1950 — مكة المكرمة" format; relationship rows show dates only (compact mode)
+- PersonDetail hero shows "الميلاد: 1950 — عمّان، الأردن" format (city + country); relationship rows show dates only (compact mode)
 - Edit form pre-fills places; privacy redaction clears them for private individuals
+
+**✅ Place autocomplete:**
+- `Place` model with hierarchy via `parentId` (city → region → country), seeded with ~20K places from GeoNames (countries, regions, cities with Arabic names)
+- `PlaceComboBox` component: debounced search, diacritics-aware matching (داريا finds داريّا), inline parent picker for creating new places
+- `birthPlaceId`/`deathPlaceId` FK columns on Individual; `marriageContractPlaceId`/`marriagePlaceId`/`divorcePlaceId` on Family
+- Seed mapping translates English GEDCOM places to Arabic and resolves placeIds from global places table
+- Custom towns (الضمير, الدريج, سقبا, برزة) added to seed data under محافظة ريف دمشق
 
 **✅ Notes field on individuals:**
 - `notes` DB column (`TEXT`), API schemas (`.max(5000)`), textarea in form ("ملاحظات"), display section in PersonDetail

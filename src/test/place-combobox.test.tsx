@@ -413,6 +413,7 @@ describe('PlaceComboBox', () => {
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
     expect(mockApiFetch).toHaveBeenCalledWith(
       expect.stringContaining(encodeURIComponent('مكة')),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

@@ -1,7 +1,8 @@
+/** All Arabic diacritics characters (tashkeel) as a string — shared with SQL translate() */
+export const ARABIC_DIACRITICS_CHARS = '\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652\u0653\u0654\u0655\u0656\u0657\u0658\u0659\u065A\u065B\u065C\u065D\u065E\u065F\u0670';
+
 /**
  * Strip Arabic diacritics (tashkeel) from a string.
- * Removes: fathatan, dammatan, kasratan, fatha, damma, kasra, shadda,
- * sukun, and superscript alef.
  */
 export function stripArabicDiacritics(s: string): string {
   return s.toLowerCase().replace(/[\u064B-\u065F\u0670]/g, '');

@@ -1,39 +1,94 @@
 # Project Structure
 
-Last updated: 2026-01-22
+Last updated: 2026-03-25
 
 ## Overview
 
-This is a Next.js 15 + React 19 + TypeScript genealogy web application that parses and visualizes GEDCOM files. The project uses the App Router with Turbopack for fast development. It follows modern React conventions with a component-based architecture, Context API for state management, and custom hooks for data fetching and UI logic. The structure emphasizes separation of concerns with dedicated directories for components, business logic, styles, and tests.
+This is a Next.js 15 + React 19 + TypeScript private family collaboration platform (evolving from a read-only genealogy viewer). The project uses the App Router with Turbopack, Prisma ORM with PostgreSQL, and Supabase Auth (self-hosted). It follows modern React conventions with a component-based architecture, Context API for state management, custom hooks for data fetching and UI logic, and CSS Modules for styling. The primary language is Arabic (RTL layout).
 
 ## Directory Structure
 
 ### Root Level
 
 **Configuration Files:**
-- `next.config.ts` - Next.js configuration with Turbopack enabled
+- `next.config.ts` - Next.js configuration with security headers
 - `vitest.config.ts` - Vitest test runner configuration
-- `tsconfig.json` - TypeScript compiler configuration with path aliases (`@/` → `/src/`)
-- `package.json` - Dependencies and scripts (uses pnpm)
+- `tsconfig.json` - TypeScript compiler configuration with path aliases (`@/` -> `/src/`)
+- `package.json` - Dependencies and scripts (uses pnpm 10.28.0)
 - `pnpm-lock.yaml` - Lock file for pnpm package manager
+- `.npmrc` - pnpm configuration
+- `.gitignore` - Git ignore rules
+- `.gitattributes` - Git attributes
+- `prisma.config.ts` - Prisma configuration (loads `DATABASE_URL` via dotenv)
 
 **Documentation:**
 - `README.md` - Project readme
 - `CLAUDE.md` - Instructions for Claude Code AI assistant
-- `/docs/` - Documentation folder
-  - `project-structure.md` - This file
-  - `testing.md` - Testing guide and test mode query parameters
+- `todo.txt` - Development task tracking
 
-**Build Output:**
-- `/.next/` - Next.js build output (generated, git-ignored)
+**Development files (tracked but should be reviewed):**
+- `gedcom-marriage-explainer.html` - Standalone HTML explainer for GEDCOM marriage concepts
+- `mobile-fab-test.png` - Screenshot for mobile FAB testing
+- `mobile-sidebar-open.png` - Screenshot for mobile sidebar testing
+
+**Build Output (gitignored):**
+- `.next/` - Next.js build output
+- `generated/prisma/` - Prisma generated client
+- `tsconfig.tsbuildinfo` - TypeScript incremental compilation info
+
+**Tool Directories:**
+- `.claude/` - Claude Code configuration (agents, commands, skills, design system, settings)
+- `.playwright-mcp/` - Playwright MCP configuration (gitignored)
+- `skills/` - Claude Code skill definitions (e.g., `explain-code/SKILL.md`)
+- `test-results/` - Test run results (`.last-run.json`)
+
+### `/docs/`
+
+**Role:** Project documentation
+
+**Contents:**
+- `project-structure.md` - This file
+- `product-requirements.md` - Full PRD (Phases 1-3+)
+- `auth-provider-decisions.md` - Auth architecture decision record
+- `setup.md` - Development setup guide
+- `testing.md` - Testing guide and test mode query parameters
+- `workspaces-problem.md` - Design document for workspace architecture
+
+### `/docker/`
+
+**Role:** Docker Compose configuration for self-hosted Supabase stack
+
+**Contents:**
+- `docker-compose.yml` - Service definitions (PostgreSQL 15, GoTrue, Kong, Studio, pg-meta)
+- `kong.yml` - Kong API gateway configuration
+- `.env` - Docker secrets (gitignored)
+- `init-scripts/01-auth-schema.sh` - Database initialization script
+
+### `/prisma/`
+
+**Role:** Prisma ORM configuration, schema, migrations, and seed data
+
+**Contents:**
+- `schema.prisma` - Database schema (17 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, TreeEditLog, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place)
+- `seed.ts` - Main seed script (workspaces + tree data from GEDCOM + places)
+- `migrations/` - Prisma migrations (10 migrations from init through place IDs)
+- `seed-data/places.json` - Pre-processed GeoNames place data (~5MB, countries/regions/cities with Arabic names)
+
+### `/scripts/`
+
+**Role:** Standalone build/preprocessing scripts
+
+**Contents:**
+- `preprocess-geonames.ts` - Processes raw GeoNames data into `prisma/seed-data/places.json`
+- `geonames-data/` - Raw GeoNames download files (~971MB, gitignored)
 
 ### `/public/`
 
-**Role:** Static assets served as-is by Next.js without processing
+**Role:** Static assets served as-is by Next.js
 
 **Contents:**
-- `saeed-family.ged` - Primary GEDCOM genealogy data file (GEDCOM 5.5.1 format)
-- `test-family.ged` - Small test GEDCOM file for E2E testing
+- `saeed-family.ged` - Primary GEDCOM genealogy data file (legacy routes + seeding)
+- `test-family.ged` - Small test GEDCOM file for browser E2E testing
 
 ### `/src/`
 
@@ -41,157 +96,255 @@ This is a Next.js 15 + React 19 + TypeScript genealogy web application that pars
 
 #### `/src/app/`
 
-**Role:** Next.js App Router pages and layouts
+**Role:** Next.js App Router pages, layouts, and API routes
 
 **Contents:**
-- `layout.tsx` - Root layout with HTML structure, fonts, and metadata
-- `page.tsx` - Home page component, handles query params and renders main app
-- `providers.tsx` - Client component wrapping app in `<TreeProvider>`
-- `globals.css` - Global CSS imports
+- `layout.tsx` - Root layout with HTML structure, fonts, RTL direction, metadata
+- `page.tsx` - Home/landing page (redirects authenticated users to `/dashboard`)
+- `page.module.css` - Landing page styles
+- `not-found.tsx` / `not-found.module.css` - 404 page
+- `globals.css` - Global CSS imports (tokens, base, tree-global)
+- `providers.tsx` - Client component wrapping legacy routes in `TreeProvider` + `CalendarPreferenceContext`
+- `global-providers.tsx` - Client component wrapping entire app in `ToastProvider`
+
+**Route directories:**
+- `[familySlug]/` - Legacy family routes (`page.tsx`, `FamilyTreeClient.tsx`)
+- `auth/` - Authentication pages (login, signup, forgot-password, callback)
+  - `auth.module.css` - Shared auth page styles
+- `dashboard/` - Dashboard and workspace creation pages
+- `workspaces/[slug]/` - Workspace detail and tree view
+  - `tree/` - Database-backed tree view (`WorkspaceTreeClient.tsx`)
+- `invite/[id]/` - Invitation acceptance page
+- `policy/` - Public policy page
+- `islamic-gedcom/` - Public GEDCOM standard documentation page
+
+**API routes (`/src/app/api/`):**
+- `auth/sync-user/route.ts` - User sync endpoint
+- `invitations/[id]/accept/route.ts` - Invitation acceptance
+- `users/me/preferences/route.ts` - User preferences (calendar)
+- `workspaces/` - Full workspace CRUD, members, invitations
+  - `[id]/places/route.ts` - Place search and creation (workspace-scoped)
+  - `[id]/tree/` - Tree CRUD (individuals, families, children, move)
+- `workspaces/by-slug/[slug]/route.ts` - Workspace lookup by slug
+- `workspaces/join/route.ts` - Join workspace via code
 
 #### `/src/components/`
 
-**Role:** React components organized by feature and type
-
-**Subdirectories:**
+**Role:** React components organized by domain
 
 ##### `/src/components/tree/`
-**Purpose:** Family tree visualization components
-- `FamilyTree/FamilyTree.tsx` - Main tree renderer using @xyflow/react
-- `index.ts` - Barrel export for tree components
+**Purpose:** Family tree visualization and editing components
+- `FamilyTree/` - Main tree renderer using @xyflow/react (custom layout algorithm)
+- `PersonCard/` - Individual node card in the tree
+- `CoupleRow/` - Marriage event display between spouses
+- `IndividualForm/` - Form for creating/editing individuals
+- `FamilyEventForm/` - Form for marriage/divorce events
+- `FamilyPickerModal/` - Modal for selecting family (polygamy support)
+- `EmptyTreeState/` - Placeholder for workspaces with no tree data
+- `index.ts` - Barrel export
 
 ##### `/src/components/ui/`
-**Purpose:** UI control and interface components
-- `RootSelector.tsx` - Dropdown to select root ancestor
-- `SearchBar.tsx` - Search functionality component
-- `Stats.tsx` - Display tree statistics
-- `Sidebar.tsx` - Sidebar navigation/controls
-- `index.ts` - Barrel export for UI components
+**Purpose:** Reusable UI components
+- `Alert/` - Alert/notification component
+- `Button/` - Button component
+- `CenteredCardLayout/` - Centered card page layout
+- `Input/` - Form input component
+- `Modal/` - Modal dialog component
+- `PlaceComboBox/` - Place search combobox with autocomplete
+- `Sidebar/` - Sidebar with person detail panel (`PersonDetail.tsx`)
+- `Spinner/` - Loading spinner
+- `Toast/` - Toast notification component
+- `RootSelector.tsx` - Dropdown to select root ancestor (standalone file)
+- `SearchBar.tsx` - Search functionality component (standalone file)
+- `Stats.tsx` - Tree statistics display (standalone file)
+- `index.ts` - Barrel export
 
 ##### `/src/components/dev/`
 **Purpose:** Development and experimental components
-- `Playground.tsx` - Experimental component for testing tree layouts
+- `Playground.tsx` - Experimental SVG tree layout
+- `index.ts` - Barrel export
+
+#### `/src/config/`
+
+**Role:** Application configuration
+
+**Contents:**
+- `families.ts` - Family configuration entries (slug, rootId, displayName, gedcomFile)
 
 #### `/src/context/`
 
 **Role:** React Context providers for global state management
 
 **Contents:**
-- `TreeContext.tsx` - Central state manager containing:
-  - Parsed GEDCOM data (`GedcomData`)
-  - Selected root ancestor ID
-  - Search query and tree configuration
-  - Loading and error states
-  - `useTree()` hook for consuming components
+- `TreeContext.tsx` - Central tree state (GEDCOM data, selected root, search, config)
+- `WorkspaceTreeContext.tsx` - Workspace-specific tree state (workspaceId, canEdit, refresh)
+- `ToastContext.tsx` - App-wide toast notifications
 
 #### `/src/hooks/`
 
-**Role:** Custom React hooks for reusable logic
+**Role:** Custom React hooks
 
 **Contents:**
-- `useGedcomData.ts` - Fetches and parses GEDCOM files
-- `useTreeLines.ts` - Manages SVG line calculations for tree visualization
+- `useCalendarPreference.ts` - Hijri/Gregorian preference with localStorage + server sync
+- `useGedcomData.ts` - Fetches GEDCOM files for legacy routes
+- `usePersonActions.ts` - Phase 3 editing state machine (add/edit/delete individuals, families, events)
+- `useTreeLines.ts` - SVG line drawing for playground mode
+- `useWorkspaceTreeData.ts` - Fetches and manages workspace tree data
 
 #### `/src/lib/`
 
 **Role:** Business logic, utilities, and domain-specific libraries
 
+##### `/src/lib/api/`
+**Purpose:** API utilities for both server and client
+- `auth.ts` - Server-side auth guard (`getAuthenticatedUser`)
+- `client.ts` - Client-side `apiFetch` with Bearer token
+- `rate-limit.ts` - In-memory rate limiter
+- `serialize.ts` - BigInt JSON serialization
+- `workspace-auth.ts` - Workspace membership/permission guards
+
+##### `/src/lib/auth/`
+**Purpose:** Authentication helpers
+- `sync-user.ts` - GoTrue-to-DB user sync
+- `validate-redirect.ts` - Redirect URL validation (anti-open-redirect)
+
+##### `/src/lib/email/`
+**Purpose:** Email sending infrastructure
+- `transport.ts` - Nodemailer/Gmail SMTP transport
+- `templates/invite.ts` - Arabic RTL invitation email template
+
 ##### `/src/lib/gedcom/`
 **Purpose:** GEDCOM file parsing and data manipulation
-- `types.ts` - TypeScript types for GEDCOM entities (`Individual`, `Family`, `GedcomData`)
-- `parser.ts` - Main GEDCOM parser, converts raw text to structured data
-- `display.ts` - Formatting utilities for displaying person information
-- `roots.ts` - Functions to identify root ancestors
-- `graph.ts` - Graph traversal and tree structure utilities
-- `index.ts` - Barrel export for gedcom module
+- `types.ts` - Core types (`Individual`, `Family`, `FamilyEvent`, `GedcomData`)
+- `parser.ts` - GEDCOM text parser
+- `display.ts` - Name display formatting (nasab/patronymic chains)
+- `roots.ts` - Root ancestor identification
+- `graph.ts` - Graph traversal, subtree extraction, descendant counting, privacy filtering
+- `relationships.ts` - Person relationship computation
+- `index.ts` - Barrel export
+
+##### `/src/lib/places/`
+**Purpose:** Place-related validation schemas
+- `schemas.ts` - Zod schemas for place search and creation
+
+##### `/src/lib/seed/`
+**Purpose:** Database seeding utilities
+- `seed-workspaces.ts` - Seed workspaces from family configs (legacy, used by old seed flow)
+- `seed-places.ts` - Seed Place table from preprocessed GeoNames data
+- `run-seed-places.ts` - Standalone script entry point for `pnpm seed:places`
+- `geonames-parser.ts` - Pure GeoNames TSV line parsers (used by `scripts/preprocess-geonames.ts`)
+
+##### `/src/lib/tree/`
+**Purpose:** Database-backed tree operations
+- `queries.ts` - Database query helpers for tree CRUD
+- `mapper.ts` - DB-to-GedcomData mapping + privacy redaction
+- `schemas.ts` - Zod validation schemas for tree API
+- `seed-helpers.ts` - Helpers for seeding tree data from GEDCOM
+- `seed-place-mapping.ts` - GEDCOM place string to Arabic name + Place ID resolution
+
+##### `/src/lib/supabase/`
+**Purpose:** Supabase client wrappers
+- `client.ts` - Browser client
+- `server.ts` - Server client (Next.js cookies)
+- `middleware.ts` - Session refresh middleware
+
+##### `/src/lib/utils/`
+**Purpose:** Generic utility functions
+- `html-escape.ts` - HTML escaping for email templates
+- `search.ts` - Arabic diacritics stripping and multi-word search matching
+
+##### `/src/lib/workspace/`
+**Purpose:** Workspace-specific utilities
+- `join-code.ts` - Join code generation
+- `labels.ts` - Role label localization (Arabic)
+
+**Standalone files in `/src/lib/`:**
+- `db.ts` - Prisma singleton client
+- `calendar-helpers.ts` - Calendar preference display helpers
+- `person-detail-helpers.ts` - Person detail form data builders, validation, display
 
 #### `/src/styles/`
 
-**Role:** Global CSS stylesheets and design tokens
+**Role:** Global CSS and design tokens
 
 **Contents:**
-- `index.css` - Global application styles
-- `tree.css` - Styles specific to family tree visualization
-- `tokens/` - CSS design tokens
-  - `colors.css` - Color palette
-  - `typography.css` - Font sizes and weights
-  - `spacing.css` - Spacing scale
-  - `shadows.css` - Box shadows
-  - `transitions.css` - Animation timings
+- `tree-global.css` - React Flow class overrides
+- `form-elements.module.css` - Shared form element styles (CSS Module)
+- `scrollbar.module.css` - Reusable scrollbar styles (CSS Module)
+- `base/` - Base stylesheets
+  - `index.css` - Base style imports
+  - `reset.css` - CSS reset
+  - `layout.css` - Global layout styles
+- `tokens/` - Design tokens
+  - `index.css` - Token imports
+  - `colors.css`, `typography.css`, `spacing.css`, `shadows.css`, `transitions.css`
 
 #### `/src/test/`
 
-**Role:** Test files and test utilities
+**Role:** All test files (centralized)
+
+**Contents:** 50+ test files covering:
+- GEDCOM parsing, display, search, relationships, graph operations
+- API routes (workspaces, tree CRUD, places, auth, invitations, members)
+- Components (IndividualForm, FamilyEventForm, FamilyPickerModal, PlaceComboBox, PersonDetail)
+- Hooks (usePersonActions, useCalendarPreference)
+- Utilities (rate-limit, html-escape, validate-redirect, calendar-helpers)
+- Security (headers, input validation)
+- Seeding (tree seed, place seed, geonames parser, place mapping)
+
+**Subdirectory:**
+- `fixtures/` - Test data files (`saeed-family.ged`, `test-family.ged`)
+
+#### `/src/types/`
+
+**Role:** Global TypeScript type declarations
 
 **Contents:**
-- `setup.ts` - Vitest test environment setup
-- `descendants.test.ts` - Tests for descendant calculation logic
-- `root-selection.test.ts` - Tests for root ancestor selection
-- `private-filtering.test.ts` - Tests for filtering private individuals
+- `iconify.d.ts` - JSX type augmentation for `<iconify-icon>` web component
 
-##### `/src/test/fixtures/`
-**Purpose:** Test data files
-- `saeed-family.ged` - Copy of GEDCOM file for testing
+#### `/src/middleware.ts`
+
+**Role:** Next.js middleware for session refresh and auth redirects
 
 ## Conventions
 
 ### File Naming
-- React components: PascalCase (e.g., `FamilyTree.tsx`)
-- Utilities/hooks: camelCase (e.g., `useGedcomData.ts`)
-- Type definitions: camelCase (e.g., `types.ts`)
-- CSS files: kebab-case (e.g., `index.css`, `tree.css`)
+- React components: **PascalCase** directories and files (e.g., `FamilyTree/FamilyTree.tsx`)
+- Hooks: **camelCase** with `use` prefix (e.g., `useGedcomData.ts`)
+- Utilities/libraries: **camelCase** (e.g., `display.ts`, `calendar-helpers.ts`)
+- CSS Modules: **PascalCase** matching component name (e.g., `FamilyTree.module.css`) or **kebab-case** for shared styles (e.g., `form-elements.module.css`)
+- Global CSS: **kebab-case** (e.g., `tree-global.css`)
+- Type definitions: **camelCase** (e.g., `types.ts`)
 
 ### Path Aliases
 - `@/` resolves to `/src/` directory (configured in tsconfig.json)
 
 ### Component Organization
-- Components grouped by domain: `/tree/` for visualization, `/ui/` for controls
-- Each component subdirectory has an `index.ts` barrel export
-- Related components kept together in the same directory
+- Components grouped by domain: `/tree/` for visualization, `/ui/` for reusable controls, `/dev/` for experiments
+- Most components use the directory pattern: `ComponentName/ComponentName.tsx` + `ComponentName.module.css` + `index.ts`
+- Three legacy UI components remain as standalone files: `RootSelector.tsx`, `SearchBar.tsx`, `Stats.tsx`
+- Each component directory has an `index.ts` barrel export
+- UI barrel (`/src/components/ui/index.ts`) exports most components; `PlaceComboBox` and `Toast` are imported directly
 
 ### Testing
-- Test files co-located with source in `/src/test/`
+- All test files centralized in `/src/test/`
 - Test fixtures in `/src/test/fixtures/`
 - Naming pattern: `*.test.ts` or `*.test.tsx`
+- Tests use Vitest with jsdom and @testing-library/react
 
-## Structure Issues and Recommendations
+### API Routes
+- Follow Next.js App Router conventions with `route.ts` files
+- Resource nesting mirrors REST structure (e.g., `/workspaces/[id]/tree/individuals/[individualId]`)
 
-### Low Priority
-
-**Observation:** No `/src/utils/` directory
-- **Note:** Utility functions are appropriately organized in `/src/lib/gedcom/` for domain-specific logic
-- **Recommendation:** If you add generic utilities (non-GEDCOM specific), create `/src/utils/` or `/src/lib/utils/`
-
-**Observation:** No `/src/types/` directory
-- **Note:** Types are co-located with their modules (e.g., `/src/lib/gedcom/types.ts`)
-- **Recommendation:** Current approach is good for this project size. Consider extracting shared types to `/src/types/` if they're used across multiple domains
-
-## Technology Stack Notes
+## Technology Stack
 
 - **Package Manager:** pnpm 10.28.0
 - **Framework:** Next.js 15.x with App Router and Turbopack
 - **UI:** React 19.x with TypeScript 5.x
-- **Tree Visualization:** @xyflow/react (React Flow) with custom tree layout algorithm
-- **Testing:** Vitest 4.x with jsdom and @testing-library/react
-- **Styling:** CSS with design tokens (`src/styles/tokens/`)
-
-## Best Practices Followed
-
-✅ Clear separation of concerns (components, logic, state, styles)
-✅ TypeScript strict mode enabled
-✅ Path aliases configured for cleaner imports
-✅ Test infrastructure properly set up
-✅ Barrel exports (`index.ts`) for clean public APIs
-✅ Component organization by domain/feature
-✅ Context API for centralized state management
-✅ Custom hooks for reusable logic
-
-## Areas for Potential Improvement
-
-1. **Testing:**
-   - Keep test fixtures minimal and distinct from production data
-   - Consider adding component-level tests adjacent to components
-
-2. **Documentation:**
-   - Add JSDoc comments to complex functions in `/src/lib/gedcom/`
-   - See `/docs/testing.md` for test mode query parameters
+- **ORM:** Prisma 7.x with `@prisma/adapter-pg` driver adapter
+- **Auth:** Supabase Auth (GoTrue) via `@supabase/ssr`, self-hosted
+- **Validation:** Zod
+- **Tree Visualization:** @xyflow/react with custom layout algorithm
+- **Styling:** CSS Modules with design tokens
+- **Testing:** Vitest with jsdom and @testing-library/react
+- **Email:** Nodemailer with Gmail SMTP

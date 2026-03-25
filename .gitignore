@@ -54,5 +54,8 @@ CLAUDE.local.md
 
 /generated/prisma
 
+# Test results
+test-results/
+
 # GeoNames raw downloads (large, not committed)
 scripts/geonames-data/

@@ -20,7 +20,6 @@ export interface PlaceComboBoxProps {
   id: string;
   label: string;
   value: string;
-  placeId?: string | null;
   onChange: (value: string, placeId: string | null) => void;
   workspaceId: string;
   placeholder?: string;
@@ -31,6 +30,55 @@ export interface PlaceComboBoxProps {
 type Mode = 'search' | 'pickParent';
 
 // ---------------------------------------------------------------------------
+// Shared sub-component for place option rendering
+// ---------------------------------------------------------------------------
+
+function PlaceOption({
+  place,
+  isHighlighted,
+  onSelect,
+  onHover,
+  optionId,
+}: {
+  place: PlaceResult;
+  isHighlighted: boolean;
+  onSelect: () => void;
+  onHover: () => void;
+  optionId?: string;
+}) {
+  return (
+    <li
+      id={optionId}
+      role="option"
+      aria-selected={isHighlighted}
+      className={[
+        styles.option,
+        isHighlighted ? styles.optionHighlighted : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onSelect();
+      }}
+      onMouseEnter={onHover}
+    >
+      <span className={styles.optionPrimary}>
+        <span>{place.nameAr}</span>
+        {place.nameEn && (
+          <span className={styles.optionEn}> — {place.nameEn}</span>
+        )}
+      </span>
+      {place.parentNameAr && (
+        <span className={styles.optionSecondary}>
+          {place.parentNameAr}
+        </span>
+      )}
+    </li>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -38,14 +86,12 @@ export function PlaceComboBox({
   id,
   label,
   value,
-  placeId: _placeId,
   onChange,
   workspaceId,
   placeholder,
   disabled = false,
   error,
 }: PlaceComboBoxProps) {
-  void _placeId; // tracked by parent; used for initial state only
   const [inputValue, setInputValue] = useState(value);
   const [results, setResults] = useState<PlaceResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -62,6 +108,8 @@ export function PlaceComboBox({
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parentDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parentInputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
 
@@ -70,8 +118,46 @@ export function PlaceComboBox({
     setInputValue(value);
   }, [value]);
 
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (parentDebounceRef.current) clearTimeout(parentDebounceRef.current);
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+      abortRef.current?.abort();
+    };
+  }, []);
+
   // -------------------------------------------------------------------------
-  // Search (main place search)
+  // Shared fetch
+  // -------------------------------------------------------------------------
+
+  const fetchPlaces = useCallback(
+    async (query: string): Promise<PlaceResult[]> => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const res = await apiFetch(
+          `/api/workspaces/${workspaceId}/places?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
+        );
+        if (res.ok) {
+          const json = await res.json();
+          return json.data;
+        }
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return [];
+        // network error — swallow
+      }
+      return [];
+    },
+    [workspaceId],
+  );
+
+  // -------------------------------------------------------------------------
+  // Search (main)
   // -------------------------------------------------------------------------
 
   const search = useCallback(
@@ -86,23 +172,11 @@ export function PlaceComboBox({
       setIsLoading(true);
       setIsOpen(true);
 
-      try {
-        const res = await apiFetch(
-          `/api/workspaces/${workspaceId}/places?q=${encodeURIComponent(query)}`,
-        );
-        if (res.ok) {
-          const json = await res.json();
-          setResults(json.data);
-        } else {
-          setResults([]);
-        }
-      } catch {
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
+      const data = await fetchPlaces(query);
+      setResults(data);
+      setIsLoading(false);
     },
-    [workspaceId],
+    [fetchPlaces],
   );
 
   const handleInputChange = useCallback(
@@ -111,13 +185,8 @@ export function PlaceComboBox({
       setInputValue(newValue);
       setHighlightedIndex(-1);
 
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-
-      debounceRef.current = setTimeout(() => {
-        search(newValue);
-      }, 250);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => search(newValue), 250);
     },
     [search],
   );
@@ -136,23 +205,11 @@ export function PlaceComboBox({
 
       setIsParentLoading(true);
 
-      try {
-        const res = await apiFetch(
-          `/api/workspaces/${workspaceId}/places?q=${encodeURIComponent(query)}`,
-        );
-        if (res.ok) {
-          const json = await res.json();
-          setParentResults(json.data);
-        } else {
-          setParentResults([]);
-        }
-      } catch {
-        setParentResults([]);
-      } finally {
-        setIsParentLoading(false);
-      }
+      const data = await fetchPlaces(query);
+      setParentResults(data);
+      setIsParentLoading(false);
     },
-    [workspaceId],
+    [fetchPlaces],
   );
 
   const handleParentQueryChange = useCallback(
@@ -161,13 +218,8 @@ export function PlaceComboBox({
       setParentQuery(newValue);
       setParentHighlightedIndex(-1);
 
-      if (parentDebounceRef.current) {
-        clearTimeout(parentDebounceRef.current);
-      }
-
-      parentDebounceRef.current = setTimeout(() => {
-        searchParent(newValue);
-      }, 250);
+      if (parentDebounceRef.current) clearTimeout(parentDebounceRef.current);
+      parentDebounceRef.current = setTimeout(() => searchParent(newValue), 250);
     },
     [searchParent],
   );
@@ -226,7 +278,6 @@ export function PlaceComboBox({
     setParentResults([]);
     setParentHighlightedIndex(-1);
     setMode('pickParent');
-    // Focus the parent search input after render
     setTimeout(() => parentInputRef.current?.focus(), 0);
   }, []);
 
@@ -252,7 +303,6 @@ export function PlaceComboBox({
   // Keyboard navigation
   // -------------------------------------------------------------------------
 
-  // Build items list: results + possibly the "create" option
   const hasExactMatch = results.some(
     (r) => r.nameAr === inputValue.trim(),
   );
@@ -297,8 +347,7 @@ export function PlaceComboBox({
     [isOpen, totalItems, highlightedIndex, results, selectPlace, startPickParent, showCreate, inputValue, closeDropdown],
   );
 
-  // Parent picker keyboard nav
-  const parentTotalItems = parentResults.length + 1; // +1 for "skip" option
+  const parentTotalItems = parentResults.length + 1;
 
   const handleParentKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -326,7 +375,6 @@ export function PlaceComboBox({
         if (parentHighlightedIndex >= 0 && parentHighlightedIndex < parentResults.length) {
           finishCreate(pendingName, parentResults[parentHighlightedIndex].id);
         } else if (parentHighlightedIndex === parentResults.length) {
-          // "Skip" option
           finishCreate(pendingName);
         }
       }
@@ -371,15 +419,11 @@ export function PlaceComboBox({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            // If user re-focuses and mode is pickParent, reset to search
-            if (mode === 'pickParent') {
-              setMode('search');
-            }
+            if (mode === 'pickParent') setMode('search');
           }}
           onBlur={() => {
-            // Delay close to allow click events on dropdown items
             if (mode === 'search') {
-              setTimeout(() => closeDropdown(), 200);
+              blurTimerRef.current = setTimeout(() => closeDropdown(), 200);
             }
           }}
           placeholder={placeholder}
@@ -435,35 +479,14 @@ export function PlaceComboBox({
 
               {!isLoading &&
                 results.map((place, index) => (
-                  <li
+                  <PlaceOption
                     key={place.id}
-                    id={`${listboxId}-option-${index}`}
-                    role="option"
-                    aria-selected={highlightedIndex === index}
-                    className={[
-                      styles.option,
-                      highlightedIndex === index ? styles.optionHighlighted : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    onMouseDown={(e) => {
-                      e.preventDefault(); // prevent blur
-                      selectPlace(place.nameAr, place.id);
-                    }}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                  >
-                    <span className={styles.optionPrimary}>
-                      <span>{place.nameAr}</span>
-                      {place.nameEn && (
-                        <span className={styles.optionEn}> — {place.nameEn}</span>
-                      )}
-                    </span>
-                    {place.parentNameAr && (
-                      <span className={styles.optionSecondary}>
-                        {place.parentNameAr}
-                      </span>
-                    )}
-                  </li>
+                    place={place}
+                    isHighlighted={highlightedIndex === index}
+                    onSelect={() => selectPlace(place.nameAr, place.id)}
+                    onHover={() => setHighlightedIndex(index)}
+                    optionId={`${listboxId}-option-${index}`}
+                  />
                 ))}
 
               {!isLoading && showCreate && (
@@ -517,34 +540,13 @@ export function PlaceComboBox({
 
                 {!isParentLoading &&
                   parentResults.map((place, index) => (
-                    <li
+                    <PlaceOption
                       key={place.id}
-                      role="option"
-                      aria-selected={parentHighlightedIndex === index}
-                      className={[
-                        styles.option,
-                        parentHighlightedIndex === index ? styles.optionHighlighted : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        finishCreate(pendingName, place.id);
-                      }}
-                      onMouseEnter={() => setParentHighlightedIndex(index)}
-                    >
-                      <span className={styles.optionPrimary}>
-                        <span>{place.nameAr}</span>
-                        {place.nameEn && (
-                          <span className={styles.optionEn}> — {place.nameEn}</span>
-                        )}
-                      </span>
-                      {place.parentNameAr && (
-                        <span className={styles.optionSecondary}>
-                          {place.parentNameAr}
-                        </span>
-                      )}
-                    </li>
+                      place={place}
+                      isHighlighted={parentHighlightedIndex === index}
+                      onSelect={() => finishCreate(pendingName, place.id)}
+                      onHover={() => setParentHighlightedIndex(index)}
+                    />
                   ))}
 
                 <li

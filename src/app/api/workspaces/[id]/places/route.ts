@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireWorkspaceMember, isErrorResponse } from '@/lib/api/workspace-auth';
 import { searchPlacesSchema, createPlaceSchema } from '@/lib/places/schemas';
-import { stripArabicDiacritics } from '@/lib/utils/search';
+import { stripArabicDiacritics, ARABIC_DIACRITICS_CHARS } from '@/lib/utils/search';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -17,7 +17,10 @@ interface PlaceWithParent {
   parent: PlaceWithParent | null;
 }
 
-/** Build the full hierarchical path for a place (e.g., "الخرج، الرياض، المملكة العربية السعودية") */
+const PARENT_INCLUDE = {
+  parent: { include: { parent: { include: { parent: true } } } },
+} as const;
+
 function buildFullPath(place: PlaceWithParent): string {
   const parts: string[] = [place.nameAr];
   let current = place.parent;
@@ -26,6 +29,21 @@ function buildFullPath(place: PlaceWithParent): string {
     current = current.parent;
   }
   return parts.join('، ');
+}
+
+function toPlaceResponse(place: PlaceWithParent) {
+  return {
+    id: place.id,
+    nameAr: place.nameAr,
+    nameEn: place.nameEn,
+    parentNameAr: place.parent?.nameAr ?? null,
+    fullPath: buildFullPath(place),
+  };
+}
+
+/** Escape LIKE metacharacters (%, _) in user input */
+function escapeLike(s: string): string {
+  return s.replace(/[%_]/g, '\\$&');
 }
 
 // ---------------------------------------------------------------------------
@@ -50,19 +68,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { q } = parsed.data;
   const strippedQ = stripArabicDiacritics(q);
 
-  // Arabic diacritics characters to strip in SQL translate()
-  const DIACRITICS = '\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652\u0653\u0654\u0655\u0656\u0657\u0658\u0659\u065A\u065B\u065C\u065D\u065E\u065F\u0670';
-
-  // Step 1: Find matching place IDs using raw SQL with diacritics stripping
   let matchingIds: string[];
 
   if (strippedQ) {
-    const likePattern = `%${strippedQ}%`;
+    const likePattern = `%${escapeLike(strippedQ)}%`;
     const rows = await prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM places
       WHERE (workspace_id IS NULL OR workspace_id = ${workspaceId}::uuid)
       AND (
-        translate(lower(name_ar), ${DIACRITICS}, '') LIKE ${likePattern}
+        translate(lower(name_ar), ${ARABIC_DIACRITICS_CHARS}, '') LIKE ${likePattern}
         OR lower(COALESCE(name_en, '')) LIKE ${likePattern}
       )
       ORDER BY name_ar ASC
@@ -79,26 +93,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     matchingIds = rows.map((r) => r.id);
   }
 
-  // Step 2: Fetch full records with parent hierarchy using Prisma
   const places = matchingIds.length > 0
     ? await prisma.place.findMany({
         where: { id: { in: matchingIds } },
         orderBy: { nameAr: 'asc' },
-        include: {
-          parent: {
-            include: {
-              parent: {
-                include: {
-                  parent: true,
-                },
-              },
-            },
-          },
-        },
+        include: PARENT_INCLUDE,
       })
     : [];
 
-  // Prioritize startsWith matches, take top 10
   const sorted = strippedQ
     ? [...places].sort((a, b) => {
         const aStarts = stripArabicDiacritics(a.nameAr).startsWith(strippedQ) ||
@@ -111,15 +113,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }).slice(0, 10)
     : places.slice(0, 10);
 
-  const data = sorted.map((place: PlaceWithParent) => ({
-    id: place.id,
-    nameAr: place.nameAr,
-    nameEn: place.nameEn,
-    parentNameAr: place.parent?.nameAr ?? null,
-    fullPath: buildFullPath(place),
-  }));
-
-  return NextResponse.json({ data });
+  return NextResponse.json({ data: sorted.map((p) => toPlaceResponse(p as PlaceWithParent)) });
 }
 
 // ---------------------------------------------------------------------------
@@ -149,31 +143,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const { nameAr, nameEn, parentId } = parsed.data;
 
-  // Upsert behavior: check if nameAr already exists for this workspace
+  // Upsert: check workspace-scoped first, then global
   const existing = await prisma.place.findFirst({
-    where: { workspaceId, nameAr },
-    include: {
-      parent: {
-        include: {
-          parent: {
-            include: {
-              parent: true,
-            },
-          },
-        },
-      },
+    where: {
+      nameAr,
+      OR: [{ workspaceId }, { workspaceId: null }],
     },
+    include: PARENT_INCLUDE,
   });
 
   if (existing) {
-    const placeData = {
-      id: existing.id,
-      nameAr: existing.nameAr,
-      nameEn: existing.nameEn,
-      parentNameAr: (existing as PlaceWithParent).parent?.nameAr ?? null,
-      fullPath: buildFullPath(existing as PlaceWithParent),
-    };
-    return NextResponse.json({ data: placeData }, { status: 200 });
+    return NextResponse.json(
+      { data: toPlaceResponse(existing as PlaceWithParent) },
+      { status: 200 },
+    );
   }
 
   const created = await prisma.place.create({
@@ -183,26 +166,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       nameEn: nameEn ?? null,
       parentId: parentId ?? null,
     },
-    include: {
-      parent: {
-        include: {
-          parent: {
-            include: {
-              parent: true,
-            },
-          },
-        },
-      },
-    },
+    include: PARENT_INCLUDE,
   });
 
-  const placeData = {
-    id: created.id,
-    nameAr: created.nameAr,
-    nameEn: created.nameEn,
-    parentNameAr: (created as PlaceWithParent).parent?.nameAr ?? null,
-    fullPath: buildFullPath(created as PlaceWithParent),
-  };
-
-  return NextResponse.json({ data: placeData }, { status: 201 });
+  return NextResponse.json(
+    { data: toPlaceResponse(created as PlaceWithParent) },
+    { status: 201 },
+  );
 }

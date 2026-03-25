@@ -1,20 +1,22 @@
-Structure directories and files.
+Phase 3:
+Security
+Build
 
-تعريب مكان الميلاد
+Phase 4:
+- Show also members in tree above descendents in someway.
+- We need to control search engines indexing. Only
+the landing and policy pages shall be indexed.
+- Branch linking and sharing and extending.
 
-Show also members in tree above descendents in someway.
-
-We need to control search engines indexing. Only
-the landing and policy pages shall
-be indexed.
-
-
+Phase 5:
+- Assign existing relative (assign parent that already exists to person with no parent)
 الإخوة من الرضاعة من نفس الأقارب في شجرة العائلة وليس من خارجها
 وتعديل على الستاندارد الخاص بجيدكوم
 
+
 Check other inputs in MacFamilyTree
 
-link redirects
+Previous links redirects. e.g. /saeed, /sharbek, etc. Request access from admin
 
 title - الكنية, standard or not in gedcom. shall we create tag?
 

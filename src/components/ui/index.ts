@@ -8,3 +8,5 @@ export { Input } from './Input';
 export { Alert } from './Alert';
 export { Modal } from './Modal';
 export { Spinner } from './Spinner';
+export { PlaceComboBox } from './PlaceComboBox';
+export { ToastContainer } from './Toast';
