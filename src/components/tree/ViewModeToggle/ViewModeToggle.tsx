@@ -12,7 +12,7 @@ export function ViewModeToggle() {
   const { viewMode, setViewMode } = useTree();
 
   const segments: Array<{ mode: ViewMode; fullLabel: string; shortLabel: string }> = [
-    { mode: 'single', fullLabel: 'شجرة واحدة', shortLabel: 'واحدة' },
+    { mode: 'single', fullLabel: 'جذر واحد', shortLabel: 'واحد' },
     { mode: 'multi', fullLabel: 'عدة جذور', shortLabel: 'عدة' },
   ];
 

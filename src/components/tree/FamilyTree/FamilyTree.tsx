@@ -494,11 +494,12 @@ function buildTreeData(
 }
 
 function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
-  const { data, selectedRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setSelectedRootId, setFocusPersonId, setMobileSidebarOpen, viewMode } = useTree();
-  const { setViewport, setCenter, getZoom, fitView } = useReactFlow();
+  const { data, selectedRootId, initialRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setSelectedRootId, setFocusPersonId, setMobileSidebarOpen, viewMode } = useTree();
+  const { setViewport, setCenter, getZoom, getViewport, fitView } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRootIdRef = useRef<string | null>(null);
+  const savedViewportRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
 
   // Compute highlight state (ancestors and descendants of highlighted person)
   const highlightState = useMemo<HighlightState>(() => {
@@ -642,10 +643,24 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
 
     // Only scroll if root actually changed
     if (prevRootIdRef.current !== selectedRootId) {
+      const prevRootId = prevRootIdRef.current;
       prevRootIdRef.current = selectedRootId;
-      scrollToNode(selectedRootId, nodes, 'top', true);
+
+      // Save viewport when navigating away from initial root
+      if (prevRootId === initialRootId && selectedRootId !== initialRootId) {
+        savedViewportRef.current = getViewport();
+      }
+
+      // If returning to initial root and we have a saved viewport, restore it
+      if (selectedRootId === initialRootId && savedViewportRef.current) {
+        const saved = savedViewportRef.current;
+        savedViewportRef.current = null;
+        setViewport(saved, { duration: 500 });
+      } else {
+        scrollToNode(selectedRootId, nodes, 'top', true);
+      }
     }
-  }, [selectedRootId, nodes, isReady, scrollToNode]);
+  }, [selectedRootId, initialRootId, nodes, isReady, scrollToNode, setViewport, getViewport]);
 
   // Position root at top, centered horizontally
   const onInit = useCallback(() => {

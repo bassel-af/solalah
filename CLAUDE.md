@@ -53,8 +53,10 @@ The project uses `@/` as an alias for the `/src/` directory, configured in `tsco
 
 **TreeContext** (`src/context/TreeContext.tsx`) is the central state manager using React Context:
 - Stores the parsed GEDCOM data (`GedcomData`)
-- Tracks selected root ancestor (`selectedRootId`)
-- Manages search query, tree configuration (max depth), loading state, and errors
+- Tracks selected root ancestor (`selectedRootId`) and `initialRootId` (for back navigation)
+- `ViewMode` (`'single' | 'multi'`) — single-root vs multi-root canvas mode
+- `RootFilterStrategy` (`'all' | 'descendants'`) — controls visible subset in multi-root mode
+- Manages search query, focus/selection/highlight person IDs, tree configuration (max depth), loading state, and errors
 - Provides `useTree()` hook for consuming components
 
 The app wraps the entire application in `<TreeProvider>` via `src/app/providers.tsx` (client component).
@@ -91,9 +93,13 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 - `GedcomData` - Container for individuals and families records (keyed by ID)
 
 **Graph utilities** (`src/lib/gedcom/graph.ts`):
-- `getAllDescendants()` - Get all descendants of a person
+- `getAllAncestors()` / `getAllDescendants()` - Traverse ancestor/descendant chains
 - `getTreeVisibleIndividuals()` - Get individuals visible in the tree (with optional privacy filtering)
 - `calculateDescendantCounts()` - Uses Kahn's algorithm (topological sort) for efficient O(V+E) counting
+- `extractSubtree()` - Extract a self-contained `GedcomData` subtree rooted at a given person
+- `findTopmostAncestor()` - Walk up parent chain to find the root ancestor of any person
+- `hasExternalFamily()` - Check if a spouse has family data outside the current root's tree
+- `computeGraftDescriptors()` - Build `GraftDescriptor[]` for in-law family expansion (parents + up to `MAX_GRAFT_SIBLINGS` siblings of married-in spouses)
 
 **Calendar helpers** (`src/lib/calendar-helpers.ts`):
 - `CalendarPreference` type (`'hijri' | 'gregorian'`)
@@ -137,11 +143,17 @@ The app uses dynamic routing (`src/app/[familySlug]/page.tsx`) with a family con
 
 ### Tree Visualization
 
-The `FamilyTree` component (`src/components/tree/FamilyTree/FamilyTree.tsx`) uses @xyflow/react with a **custom tree layout algorithm**:
+The `FamilyTree` component (`src/components/tree/FamilyTree/FamilyTree.tsx`) uses @xyflow/react with a **custom tree layout algorithm** (`FamilyTree/layout.ts`):
 - **Bottom-up pass**: Calculates subtree widths (post-order traversal)
 - **Top-down pass**: Assigns positions keeping siblings together (pre-order traversal)
+- **Graft envelopes**: When a married-in spouse has external family, the layout reserves extra width for an inline expansion showing their parents and siblings (controlled by `GraftDescriptor`)
 - Supports polygamous families with color-coded edges per spouse
 - Privacy filtering: individuals with `isPrivate: true` are excluded from rendering
+
+**In-law visibility** (see `docs/in-law-visibility.md`):
+- **Re-root on spouse's ancestor**: Button on married-in spouse cards navigates tree to that spouse's topmost ancestor; `RootBackChip` provides back navigation
+- **Inline spouse family expansion**: In multi-root mode, spouse's parents and siblings render inline as a graft envelope next to the spouse card
+- **Multi-root view**: `ViewModeToggle` switches between single/multi canvas modes; multi-root lays out multiple root ancestor trees side-by-side
 
 **Tree editing components** (`src/components/tree/`):
 - `IndividualForm` — form for creating/editing individuals (name, sex, birth/death with hijri dates, notes)
@@ -149,6 +161,8 @@ The `FamilyTree` component (`src/components/tree/FamilyTree/FamilyTree.tsx`) use
 - `FamilyPickerModal` — modal to select which family when adding/moving a child (polygamy support)
 - `CoupleRow` — displays marriage event information between spouses
 - `PersonCard` — individual node card in the tree
+- `RootBackChip` — floating chip to navigate back to previous root after re-root
+- `ViewModeToggle` — segmented pill to switch between single/multi-root view modes
 - `EmptyTreeState` — placeholder for workspaces with no tree data
 
 ### GEDCOM File
