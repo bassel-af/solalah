@@ -31,3 +31,4 @@ Version control
 UI latest touches.
 divorce/khol3, etc
 
+Make people close together. do not make them this much far away.

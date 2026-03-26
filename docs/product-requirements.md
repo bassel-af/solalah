@@ -603,6 +603,15 @@ Notification
 - `visiblePersonIds` in TreeContext expanded to include graft individuals (parents + siblings) in multi mode
 - Graft person cards styled with `in-law-expansion` class (subtler appearance)
 
+**✅ Add sibling:**
+- "إضافة أخ/أخت" button in PersonDetail sidebar, placed between Add Child and Add Spouse
+- `validateAddSibling(person, data)` helper — returns `{ allowed: true, targetFamilyId }` when `familyAsChild` exists and references a valid family; `{ allowed: false }` otherwise
+- Button hidden when person has no parent family (`familyAsChild` is null)
+- No family picker needed — `familyAsChild` is always singular (one birth family per person)
+- No sex locking — siblings can be any sex
+- Reuses existing create individual + add child to family API endpoints (no new backend routes)
+- New `addSibling` mode in `usePersonActions` state machine with `handleAddSiblingSubmit` handler
+
 **✅ Graph utilities:**
 - `extractSubtree()` — extracts self-contained `GedcomData` for a given root (used by seed and multi-root)
 - `computeGraftDescriptors()` — analyzes all married-in spouses to build inline expansion data
