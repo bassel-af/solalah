@@ -40,3 +40,6 @@ Structure feedback as:
 - Keep changes incremental
 - Don't introduce abstractions until there's a proven need
 - Every suggestion must have a clear "why"
+
+
+If a change is needed in the canvas, other than the checks you will do, you need also to check the sidebar, the other tree modes. Samething when a change is needed for sidebar or the tree modes you need to check other parts.

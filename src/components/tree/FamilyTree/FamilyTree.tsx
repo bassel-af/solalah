@@ -54,7 +54,7 @@ interface PersonNodeData {
   hideSpouseBadge?: boolean;
   onPersonClick: (personId: string) => void;
   onOpenSidebar: () => void;
-  onRerootToAncestor: (ancestorId: string) => void;
+  onRerootToAncestor: (ancestorId: string, focusId?: string) => void;
   [key: string]: unknown;
 }
 
@@ -191,13 +191,13 @@ function PersonNode({ data }: { data: PersonNodeData }) {
                   aria-label={`عرض عائلة ${getDisplayName(spouse)}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRerootToAncestor(topAncestorId);
+                    onRerootToAncestor(topAncestorId, spouse.id);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       e.stopPropagation();
-                      onRerootToAncestor(topAncestorId);
+                      onRerootToAncestor(topAncestorId, spouse.id);
                     }
                   }}
                 >
@@ -525,10 +525,13 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
   }, [setMobileSidebarOpen]);
 
   // Re-root to a spouse's topmost ancestor
-  const handleRerootToAncestor = useCallback((ancestorId: string) => {
+  const handleRerootToAncestor = useCallback((ancestorId: string, focusId?: string) => {
     setSelectedRootId(ancestorId);
     setSelectedPersonId(null);
-  }, [setSelectedRootId, setSelectedPersonId]);
+    if (focusId) {
+      setFocusPersonId(focusId);
+    }
+  }, [setSelectedRootId, setSelectedPersonId, setFocusPersonId]);
 
   // Clear highlight when root changes
   useEffect(() => {
@@ -656,11 +659,12 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
         const saved = savedViewportRef.current;
         savedViewportRef.current = null;
         setViewport(saved, { duration: 500 });
-      } else {
+      } else if (!focusPersonId) {
+        // Only scroll to root if no focusPersonId is pending (the focus effect handles that case)
         scrollToNode(selectedRootId, nodes, 'top', true);
       }
     }
-  }, [selectedRootId, initialRootId, nodes, isReady, scrollToNode, setViewport, getViewport]);
+  }, [selectedRootId, initialRootId, nodes, isReady, scrollToNode, setViewport, getViewport, focusPersonId]);
 
   // Position root at top, centered horizontally
   const onInit = useCallback(() => {
@@ -688,7 +692,7 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
 
   return (
     <div id="tree-container" ref={containerRef} style={{ opacity: isReady ? 1 : 0 }}>
-      <ViewModeToggle />
+      {selectedRootId === initialRootId && <ViewModeToggle />}
       {viewMode === 'single' && <RootBackChip />}
       <ReactFlow
         nodes={nodes}

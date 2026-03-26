@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useTree } from '@/context/TreeContext';
-import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH } from '@/lib/gedcom';
+import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH, findTopmostAncestor } from '@/lib/gedcom';
 import { PersonDetail } from './PersonDetail';
 import { matchesSearch } from '@/lib/utils/search';
 import styles from './Sidebar.module.css';
@@ -28,6 +28,7 @@ export function Sidebar() {
     setSelectedPersonId,
     setHighlightedPersonId,
     visiblePersonIds,
+    graftPersonIds,
     isMobileSidebarOpen,
     setMobileSidebarOpen,
   } = useTree();
@@ -146,6 +147,12 @@ export function Sidebar() {
   };
 
   const handlePersonClick = (id: string) => {
+    if (graftPersonIds.has(id) && data) {
+      const topAncestorId = findTopmostAncestor(data, id) ?? id;
+      setSelectedRootId(topAncestorId);
+      setSelectedPersonId(null);
+      return;
+    }
     setSelectedPersonId(id);
     setFocusPersonId(id);
     setHighlightedPersonId(id);

@@ -26,6 +26,7 @@ interface TreeState {
   selectedPersonId: string | null;
   highlightedPersonId: string | null;
   visiblePersonIds: Set<string>;
+  graftPersonIds: Set<string>;
   isMobileSidebarOpen: boolean;
   config: TreeConfig;
   isLoading: boolean;
@@ -149,27 +150,32 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     setHighlightedPersonIdState(id);
   }, []);
 
-  const visiblePersonIds = useMemo(() => {
-    if (!data || !selectedRootId) return new Set<string>();
+  const { visiblePersonIds, graftPersonIds } = useMemo(() => {
+    if (!data || !selectedRootId) return { visiblePersonIds: new Set<string>(), graftPersonIds: new Set<string>() };
     const visible = getTreeVisibleIndividuals(data, selectedRootId);
 
-    // In multi mode, also include graft individuals (parents + siblings of married-in spouses)
-    if (viewMode === 'multi') {
-      const grafts = computeGraftDescriptors(data, selectedRootId);
-      for (const descriptors of grafts.values()) {
-        for (const graft of descriptors) {
-          for (const parentId of graft.parentIds) {
-            visible.add(parentId);
+    // Always include graft individuals (parents + siblings of married-in spouses)
+    const graftOnly = new Set<string>();
+    const grafts = computeGraftDescriptors(data, selectedRootId);
+    for (const descriptors of grafts.values()) {
+      for (const graft of descriptors) {
+        for (const parentId of graft.parentIds) {
+          if (!visible.has(parentId)) {
+            graftOnly.add(parentId);
           }
-          for (const siblingId of graft.siblingIds) {
-            visible.add(siblingId);
+          visible.add(parentId);
+        }
+        for (const siblingId of graft.siblingIds) {
+          if (!visible.has(siblingId)) {
+            graftOnly.add(siblingId);
           }
+          visible.add(siblingId);
         }
       }
     }
 
-    return visible;
-  }, [data, selectedRootId, viewMode]);
+    return { visiblePersonIds: visible, graftPersonIds: graftOnly };
+  }, [data, selectedRootId]);
 
   const setError = useCallback((err: string | null) => {
     setErrorState(err);
@@ -188,6 +194,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     selectedPersonId,
     highlightedPersonId,
     visiblePersonIds,
+    graftPersonIds,
     isMobileSidebarOpen,
     config,
     isLoading,

@@ -220,6 +220,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
     data,
     selectedRootId,
     visiblePersonIds,
+    graftPersonIds,
     setSelectedPersonId,
     setSelectedRootId,
     setFocusPersonId,
@@ -281,10 +282,16 @@ export function PersonDetail({ personId }: PersonDetailProps) {
   }, [setSelectedPersonId]);
 
   const handlePersonClick = useCallback((id: string) => {
+    if (graftPersonIds.has(id) && data) {
+      const topAncestorId = findTopmostAncestor(data, id) ?? id;
+      setSelectedRootId(topAncestorId);
+      setSelectedPersonId(null);
+      return;
+    }
     setSelectedPersonId(id);
     setFocusPersonId(id);
     setHighlightedPersonId(id);
-  }, [setSelectedPersonId, setFocusPersonId, setHighlightedPersonId]);
+  }, [graftPersonIds, data, setSelectedPersonId, setFocusPersonId, setHighlightedPersonId, setSelectedRootId]);
 
   const handleFocusInTree = useCallback(() => {
     setFocusPersonId(personId);

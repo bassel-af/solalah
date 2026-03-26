@@ -119,8 +119,8 @@ function wrapper({ children }: { children: ReactNode }) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('TreeContext - visiblePersonIds includes graft individuals in multi mode', () => {
-  test('in single mode, visiblePersonIds does NOT include graft parents/siblings', () => {
+describe('TreeContext - visiblePersonIds includes graft individuals in all view modes', () => {
+  test('in single mode, visiblePersonIds includes graft parents/siblings', () => {
     const { result } = renderHook(() => useTree(), { wrapper });
     const data = buildFixture();
 
@@ -132,10 +132,9 @@ describe('TreeContext - visiblePersonIds includes graft individuals in multi mod
       result.current.setSelectedRootId('@ROOT@');
     });
 
-    // In single mode, WIFE_DAD and WIFE_SIS should NOT be visible
-    // (they are not descendants of ROOT and not spouses of descendants)
-    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(false);
-    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(false);
+    // Graft parents and siblings should be visible in ALL modes (including single)
+    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(true);
+    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(true);
   });
 
   test('in multi mode, visiblePersonIds DOES include graft parents and siblings', () => {
@@ -165,7 +164,7 @@ describe('TreeContext - visiblePersonIds includes graft individuals in multi mod
     expect(result.current.visiblePersonIds.has('@GRANDCHILD@')).toBe(true);
   });
 
-  test('switching back to single mode removes graft individuals from visible set', () => {
+  test('switching back to single mode keeps graft individuals in visible set', () => {
     const { result } = renderHook(() => useTree(), { wrapper });
     const data = buildFixture();
 
@@ -187,7 +186,44 @@ describe('TreeContext - visiblePersonIds includes graft individuals in multi mod
       result.current.setViewMode('single');
     });
 
-    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(false);
-    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(false);
+    // Graft individuals should REMAIN visible after switching back to single
+    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(true);
+    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(true);
+  });
+
+  test('graftPersonIds contains graft-only individuals (not core tree members)', () => {
+    const { result } = renderHook(() => useTree(), { wrapper });
+    const data = buildFixture();
+
+    act(() => {
+      result.current.setData(data);
+    });
+
+    act(() => {
+      result.current.setSelectedRootId('@ROOT@');
+    });
+
+    // WIFE_DAD and WIFE_SIS are graft-only (not in core tree)
+    expect(result.current.graftPersonIds.has('@WIFE_DAD@')).toBe(true);
+    expect(result.current.graftPersonIds.has('@WIFE_SIS@')).toBe(true);
+  });
+
+  test('graftPersonIds does NOT contain people who are in the core tree', () => {
+    const { result } = renderHook(() => useTree(), { wrapper });
+    const data = buildFixture();
+
+    act(() => {
+      result.current.setData(data);
+    });
+
+    act(() => {
+      result.current.setSelectedRootId('@ROOT@');
+    });
+
+    // Core tree members (root, descendants, spouses) must NOT be in graftPersonIds
+    expect(result.current.graftPersonIds.has('@ROOT@')).toBe(false);
+    expect(result.current.graftPersonIds.has('@SON@')).toBe(false);
+    expect(result.current.graftPersonIds.has('@WIFE@')).toBe(false);
+    expect(result.current.graftPersonIds.has('@GRANDCHILD@')).toBe(false);
   });
 });
