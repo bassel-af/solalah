@@ -14,6 +14,7 @@ export type FormMode =
   | { kind: 'addChild'; targetFamilyId?: string }
   | { kind: 'addSpouse'; lockedSex?: 'M' | 'F' }
   | { kind: 'addParent'; lockedSex?: 'M' | 'F' }
+  | { kind: 'addSibling'; targetFamilyId: string }
   | { kind: 'editFamilyEvent'; familyId: string };
 
 // ---------------------------------------------------------------------------
@@ -48,6 +49,7 @@ export interface UsePersonActionsReturn {
   handleAddChildSubmit: (formData: IndividualFormData) => Promise<void>;
   handleAddSpouseSubmit: (formData: IndividualFormData) => Promise<void>;
   handleAddParentSubmit: (formData: IndividualFormData) => Promise<void>;
+  handleAddSiblingSubmit: (formData: IndividualFormData) => Promise<void>;
   handleFamilyEventSubmit: (eventData: FamilyEventFormData) => Promise<void>;
   handleDelete: () => Promise<void>;
   moveChild: (targetFamilyId: string) => Promise<void>;
@@ -265,6 +267,22 @@ export function usePersonActions({
     }
   }, [workspace, person, data, personId, createIndividual, patchFamily, createFamily]);
 
+  const handleAddSiblingSubmit = useCallback(async (formData: IndividualFormData) => {
+    if (!workspace || formMode?.kind !== 'addSibling') return;
+    setFormLoading(true);
+    setFormError('');
+    try {
+      const newPerson = await createIndividual(formData);
+      await addChildToFamily(formMode.targetFamilyId, newPerson.id);
+      setFormMode(null);
+      await workspace.refreshTree();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'حدث خطأ');
+    } finally {
+      setFormLoading(false);
+    }
+  }, [workspace, formMode, createIndividual, addChildToFamily]);
+
   const handleFamilyEventSubmit = useCallback(async (eventData: FamilyEventFormData) => {
     if (!workspace || formMode?.kind !== 'editFamilyEvent') return;
     setFormLoading(true);
@@ -375,6 +393,7 @@ export function usePersonActions({
     handleAddChildSubmit,
     handleAddSpouseSubmit,
     handleAddParentSubmit,
+    handleAddSiblingSubmit,
     handleFamilyEventSubmit,
     handleDelete,
     moveChild,

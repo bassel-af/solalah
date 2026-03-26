@@ -47,6 +47,23 @@ export function validateAddParent(person: Individual, data: GedcomData): AddPare
   return { allowed: true };
 }
 
+/** Add-sibling validation result */
+export type AddSiblingResult =
+  | { allowed: true; targetFamilyId: string }
+  | { allowed: false };
+
+/** Validate whether a sibling can be added to the same parent family */
+export function validateAddSibling(person: Individual, data: GedcomData): AddSiblingResult {
+  if (!person.familyAsChild) {
+    return { allowed: false };
+  }
+  const family = data.families[person.familyAsChild];
+  if (!family) {
+    return { allowed: false };
+  }
+  return { allowed: true, targetFamilyId: person.familyAsChild };
+}
+
 /** Check if person can be moved to another family */
 export function canMoveChild(person: Individual, data: GedcomData): boolean {
   if (!person.familyAsChild) return false;

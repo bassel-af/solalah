@@ -18,6 +18,7 @@ import {
   getDeceasedLabel,
   needsFamilyPickerForAddChild,
   validateAddParent,
+  validateAddSibling,
   canMoveChild,
   getAlternativeFamilies,
   buildEditInitialData,
@@ -241,6 +242,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
     handleAddChildSubmit,
     handleAddSpouseSubmit,
     handleAddParentSubmit,
+    handleAddSiblingSubmit,
     handleFamilyEventSubmit,
     handleDelete,
     moveChild,
@@ -354,7 +356,9 @@ export function PersonDetail({ personId }: PersonDetailProps) {
           ? handleAddSpouseSubmit
           : formMode.kind === 'addParent'
             ? handleAddParentSubmit
-            : undefined
+            : formMode.kind === 'addSibling'
+              ? handleAddSiblingSubmit
+              : undefined
     : undefined;
 
   const formInitialData: Partial<IndividualFormData> | undefined = formMode?.kind === 'edit' && person
@@ -491,6 +495,23 @@ export function PersonDetail({ personId }: PersonDetailProps) {
             </svg>
             إضافة ابن/ابنة
           </button>
+          {person && data && validateAddSibling(person, data).allowed && (
+            <button
+              className={styles.actionButton}
+              onClick={() => {
+                const result = validateAddSibling(person, data);
+                if (result.allowed) {
+                  setFormMode({ kind: 'addSibling', targetFamilyId: result.targetFamilyId });
+                  setFormError('');
+                }
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              إضافة أخ/أخت
+            </button>
+          )}
           <button
             className={styles.actionButton}
             onClick={() => { setFormMode({ kind: 'addSpouse', lockedSex: person.sex === 'M' ? 'F' : person.sex === 'F' ? 'M' : undefined }); setFormError(''); }}
