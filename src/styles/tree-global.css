@@ -280,23 +280,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: rgba(99, 179, 237, 0.15);
-  border: 1px solid rgba(99, 179, 237, 0.3);
-  color: var(--color-primary-light);
+  background: #e8f4fd;
+  border: 1.5px solid #63b3ed;
+  color: #2b6cb0;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .spouse-family-badge svg {
-  opacity: 0.7;
+  opacity: 1;
   transition: opacity var(--transition-fast);
 }
 
 .spouse-family-badge:hover {
-  background: rgba(99, 179, 237, 0.25);
+  background: #d0eafb;
   transform: scale(1.1);
 }
 
