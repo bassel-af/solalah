@@ -409,3 +409,113 @@ export function hasExternalFamily(
 
   return hasParent;
 }
+
+// ---------------------------------------------------------------------------
+// Graft descriptor computation (inline spouse family expansion)
+// ---------------------------------------------------------------------------
+
+/** Maximum number of sibling IDs included in a graft descriptor */
+export const MAX_GRAFT_SIBLINGS = 4;
+
+/**
+ * Describes the in-law family of a married-in spouse that should be grafted
+ * inline next to the hub person's node in the tree.
+ */
+export interface GraftDescriptor {
+  /** The married-in spouse whose family is being grafted */
+  spouseId: string;
+  /** The hub person (descendant of the root) who is married to the spouse */
+  hubPersonId: string;
+  /** IDs of the spouse's parents */
+  parentIds: string[];
+  /** IDs of the spouse's siblings (capped at MAX_GRAFT_SIBLINGS) */
+  siblingIds: string[];
+  /** Total number of siblings (may exceed siblingIds.length when capped) */
+  totalSiblingCount: number;
+  /** Sex of the spouse ('M' or 'F') for label text */
+  spouseSex: string;
+}
+
+/**
+ * For each person in the tree (descendants of rootId + root itself), check
+ * each of their spouses. If a spouse is NOT a descendant of the root AND
+ * has parents in the DB, create a GraftDescriptor.
+ *
+ * @returns Map keyed by hub person ID -> list of GraftDescriptors
+ */
+export function computeGraftDescriptors(
+  data: GedcomData,
+  rootId: string
+): Map<string, GraftDescriptor[]> {
+  const { individuals, families } = data;
+  const result = new Map<string, GraftDescriptor[]>();
+
+  // Compute all descendants of the root
+  const rootDescendants = getAllDescendants(data, rootId);
+  rootDescendants.add(rootId);
+
+  // For each person in the tree (root + descendants)
+  for (const personId of rootDescendants) {
+    const person = individuals[personId];
+    if (!person || person.isPrivate) continue;
+
+    // Check each spouse
+    for (const familyId of person.familiesAsSpouse) {
+      const family = families[familyId];
+      if (!family) continue;
+
+      const spouseId = family.husband === personId ? family.wife : family.husband;
+      if (!spouseId) continue;
+
+      const spouse = individuals[spouseId];
+      if (!spouse || spouse.isPrivate) continue;
+
+      // Spouse must NOT be a descendant of root (married-in)
+      if (rootDescendants.has(spouseId)) continue;
+
+      // Spouse must have a familyAsChild with at least one parent
+      const spouseFamilyId = spouse.familyAsChild;
+      if (!spouseFamilyId) continue;
+
+      const spouseFamily = families[spouseFamilyId];
+      if (!spouseFamily) continue;
+
+      // Collect parent IDs
+      const parentIds: string[] = [];
+      if (spouseFamily.husband && individuals[spouseFamily.husband]) {
+        parentIds.push(spouseFamily.husband);
+      }
+      if (spouseFamily.wife && individuals[spouseFamily.wife]) {
+        parentIds.push(spouseFamily.wife);
+      }
+
+      // Must have at least one parent
+      if (parentIds.length === 0) continue;
+
+      // Collect sibling IDs (other children of the same family, excluding the spouse)
+      const allSiblingIds = spouseFamily.children
+        .filter((childId) => childId !== spouseId && individuals[childId] && !individuals[childId].isPrivate);
+      const totalSiblingCount = allSiblingIds.length;
+      const siblingIds = allSiblingIds.slice(0, MAX_GRAFT_SIBLINGS);
+
+      const descriptor: GraftDescriptor = {
+        spouseId,
+        hubPersonId: personId,
+        parentIds,
+        siblingIds,
+        totalSiblingCount,
+        spouseSex: spouse.sex || '',
+      };
+
+      const existing = result.get(personId);
+      if (existing) {
+        existing.push(descriptor);
+      } else {
+        result.set(personId, [descriptor]);
+      }
+    }
+  }
+
+  return result;
+}
+

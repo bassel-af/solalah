@@ -1,0 +1,71 @@
+/* ============================================
+   VIEW MODE TOGGLE — floating segmented pill
+   at top-center of the canvas for switching
+   between single and multi-root modes.
+   ============================================ */
+
+.pill {
+  position: absolute;
+  top: var(--space-7);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  background: var(--gradient-toggle);
+  border: 1px solid var(--alpha-white-15);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xl);
+}
+
+.segment {
+  position: relative;
+  padding: var(--space-2) var(--space-5);
+  border: none;
+  border-radius: 16px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  color: var(--alpha-white-50);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color 200ms ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.segment:hover {
+  color: var(--alpha-white-75);
+}
+
+.segmentActive {
+  background: var(--alpha-white-15);
+  color: var(--color-text-inverse);
+}
+
+.segment:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-primary);
+}
+
+/* Mobile — shorter labels */
+@media (max-width: 480px) {
+  .fullLabel {
+    display: none;
+  }
+
+  .shortLabel {
+    display: inline;
+  }
+}
+
+/* Default: show full label, hide short label */
+.shortLabel {
+  display: none;
+}
+
+.fullLabel {
+  display: inline;
+}

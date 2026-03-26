@@ -18,9 +18,11 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import type { GedcomData, Individual } from '@/lib/gedcom';
-import { getDisplayName, getAllAncestors, getAllDescendants, findTopmostAncestor, hasExternalFamily } from '@/lib/gedcom';
+import { getDisplayName, getAllAncestors, getAllDescendants, findTopmostAncestor, hasExternalFamily, computeGraftDescriptors } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
 import { RootBackChip } from '@/components/tree/RootBackChip/RootBackChip';
+import { ViewModeToggle } from '@/components/tree/ViewModeToggle/ViewModeToggle';
+import { getLayoutedElements, NODE_WIDTH, NODE_HEIGHT, SPOUSE_WIDTH, type GraftNodeBuilder } from './layout';
 
 // Highlight state for lineage tracing
 interface HighlightState {
@@ -48,6 +50,8 @@ interface PersonNodeData {
   isDescendant: boolean;
   hasHighlight: boolean;
   selectedPersonId: string | null;
+  isInLawExpansion?: boolean;
+  hideSpouseBadge?: boolean;
   onPersonClick: (personId: string) => void;
   onOpenSidebar: () => void;
   onRerootToAncestor: (ancestorId: string) => void;
@@ -55,7 +59,7 @@ interface PersonNodeData {
 }
 
 function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, spouses, isRoot, searchQuery, isHighlightedPerson, isAncestor, isDescendant, hasHighlight, selectedPersonId, onPersonClick, onOpenSidebar, onRerootToAncestor } = data;
+  const { person, spouses, isRoot, searchQuery, isHighlightedPerson, isAncestor, isDescendant, hasHighlight, selectedPersonId, isInLawExpansion, hideSpouseBadge, onPersonClick, onOpenSidebar, onRerootToAncestor } = data;
 
   const getHighlightClass = (_personId: string, isMainPerson: boolean) => {
     if (!hasHighlight) return '';
@@ -75,6 +79,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     const sexClass = p.sex === 'M' ? 'male' : p.sex === 'F' ? 'female' : '';
     const rootClass = isMainPerson && isRoot ? 'root' : '';
     const deceasedClass = p.isDeceased ? 'deceased' : '';
+    const inLawClass = isInLawExpansion ? 'in-law-expansion' : '';
     const isMatch =
       searchQuery && displayName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchClass = isMatch ? 'search-match' : '';
@@ -94,7 +99,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     return (
       <div className="person-card-wrapper">
         <div
-          className={`person person-clickable ${sexClass} ${rootClass} ${deceasedClass} ${matchClass} ${highlightClass}`.trim()}
+          className={`person person-clickable ${sexClass} ${rootClass} ${deceasedClass} ${matchClass} ${highlightClass} ${inLawClass}`.trim()}
           onClick={handleClick}
         >
           <div className="person-name">{displayName}</div>
@@ -165,9 +170,20 @@ function PersonNode({ data }: { data: PersonNodeData }) {
             );
           })}
           {/* Wife cards */}
-          {spouses.map(({ spouse, highlightClass, hasExternalFamily: hasExtFam, topAncestorId }) => (
-            <div key={spouse.id} className="spouse-card-wrapper" style={{ marginLeft: 20 }}>
-              {hasExtFam && topAncestorId && (
+          {spouses.map(({ spouse, highlightClass, hasExternalFamily: hasExtFam, topAncestorId }, spouseIdx) => (
+            <div key={spouse.id} className="spouse-card-wrapper" style={{ marginLeft: 20, position: 'relative' }}>
+              {/* Target handle for graft parent edges */}
+              <Handle
+                type="target"
+                position={Position.Top}
+                id={`spouse-target-${spouseIdx}`}
+                style={{
+                  opacity: 0,
+                  left: 70,
+                  top: 0,
+                }}
+              />
+              {!hideSpouseBadge && hasExtFam && topAncestorId && (
                 <div
                   className="spouse-family-badge"
                   role="button"
@@ -236,14 +252,28 @@ function PersonNode({ data }: { data: PersonNodeData }) {
   );
 }
 
+// Graft label node: small floating pill label for in-law family groups
+function GraftLabelNode({ data }: { data: { spouseSex?: string; [key: string]: unknown } }) {
+  const label = data.spouseSex === 'F' ? 'عائلة الزوجة' : 'عائلة الزوج';
+  return (
+    <div className="graft-label">{label}</div>
+  );
+}
+
+// Graft overflow node: "+N" card showing count of hidden siblings
+function GraftOverflowNode({ data }: { data: { overflowCount: number; [key: string]: unknown } }) {
+  return (
+    <div className="graft-overflow person in-law-expansion">
+      +{data.overflowCount}
+    </div>
+  );
+}
+
 const nodeTypes = {
   person: PersonNode,
+  graftLabel: GraftLabelNode,
+  graftOverflow: GraftOverflowNode,
 };
-
-// Layout configuration
-const NODE_WIDTH = 140;
-const NODE_HEIGHT = 75;
-const SPOUSE_WIDTH = 160; // Additional width per spouse (card + gap)
 
 // Colors for different spouse edges (to distinguish children by mother)
 const SPOUSE_EDGE_COLORS = [
@@ -254,120 +284,6 @@ const SPOUSE_EDGE_COLORS = [
   '#8b5cf6', // violet
   '#10b981', // emerald
 ];
-
-// Custom tree layout that keeps siblings together
-// Uses bottom-up width calculation + top-down positioning
-function getLayoutedElements(
-  nodes: Node[],
-  edges: Edge[]
-): { nodes: Node[]; edges: Edge[] } {
-  if (nodes.length === 0) return { nodes: [], edges };
-
-  const HORIZONTAL_GAP = 40; // Gap between siblings
-  const VERTICAL_GAP = 120; // Gap between generations
-
-  // Build node width map
-  const nodeWidths = new Map<string, number>();
-  const nodeMap = new Map<string, Node>();
-  nodes.forEach((node) => {
-    const spouseCount = (node.data as PersonNodeData).spouses?.length || 0;
-    const width = NODE_WIDTH + spouseCount * SPOUSE_WIDTH;
-    nodeWidths.set(node.id, width);
-    nodeMap.set(node.id, node);
-  });
-
-  // Build parent -> children map (preserving edge order for consistent sibling order)
-  const childrenOf = new Map<string, string[]>();
-  const hasParent = new Set<string>();
-  edges.forEach((edge) => {
-    const children = childrenOf.get(edge.source) || [];
-    children.push(edge.target);
-    childrenOf.set(edge.source, children);
-    hasParent.add(edge.target);
-  });
-
-  // Find root (node with no parent)
-  const rootId = nodes.find((n) => !hasParent.has(n.id))?.id;
-  if (!rootId) return { nodes, edges };
-
-  // Calculate subtree widths bottom-up (post-order traversal)
-  const subtreeWidths = new Map<string, number>();
-
-  function calculateSubtreeWidth(nodeId: string): number {
-    const children = childrenOf.get(nodeId) || [];
-    const nodeWidth = nodeWidths.get(nodeId) || NODE_WIDTH;
-
-    if (children.length === 0) {
-      // Leaf node - subtree width is just the node width
-      subtreeWidths.set(nodeId, nodeWidth);
-      return nodeWidth;
-    }
-
-    // Sum of all children's subtree widths + gaps between them
-    let childrenTotalWidth = 0;
-    children.forEach((childId, index) => {
-      childrenTotalWidth += calculateSubtreeWidth(childId);
-      if (index < children.length - 1) {
-        childrenTotalWidth += HORIZONTAL_GAP;
-      }
-    });
-
-    // Subtree width is the larger of: node width or children total width
-    const subtreeWidth = Math.max(nodeWidth, childrenTotalWidth);
-    subtreeWidths.set(nodeId, subtreeWidth);
-    return subtreeWidth;
-  }
-
-  calculateSubtreeWidth(rootId);
-
-  // Assign positions top-down (pre-order traversal)
-  const positions = new Map<string, { x: number; y: number }>();
-
-  function assignPositions(nodeId: string, x: number, y: number) {
-    const nodeWidth = nodeWidths.get(nodeId) || NODE_WIDTH;
-    const subtreeWidth = subtreeWidths.get(nodeId) || nodeWidth;
-
-    // Center the node within its allocated subtree space
-    const nodeX = x + (subtreeWidth - nodeWidth) / 2;
-    positions.set(nodeId, { x: nodeX, y });
-
-    // Position children
-    const children = childrenOf.get(nodeId) || [];
-    if (children.length === 0) return;
-
-    // Calculate total children width
-    let childrenTotalWidth = 0;
-    children.forEach((childId, index) => {
-      childrenTotalWidth += subtreeWidths.get(childId) || NODE_WIDTH;
-      if (index < children.length - 1) {
-        childrenTotalWidth += HORIZONTAL_GAP;
-      }
-    });
-
-    // Start position for children (centered under this subtree's space)
-    let childX = x + (subtreeWidth - childrenTotalWidth) / 2;
-    const childY = y + NODE_HEIGHT + VERTICAL_GAP;
-
-    children.forEach((childId) => {
-      const childSubtreeWidth = subtreeWidths.get(childId) || NODE_WIDTH;
-      assignPositions(childId, childX, childY);
-      childX += childSubtreeWidth + HORIZONTAL_GAP;
-    });
-  }
-
-  assignPositions(rootId, 0, 0);
-
-  // Create final positioned nodes
-  const layoutedNodes = nodes.map((node) => {
-    const pos = positions.get(node.id) || { x: 0, y: 0 };
-    return {
-      ...node,
-      position: pos,
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
-}
 
 // Convert GEDCOM tree data to React Flow nodes and edges
 // Uses breadth-first traversal to keep siblings together in the layout
@@ -380,7 +296,8 @@ function buildTreeData(
   selectedPersonId: string | null,
   onPersonClick: (personId: string) => void,
   onOpenSidebar: () => void,
-  onRerootToAncestor: (ancestorId: string) => void
+  onRerootToAncestor: (ancestorId: string) => void,
+  useGrafts = false
 ): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -465,6 +382,7 @@ function buildTreeData(
         isDescendant,
         hasHighlight,
         selectedPersonId,
+        hideSpouseBadge: useGrafts,
         onPersonClick,
         onOpenSidebar,
         onRerootToAncestor,
@@ -551,12 +469,33 @@ function buildTreeData(
     }
   }
 
-  return getLayoutedElements(nodes, edges);
+  const grafts = useGrafts ? computeGraftDescriptors(data, rootId) : undefined;
+  const graftNodeBuilder: GraftNodeBuilder | undefined = grafts ? {
+    buildPersonNode: (personId: string) => {
+      const person = data.individuals[personId];
+      return {
+        person: person || { id: personId, name: personId, familiesAsSpouse: [], sex: '' as const },
+        spouses: [],
+        isRoot: false,
+        searchQuery,
+        isHighlightedPerson: highlightState.highlightedId === personId,
+        isAncestor: highlightState.ancestors.has(personId),
+        isDescendant: highlightState.descendants.has(personId),
+        hasHighlight: !!highlightState.highlightedId,
+        selectedPersonId,
+        hideSpouseBadge: true,
+        onPersonClick,
+        onOpenSidebar,
+        onRerootToAncestor,
+      };
+    },
+  } : undefined;
+  return getLayoutedElements(nodes, edges, grafts, graftNodeBuilder);
 }
 
 function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
-  const { data, selectedRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setSelectedRootId, setFocusPersonId, setMobileSidebarOpen } = useTree();
-  const { setViewport, setCenter, getZoom } = useReactFlow();
+  const { data, selectedRootId, config, searchQuery, focusPersonId, selectedPersonId, highlightedPersonId, setHighlightedPersonId, setSelectedPersonId, setSelectedRootId, setFocusPersonId, setMobileSidebarOpen, viewMode } = useTree();
+  const { setViewport, setCenter, getZoom, fitView } = useReactFlow();
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRootIdRef = useRef<string | null>(null);
@@ -650,11 +589,12 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
       selectedPersonId,
       handlePersonClick,
       handleOpenSidebar,
-      handleRerootToAncestor
+      handleRerootToAncestor,
+      viewMode === 'multi'
     );
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [data, selectedRootId, config.maxDepth, searchQuery, highlightState, selectedPersonId, handlePersonClick, handleOpenSidebar, handleRerootToAncestor]);
+  }, [data, selectedRootId, config.maxDepth, searchQuery, highlightState, selectedPersonId, handlePersonClick, handleOpenSidebar, handleRerootToAncestor, viewMode]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -674,8 +614,8 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
     let targetNodeId = focusPersonId;
     const directNode = nodes.find((n) => n.id === focusPersonId);
 
-    // If not found, search for a node that contains this person as a spouse
     if (!directNode) {
+      // Search for a node that contains this person as a spouse
       const nodeWithSpouse = nodes.find((n) => {
         const nodeData = n.data as PersonNodeData;
         return nodeData.spouses?.some((s) => s.spouse.id === focusPersonId);
@@ -709,12 +649,17 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
 
   // Position root at top, centered horizontally
   const onInit = useCallback(() => {
-    const rootNode = initialNodes.find((n) => (n.data as PersonNodeData).isRoot);
-    if (rootNode) {
-      scrollToNode(rootNode.id, initialNodes, 'top', false);
+    if (viewMode === 'multi') {
+      // In multi mode, fit the entire view to show all trees
+      fitView({ duration: 0, padding: 0.1 });
+    } else {
+      const rootNode = initialNodes.find((n) => (n.data as PersonNodeData).isRoot);
+      if (rootNode) {
+        scrollToNode(rootNode.id, initialNodes, 'top', false);
+      }
     }
     requestAnimationFrame(() => setIsReady(true));
-  }, [initialNodes, scrollToNode]);
+  }, [initialNodes, scrollToNode, viewMode, fitView]);
 
   if (!data || !selectedRootId) {
     return (
@@ -728,14 +673,19 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
 
   return (
     <div id="tree-container" ref={containerRef} style={{ opacity: isReady ? 1 : 0 }}>
-      <RootBackChip />
+      <ViewModeToggle />
+      {viewMode === 'single' && <RootBackChip />}
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onInit={onInit}
-        onNodeClick={(_event, node) => handlePersonClick(node.id)}
+        onNodeClick={(_event, node) => {
+          // Strip graft prefix to get the real person ID
+          const personId = node.id.replace(/^graft-(parent|sibling)-/, '');
+          handlePersonClick(personId);
+        }}
         onPaneClick={() => { setHighlightedPersonId(null); setSelectedPersonId(null); }}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.SmoothStep}

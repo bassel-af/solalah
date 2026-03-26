@@ -10,11 +10,11 @@ The information may exist in the database, but the current layout has no mechani
 
 ## Solutions
 
-We will implement all four solutions below and offer them as user-facing options in the canvas.
+We will implement all three solutions below and offer them as user-facing options in the canvas.
 
 ---
 
-### Solution 1 — Re-root on Spouse's Ancestor
+### Solution 1 — Re-root on Spouse's Ancestor (Implemented)
 
 **Concept**: A button on any married-in spouse's card (e.g., "عرض عائلتهم") navigates the tree to that spouse's topmost ancestor. The tree re-renders using the same top-down layout, now starting from the spouse's root.
 
@@ -35,30 +35,7 @@ We will implement all four solutions below and offer them as user-facing options
 
 ---
 
-### Solution 2 — Spouse Family Sidebar
-
-**Concept**: A secondary sidebar on the opposite side of the screen (left side, since the existing sidebar is on the right) that displays a married-in spouse's immediate family: parents, siblings, and optionally their spouses/children.
-
-**Behavior**:
-- User clicks a married-in spouse Y in the tree
-- A left-side panel opens showing Y's family:
-  - Parents (father, mother)
-  - Siblings (with indication of sex)
-  - Optionally: each sibling's spouse and children (one level)
-- Clicking a person in this sidebar could trigger Solution 1 (re-root to see their full tree)
-
-**Advantages**:
-- Does not disturb the main tree view or the existing right sidebar
-- Quick glance at the in-law family without navigating away
-- Lightweight — no canvas layout changes needed
-
-**Limitations**:
-- Disconnected from the canvas visually — the in-law family is in a panel, not in the tree
-- Limited to immediate family; deeper exploration requires Solution 1
-
----
-
-### Solution 3 — Multi-Root View
+### Solution 2 — Multi-Root View
 
 **Concept**: Allow pinning multiple root ancestors simultaneously so that several family lines render side-by-side on the same canvas.
 
@@ -82,7 +59,7 @@ We will implement all four solutions below and offer them as user-facing options
 
 ---
 
-### Solution 4 — Dual-Ancestry View
+### Solution 3 — Dual-Ancestry View
 
 **Concept**: For a selected couple (X and Y), the tree renders both ancestral lines simultaneously — X's ancestors and Y's ancestors — converging at the couple, with shared descendants below.
 
@@ -103,7 +80,7 @@ We will implement all four solutions below and offer them as user-facing options
 **Limitations**:
 - Requires a new layout algorithm (dual upward trees + shared downward tree)
 - Can become visually complex when both ancestral lines are deep
-- Most implementation effort of the four solutions
+- Most implementation effort of the three solutions
 
 
 Improve seed:

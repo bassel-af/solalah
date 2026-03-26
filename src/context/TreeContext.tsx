@@ -9,9 +9,10 @@ import {
   type ReactNode,
 } from 'react';
 import type { GedcomData, RootAncestor, TreeConfig } from '@/lib/gedcom';
-import { findRootAncestors, findDefaultRoot, getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH, getAllDescendants, getTreeVisibleIndividuals, findTopmostAncestor } from '@/lib/gedcom';
+import { findRootAncestors, findDefaultRoot, getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH, getAllDescendants, getTreeVisibleIndividuals, findTopmostAncestor, computeGraftDescriptors } from '@/lib/gedcom';
 
 export type RootFilterStrategy = 'all' | 'descendants';
+export type ViewMode = 'single' | 'multi';
 
 interface TreeState {
   data: GedcomData | null;
@@ -19,6 +20,7 @@ interface TreeState {
   initialRootId: string | null;
   rootsList: RootAncestor[];
   rootFilterStrategy: RootFilterStrategy;
+  viewMode: ViewMode;
   searchQuery: string;
   focusPersonId: string | null;
   selectedPersonId: string | null;
@@ -34,6 +36,7 @@ interface TreeContextValue extends TreeState {
   setData: (data: GedcomData) => void;
   setSelectedRootId: (id: string | null) => void;
   setRootFilterStrategy: (strategy: RootFilterStrategy) => void;
+  setViewMode: (mode: ViewMode) => void;
   setSearchQuery: (query: string) => void;
   setFocusPersonId: (id: string | null) => void;
   setSelectedPersonId: (id: string | null) => void;
@@ -67,6 +70,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
   const [highlightedPersonId, setHighlightedPersonIdState] = useState<string | null>(null);
   const [config, setConfigState] = useState<TreeConfig>(defaultConfig);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewModeState] = useState<ViewMode>('single');
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
 
@@ -133,6 +137,10 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     setRootFilterStrategyState(strategy);
   }, []);
 
+  const setViewMode = useCallback((mode: ViewMode) => {
+    setViewModeState(mode);
+  }, []);
+
   const setConfig = useCallback((newConfig: Partial<TreeConfig>) => {
     setConfigState((prev) => ({ ...prev, ...newConfig }));
   }, []);
@@ -143,8 +151,25 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
 
   const visiblePersonIds = useMemo(() => {
     if (!data || !selectedRootId) return new Set<string>();
-    return getTreeVisibleIndividuals(data, selectedRootId);
-  }, [data, selectedRootId]);
+    const visible = getTreeVisibleIndividuals(data, selectedRootId);
+
+    // In multi mode, also include graft individuals (parents + siblings of married-in spouses)
+    if (viewMode === 'multi') {
+      const grafts = computeGraftDescriptors(data, selectedRootId);
+      for (const descriptors of grafts.values()) {
+        for (const graft of descriptors) {
+          for (const parentId of graft.parentIds) {
+            visible.add(parentId);
+          }
+          for (const siblingId of graft.siblingIds) {
+            visible.add(siblingId);
+          }
+        }
+      }
+    }
+
+    return visible;
+  }, [data, selectedRootId, viewMode]);
 
   const setError = useCallback((err: string | null) => {
     setErrorState(err);
@@ -157,6 +182,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     initialRootId,
     rootsList,
     rootFilterStrategy,
+    viewMode,
     searchQuery,
     focusPersonId,
     selectedPersonId,
@@ -169,6 +195,7 @@ export function TreeProvider({ children, forcedRootId }: TreeProviderProps) {
     setData,
     setSelectedRootId,
     setRootFilterStrategy,
+    setViewMode,
     setSearchQuery,
     setFocusPersonId,
     setSelectedPersonId,

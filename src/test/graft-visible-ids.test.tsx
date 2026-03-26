@@ -1,0 +1,193 @@
+import { describe, test, expect } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { TreeProvider, useTree } from '@/context/TreeContext';
+import type { GedcomData, Individual, Family } from '@/lib/gedcom/types';
+import type { ReactNode } from 'react';
+
+// ---------------------------------------------------------------------------
+// Fixture helpers
+// ---------------------------------------------------------------------------
+
+function makeIndividual(overrides: Partial<Individual> & { id: string }): Individual {
+  return {
+    type: 'INDI',
+    name: overrides.id,
+    givenName: overrides.id,
+    surname: '',
+    sex: 'M',
+    birth: '',
+    birthPlace: '',
+    birthDescription: '',
+    birthNotes: '',
+    birthHijriDate: '',
+    death: '',
+    deathPlace: '',
+    deathDescription: '',
+    deathNotes: '',
+    deathHijriDate: '',
+    notes: '',
+    isDeceased: false,
+    isPrivate: false,
+    familiesAsSpouse: [],
+    familyAsChild: null,
+    ...overrides,
+  };
+}
+
+const EMPTY_EVENT = { date: '', hijriDate: '', place: '', description: '', notes: '' };
+
+function makeFamily(overrides: Partial<Family> & { id: string }): Family {
+  return {
+    type: 'FAM',
+    husband: null,
+    wife: null,
+    children: [],
+    marriageContract: EMPTY_EVENT,
+    marriage: EMPTY_EVENT,
+    divorce: EMPTY_EVENT,
+    isDivorced: false,
+    ...overrides,
+  };
+}
+
+// Main tree: ROOT -> SON + WIFE (married-in with parents WIFE_DAD and sibling WIFE_SIS)
+function buildFixture(): GedcomData {
+  const individuals: Record<string, Individual> = {
+    '@ROOT@': makeIndividual({
+      id: '@ROOT@',
+      name: 'Root',
+      familiesAsSpouse: ['@F1@'],
+    }),
+    '@SON@': makeIndividual({
+      id: '@SON@',
+      name: 'Son',
+      familiesAsSpouse: ['@F2@'],
+      familyAsChild: '@F1@',
+    }),
+    '@WIFE@': makeIndividual({
+      id: '@WIFE@',
+      name: 'Wife',
+      sex: 'F',
+      familiesAsSpouse: ['@F2@'],
+      familyAsChild: '@FWIFE@',
+    }),
+    '@GRANDCHILD@': makeIndividual({
+      id: '@GRANDCHILD@',
+      name: 'Grandchild',
+      familyAsChild: '@F2@',
+    }),
+    '@WIFE_DAD@': makeIndividual({
+      id: '@WIFE_DAD@',
+      name: 'WifeDad',
+      familiesAsSpouse: ['@FWIFE@'],
+    }),
+    '@WIFE_SIS@': makeIndividual({
+      id: '@WIFE_SIS@',
+      name: 'WifeSis',
+      sex: 'F',
+      familyAsChild: '@FWIFE@',
+    }),
+  };
+
+  const families: Record<string, Family> = {
+    '@F1@': makeFamily({
+      id: '@F1@',
+      husband: '@ROOT@',
+      children: ['@SON@'],
+    }),
+    '@F2@': makeFamily({
+      id: '@F2@',
+      husband: '@SON@',
+      wife: '@WIFE@',
+      children: ['@GRANDCHILD@'],
+    }),
+    '@FWIFE@': makeFamily({
+      id: '@FWIFE@',
+      husband: '@WIFE_DAD@',
+      children: ['@WIFE@', '@WIFE_SIS@'],
+    }),
+  };
+
+  return { individuals, families };
+}
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <TreeProvider>{children}</TreeProvider>;
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('TreeContext - visiblePersonIds includes graft individuals in multi mode', () => {
+  test('in single mode, visiblePersonIds does NOT include graft parents/siblings', () => {
+    const { result } = renderHook(() => useTree(), { wrapper });
+    const data = buildFixture();
+
+    act(() => {
+      result.current.setData(data);
+    });
+
+    act(() => {
+      result.current.setSelectedRootId('@ROOT@');
+    });
+
+    // In single mode, WIFE_DAD and WIFE_SIS should NOT be visible
+    // (they are not descendants of ROOT and not spouses of descendants)
+    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(false);
+    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(false);
+  });
+
+  test('in multi mode, visiblePersonIds DOES include graft parents and siblings', () => {
+    const { result } = renderHook(() => useTree(), { wrapper });
+    const data = buildFixture();
+
+    act(() => {
+      result.current.setData(data);
+    });
+
+    act(() => {
+      result.current.setSelectedRootId('@ROOT@');
+    });
+
+    act(() => {
+      result.current.setViewMode('multi');
+    });
+
+    // In multi mode, graft parents and siblings should be visible
+    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(true);
+    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(true);
+
+    // Regular tree members should also still be visible
+    expect(result.current.visiblePersonIds.has('@ROOT@')).toBe(true);
+    expect(result.current.visiblePersonIds.has('@SON@')).toBe(true);
+    expect(result.current.visiblePersonIds.has('@WIFE@')).toBe(true);
+    expect(result.current.visiblePersonIds.has('@GRANDCHILD@')).toBe(true);
+  });
+
+  test('switching back to single mode removes graft individuals from visible set', () => {
+    const { result } = renderHook(() => useTree(), { wrapper });
+    const data = buildFixture();
+
+    act(() => {
+      result.current.setData(data);
+    });
+
+    act(() => {
+      result.current.setSelectedRootId('@ROOT@');
+    });
+
+    act(() => {
+      result.current.setViewMode('multi');
+    });
+
+    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(true);
+
+    act(() => {
+      result.current.setViewMode('single');
+    });
+
+    expect(result.current.visiblePersonIds.has('@WIFE_DAD@')).toBe(false);
+    expect(result.current.visiblePersonIds.has('@WIFE_SIS@')).toBe(false);
+  });
+});

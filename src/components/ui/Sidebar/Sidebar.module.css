@@ -690,3 +690,7 @@
     font-size: var(--font-size-xs);
   }
 }
+
+/* ============================================
+   (Pinned roots section removed — graft envelopes handle multi-root inline)
+   ============================================ */

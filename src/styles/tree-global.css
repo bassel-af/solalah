@@ -325,3 +325,44 @@
     height: 16px;
   }
 }
+
+/* ============================================
+   IN-LAW EXPANSION STYLES (graft nodes)
+   ============================================ */
+
+/* In-law expansion card: reduced opacity only. All other styles inherited. */
+.person.in-law-expansion {
+  opacity: 0.72;
+}
+
+/* In-law edge: dashed stroke */
+.react-flow__edge.in-law-edge .react-flow__edge-path {
+  stroke-dasharray: 6 4;
+}
+
+/* Graft floating label pill */
+.graft-label {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-4);
+  background: rgba(100, 116, 139, 0.12);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  border-radius: var(--radius-full, 9999px);
+  color: #475569;
+  font-size: var(--font-size-xs, 11px);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Graft overflow card "+N" */
+.graft-overflow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
