@@ -52,10 +52,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Execute deep copy + pointer update + notification in a transaction
     await prisma.$transaction(async (tx) => {
-      // Create copied individuals in the target workspace tree
+      const txPrisma = tx as typeof prisma;
       const targetTree = await getTreeByWorkspaceId(workspaceId);
       if (targetTree) {
+        // Create copied individuals
         const individualData = Object.values(copyResult.individuals).map((ind) => ({
+          id: ind.id,
           treeId: targetTree.id,
           givenName: ind.givenName || null,
           surname: ind.surname || null,
@@ -77,18 +79,57 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         }));
 
         if (individualData.length > 0) {
-          await (tx as typeof prisma).individual.createMany({ data: individualData });
+          await txPrisma.individual.createMany({ data: individualData });
+        }
+
+        // Create copied families
+        const familyData = Object.values(copyResult.families).map((fam) => ({
+          id: fam.id,
+          treeId: targetTree.id,
+          husbandId: fam.husband || null,
+          wifeId: fam.wife || null,
+        }));
+
+        if (familyData.length > 0) {
+          await txPrisma.family.createMany({ data: familyData });
+        }
+
+        // Create stitch family
+        if (copyResult.stitchFamily) {
+          const sf = copyResult.stitchFamily;
+          await txPrisma.family.create({
+            data: {
+              id: sf.id,
+              treeId: targetTree.id,
+              husbandId: sf.husband || null,
+              wifeId: sf.wife || null,
+            },
+          });
+          for (const childId of sf.children) {
+            await txPrisma.familyChild.create({
+              data: { familyId: sf.id, individualId: childId },
+            });
+          }
+        }
+
+        // Create family_children records
+        for (const fam of Object.values(copyResult.families)) {
+          for (const childId of fam.children) {
+            await txPrisma.familyChild.create({
+              data: { familyId: fam.id, individualId: childId },
+            });
+          }
         }
       }
 
       // Mark pointer as broken
-      await (tx as typeof prisma).branchPointer.update({
+      await txPrisma.branchPointer.update({
         where: { id: pointerId },
         data: { status: 'broken' },
       });
 
       // Create notification for target workspace admins
-      await (tx as typeof prisma).notification.create({
+      await txPrisma.notification.create({
         data: {
           userId: result.user.id,
           type: 'branch_pointer_broken',
