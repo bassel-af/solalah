@@ -31,6 +31,14 @@ export interface Individual {
   isPrivate: boolean;
   familiesAsSpouse: string[];
   familyAsChild: string | null;
+  /** Set on individuals merged from a branch pointer (read-only in target tree) */
+  _pointed?: boolean;
+  /** Source workspace ID for pointed individuals */
+  _sourceWorkspaceId?: string;
+  /** Which pointer brought this individual in (target tree) */
+  _pointerId?: string;
+  /** True if this person is a shared branch root (source tree only) */
+  _sharedRoot?: boolean;
 }
 
 export interface Family {
@@ -43,6 +51,12 @@ export interface Family {
   marriage: FamilyEvent;
   divorce: FamilyEvent;
   isDivorced: boolean;
+  /** Set on families merged from a branch pointer (read-only in target tree) */
+  _pointed?: boolean;
+  /** Source workspace ID for pointed families */
+  _sourceWorkspaceId?: string;
+  /** Which pointer brought this family in (target tree) */
+  _pointerId?: string;
 }
 
 export interface GedcomData {

@@ -616,4 +616,93 @@ describe('usePersonActions', () => {
 
     expect(mockApiFetch).not.toHaveBeenCalled();
   });
+
+  // -----------------------------------------------------------------------
+  // Pointed person mutation guard
+  // -----------------------------------------------------------------------
+
+  it('setFormMode is a no-op when person._pointed is true', () => {
+    const person = makeIndividual({ _pointed: true, _sourceWorkspaceId: 'ws-source' });
+    const data = makeGedcomData({ [person.id]: person });
+
+    const { result } = renderHook(() =>
+      usePersonActions({
+        personId: person.id,
+        workspace: mockWorkspace,
+        person,
+        data,
+        setSelectedPersonId: mockSetSelectedPersonId,
+      }),
+    );
+
+    act(() => {
+      result.current.setFormMode({ kind: 'edit' });
+    });
+
+    expect(result.current.formMode).toBeNull();
+  });
+
+  it('setFormMode works normally when person._pointed is falsy', () => {
+    const person = makeIndividual();
+    const data = makeGedcomData({ [person.id]: person });
+
+    const { result } = renderHook(() =>
+      usePersonActions({
+        personId: person.id,
+        workspace: mockWorkspace,
+        person,
+        data,
+        setSelectedPersonId: mockSetSelectedPersonId,
+      }),
+    );
+
+    act(() => {
+      result.current.setFormMode({ kind: 'edit' });
+    });
+
+    expect(result.current.formMode).toEqual({ kind: 'edit' });
+  });
+
+  it('handleEditSubmit is a no-op when person._pointed is true', async () => {
+    const person = makeIndividual({ _pointed: true });
+    const data = makeGedcomData({ [person.id]: person });
+
+    const { result } = renderHook(() =>
+      usePersonActions({
+        personId: person.id,
+        workspace: mockWorkspace,
+        person,
+        data,
+        setSelectedPersonId: mockSetSelectedPersonId,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleEditSubmit(makeFormData());
+    });
+
+    expect(mockApiFetch).not.toHaveBeenCalled();
+  });
+
+  it('handleDelete is a no-op when person._pointed is true', async () => {
+    const person = makeIndividual({ _pointed: true });
+    const data = makeGedcomData({ [person.id]: person });
+
+    const { result } = renderHook(() =>
+      usePersonActions({
+        personId: person.id,
+        workspace: mockWorkspace,
+        person,
+        data,
+        setSelectedPersonId: mockSetSelectedPersonId,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleDelete();
+    });
+
+    expect(mockApiFetch).not.toHaveBeenCalled();
+    expect(mockSetSelectedPersonId).not.toHaveBeenCalled();
+  });
 });

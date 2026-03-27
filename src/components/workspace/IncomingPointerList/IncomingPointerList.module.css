@@ -1,0 +1,162 @@
+/* IncomingPointerList styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pointerCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  border: 1px solid var(--color-pointer-border);
+  background: var(--color-pointer-bg);
+  gap: var(--space-3);
+}
+
+.pointerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pointerRootName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--alpha-white-70);
+}
+
+.pointerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-35);
+}
+
+.pointerSourceName {
+  color: var(--color-pointer-light);
+}
+
+.pointerActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.breakButton {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  border: 1px solid rgba(229, 62, 62, 0.3);
+  background: transparent;
+  color: #fc8181;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.breakButton:hover:not(:disabled) {
+  background: rgba(229, 62, 62, 0.1);
+}
+
+.breakButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.copyButton {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  border: 1px solid var(--alpha-white-15);
+  background: transparent;
+  color: var(--alpha-white-50);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.copyButton:hover:not(:disabled) {
+  background: var(--alpha-white-08);
+  color: var(--alpha-white-80);
+}
+
+.copyButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-35);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.error {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  background: rgba(229, 62, 62, 0.1);
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  color: #fc8181;
+  font-size: var(--font-size-sm);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.statusActive {
+  composes: statusBadge;
+  background: var(--color-pointer-badge-bg);
+  color: var(--color-pointer);
+  border: 1px solid var(--color-pointer-border);
+}
+
+.statusBroken {
+  composes: statusBadge;
+  background: rgba(229, 62, 62, 0.1);
+  color: rgba(229, 62, 62, 0.7);
+  border: 1px solid rgba(229, 62, 62, 0.15);
+}
+
+/* Confirm dialog inline */
+.confirmInline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.confirmText {
+  font-size: var(--font-size-xs);
+  color: rgba(229, 62, 62, 0.85);
+  font-weight: var(--font-weight-medium);
+}
+
+.confirmYes {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  border: 1px solid rgba(229, 62, 62, 0.35);
+  background: rgba(229, 62, 62, 0.15);
+  color: #fc8181;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.confirmNo {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  border: 1px solid var(--alpha-white-15);
+  background: transparent;
+  color: var(--alpha-white-50);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}

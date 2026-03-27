@@ -29,6 +29,11 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// Mock branch pointer queries — no active pointers in these tests
+vi.mock('@/lib/tree/branch-pointer-queries', () => ({
+  getActivePointersForWorkspace: vi.fn().mockResolvedValue([]),
+}));
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------

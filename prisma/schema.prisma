@@ -34,6 +34,8 @@ model User {
   notifications        Notification[]
   createdIndividuals   Individual[]          @relation("IndividualCreator")
   uploadedMedia        AlbumMedia[]
+  createdShareTokens   BranchShareToken[]
+  createdPointers      BranchPointer[]
 
   @@map("users")
 }
@@ -42,26 +44,37 @@ model User {
 // Workspaces
 // =============================================================================
 
+enum BranchSharingPolicy {
+  shareable
+  copyable_only
+  none
+}
+
 model Workspace {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug              String   @unique
-  nameAr            String   @map("name_ar")
-  logoUrl           String?  @map("logo_url")
-  description       String?
-  createdById       String   @map("created_by") @db.Uuid
-  storageQuotaBytes BigInt   @default(5368709120) @map("storage_quota_bytes") // 5 GB
-  createdAt         DateTime @default(now()) @map("created_at")
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                 String               @unique
+  nameAr               String               @map("name_ar")
+  logoUrl              String?              @map("logo_url")
+  description          String?
+  createdById          String               @map("created_by") @db.Uuid
+  storageQuotaBytes    BigInt               @default(5368709120) @map("storage_quota_bytes") // 5 GB
+  branchSharingPolicy  BranchSharingPolicy  @default(shareable) @map("branch_sharing_policy")
+  createdAt            DateTime             @default(now()) @map("created_at")
 
   // Relations
-  createdBy   User                  @relation("WorkspaceCreator", fields: [createdById], references: [id])
-  memberships WorkspaceMembership[]
-  invitations WorkspaceInvitation[]
-  familyTree  FamilyTree?
-  posts       Post[]
-  albums      Album[]
-  events      Event[]
-  userTreeLinks UserTreeLink[]
-  places      Place[]
+  createdBy               User                  @relation("WorkspaceCreator", fields: [createdById], references: [id])
+  memberships             WorkspaceMembership[]
+  invitations             WorkspaceInvitation[]
+  familyTree              FamilyTree?
+  posts                   Post[]
+  albums                  Album[]
+  events                  Event[]
+  userTreeLinks           UserTreeLink[]
+  places                  Place[]
+  outgoingShareTokens     BranchShareToken[]    @relation("ShareTokenSource")
+  targetedShareTokens     BranchShareToken[]    @relation("ShareTokenTarget")
+  outgoingPointers        BranchPointer[]       @relation("PointerSource")
+  incomingPointers        BranchPointer[]       @relation("PointerTarget")
 
   @@map("workspaces")
 }
@@ -220,6 +233,10 @@ model Individual {
   familyChildren     FamilyChild[]
   userTreeLinks      UserTreeLink[]
   workspaceInvitations WorkspaceInvitation[]
+  shareTokensAsRoot  BranchShareToken[]
+  pointersAsRoot      BranchPointer[]       @relation("PointerRoot")
+  pointersAsSelected  BranchPointer[]       @relation("PointerSelected")
+  pointersAsAnchor    BranchPointer[]       @relation("PointerAnchor")
 
   @@unique([treeId, gedcomId]) // gedcomId is unique within a tree
   @@map("individuals")
@@ -428,6 +445,83 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// =============================================================================
+// Branch Share Tokens — tokens for sharing a subtree with another workspace
+// =============================================================================
+
+model BranchShareToken {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash           String    @unique @map("token_hash") // sha256 of the actual token
+  sourceWorkspaceId   String    @map("source_workspace_id") @db.Uuid
+  rootIndividualId    String    @map("root_individual_id") @db.Uuid
+  depthLimit          Int?      @map("depth_limit") // null = unlimited
+  includeGrafts       Boolean   @default(false) @map("include_grafts")
+  targetWorkspaceId   String?   @map("target_workspace_id") @db.Uuid // null = public token
+  isPublic            Boolean   @default(false) @map("is_public")
+  maxUses             Int       @default(1) @map("max_uses")
+  useCount            Int       @default(0) @map("use_count")
+  isRevoked           Boolean   @default(false) @map("is_revoked")
+  expiresAt           DateTime  @map("expires_at")
+  createdById         String    @map("created_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  sourceWorkspace  Workspace   @relation("ShareTokenSource", fields: [sourceWorkspaceId], references: [id], onDelete: Cascade)
+  targetWorkspace  Workspace?  @relation("ShareTokenTarget", fields: [targetWorkspaceId], references: [id])
+  rootIndividual   Individual  @relation(fields: [rootIndividualId], references: [id])
+  createdBy        User        @relation(fields: [createdById], references: [id])
+
+  @@index([sourceWorkspaceId])
+  @@index([targetWorkspaceId])
+  @@map("branch_share_tokens")
+}
+
+// =============================================================================
+// Branch Pointers — live link from source subtree to target tree
+// =============================================================================
+
+enum BranchPointerStatus {
+  active
+  revoked
+  broken
+}
+
+enum BranchPointerRelationship {
+  child
+  sibling
+  spouse
+  parent
+}
+
+model BranchPointer {
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceWorkspaceId   String                    @map("source_workspace_id") @db.Uuid
+  rootIndividualId       String                    @map("root_individual_id") @db.Uuid
+  selectedIndividualId   String                    @map("selected_individual_id") @db.Uuid
+  depthLimit             Int?                      @map("depth_limit")
+  includeGrafts          Boolean                   @default(false) @map("include_grafts")
+  targetWorkspaceId      String                    @map("target_workspace_id") @db.Uuid
+  anchorIndividualId     String                    @map("anchor_individual_id") @db.Uuid
+  relationship        BranchPointerRelationship
+  status              BranchPointerStatus       @default(active)
+  shareTokenId        String?                   @map("share_token_id") @db.Uuid // token used to create this pointer
+  createdById         String                    @map("created_by") @db.Uuid
+  createdAt           DateTime                  @default(now()) @map("created_at")
+
+  // Relations
+  sourceWorkspace  Workspace   @relation("PointerSource", fields: [sourceWorkspaceId], references: [id])
+  targetWorkspace  Workspace   @relation("PointerTarget", fields: [targetWorkspaceId], references: [id], onDelete: Cascade)
+  rootIndividual      Individual  @relation("PointerRoot", fields: [rootIndividualId], references: [id])
+  selectedIndividual  Individual  @relation("PointerSelected", fields: [selectedIndividualId], references: [id])
+  anchorIndividual    Individual  @relation("PointerAnchor", fields: [anchorIndividualId], references: [id])
+  createdBy        User        @relation(fields: [createdById], references: [id])
+
+  @@index([targetWorkspaceId, status])
+  @@index([sourceWorkspaceId])
+  @@index([rootIndividualId])
+  @@map("branch_pointers")
 }
 
 // =============================================================================

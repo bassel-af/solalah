@@ -1,6 +1,6 @@
 ---
 name: agent-team
-description: "Spawn an agent team from .md agent definitions. Each specified agent becomes a teammate with its exact .md content as instructions and model from frontmatter. Usage: /agent-team tdd software-architect security"
+description: "Spawn an agent team from .md agent definitions. Each specified agent becomes a teammate with its exact .md content as instructions and model from frontmatter. Usage example: /agent-team tdd software-architect security"
 ---
 
 # Agent Team Launcher
@@ -26,13 +26,9 @@ The user provides agent names as arguments (e.g., `tdd software-architect securi
    - `team_name`: the team name from step 4
    - `model`: the model from the `.md` frontmatter (e.g., `opus`, `sonnet`, `haiku`)
    - `prompt`: the **exact verbatim content** from the `.md` file (everything after the frontmatter `---`) — do NOT summarize, rephrase, or interpret it. Append the user's task description at the end.
-   - `mode`: use `auto` so teammates can work autonomously
 
-6. **Create tasks** using `TaskCreate` for the work items, then assign them to teammates.
 
 ## Important
-
-- You MUST use `TeamCreate` first, then spawn agents with `team_name` parameter. This makes them actual team members who can communicate with each other — NOT subagents.
 - Do NOT use `subagent_type` — these are custom agents defined by their `.md` content.
 - Only read the `.md` files the user specified — not all of them.
 - Copy the `.md` content **verbatim** into each teammate's prompt. Do not paraphrase.

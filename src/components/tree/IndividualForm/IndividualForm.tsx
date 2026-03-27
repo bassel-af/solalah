@@ -37,6 +37,10 @@ interface IndividualFormProps {
   error?: string;
   lockedSex?: 'M' | 'F';
   workspaceId?: string;
+  /** When true and mode is 'create', show "link from another workspace" toggle */
+  allowBranchLink?: boolean;
+  /** Called when user submits a branch link token with a selected person from the branch */
+  onBranchLink?: (token: string, selectedPersonId: string) => Promise<void>;
 }
 
 const EMPTY_FORM: IndividualFormData = {
@@ -67,6 +71,8 @@ export function IndividualForm({
   error,
   lockedSex,
   workspaceId,
+  allowBranchLink = false,
+  onBranchLink,
 }: IndividualFormProps) {
   const [formData, setFormData] = useState<IndividualFormData>(() => {
     const base = { ...EMPTY_FORM, ...initialData };
@@ -76,8 +82,22 @@ export function IndividualForm({
     return base;
   });
 
-  const title = mode === 'create' ? 'إضافة شخص جديد' : 'تعديل بيانات الشخص';
-  const submitLabel = mode === 'create' ? 'إضافة' : 'حفظ';
+  // Branch link state
+  const [branchLinkMode, setBranchLinkMode] = useState(false);
+  const [branchToken, setBranchToken] = useState('');
+  const [branchLinkLoading, setBranchLinkLoading] = useState(false);
+  const [branchLinkError, setBranchLinkError] = useState('');
+  const [branchPreview, setBranchPreview] = useState<{
+    sourceWorkspaceNameAr: string;
+    rootPersonName: string;
+    people: Array<{ id: string; name: string; sex: string }>;
+  } | null>(null);
+  const [selectedBranchPersonId, setSelectedBranchPersonId] = useState<string | null>(null);
+
+  const showBranchToggle = allowBranchLink && mode === 'create' && !!onBranchLink;
+
+  const title = branchLinkMode ? 'ربط فرع من مساحة أخرى' : (mode === 'create' ? 'إضافة شخص جديد' : 'تعديل بيانات الشخص');
+  const submitLabel = branchLinkMode ? 'ربط الفرع' : (mode === 'create' ? 'إضافة' : 'حفظ');
 
   const updateField = useCallback(
     <K extends keyof IndividualFormData>(key: K, value: IndividualFormData[K]) => {
@@ -93,17 +113,72 @@ export function IndividualForm({
     [],
   );
 
+  const handleValidateToken = useCallback(async () => {
+    if (!workspaceId || !branchToken.trim()) return;
+    setBranchLinkLoading(true);
+    setBranchLinkError('');
+    try {
+      const { apiFetch } = await import('@/lib/api/client');
+      const res = await apiFetch(`/api/workspaces/${workspaceId}/share-tokens/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: branchToken.trim() }),
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error || 'رمز غير صالح');
+      }
+      const body = await res.json();
+      const subtree = body.data.subtree || {};
+      const people = Object.values(subtree.individuals || {}).map((ind: Record<string, unknown>) => ({
+        id: ind.id as string,
+        name: [ind.givenName, ind.surname].filter(Boolean).join(' ') || (ind.name as string) || 'غير معروف',
+        sex: (ind.sex as string) || '',
+      }));
+      setBranchPreview({
+        sourceWorkspaceNameAr: body.data.sourceWorkspaceNameAr || '',
+        rootPersonName: body.data.rootPersonName || '',
+        people,
+      });
+      setSelectedBranchPersonId(null);
+    } catch (err) {
+      setBranchLinkError(err instanceof Error ? err.message : 'حدث خطأ');
+      setBranchPreview(null);
+    } finally {
+      setBranchLinkLoading(false);
+    }
+  }, [workspaceId, branchToken]);
+
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
+      if (branchLinkMode && onBranchLink) {
+        if (!selectedBranchPersonId) {
+          setBranchLinkError('اختر الشخص المراد ربطه');
+          return;
+        }
+        setBranchLinkLoading(true);
+        setBranchLinkError('');
+        try {
+          await onBranchLink(branchToken.trim(), selectedBranchPersonId);
+        } catch (err) {
+          setBranchLinkError(err instanceof Error ? err.message : 'حدث خطأ');
+        } finally {
+          setBranchLinkLoading(false);
+        }
+        return;
+      }
       await onSubmit(formData);
     },
-    [formData, onSubmit],
+    [formData, onSubmit, branchLinkMode, onBranchLink, branchToken, selectedBranchPersonId],
   );
+
+  const effectiveLoading = branchLinkMode ? branchLinkLoading : isLoading;
+  const branchLinkDisabled = branchLinkMode && (!branchToken.trim() || !selectedBranchPersonId);
 
   const actions = (
     <>
-      <Button variant="ghost" size="md" onClick={onClose} disabled={isLoading}>
+      <Button variant="ghost" size="md" onClick={onClose} disabled={effectiveLoading}>
         إلغاء
       </Button>
       <Button
@@ -111,8 +186,8 @@ export function IndividualForm({
         size="md"
         type="submit"
         form="individual-form"
-        loading={isLoading}
-        disabled={isLoading || (mode === 'create' && !formData.givenName.trim())}
+        loading={effectiveLoading}
+        disabled={effectiveLoading || (branchLinkMode ? branchLinkDisabled : (mode === 'create' && !formData.givenName.trim()))}
       >
         {submitLabel}
       </Button>
@@ -133,6 +208,83 @@ export function IndividualForm({
         onSubmit={handleSubmit}
       >
         {error && <div className={styles.error}>{error}</div>}
+        {branchLinkError && <div className={styles.error}>{branchLinkError}</div>}
+
+        {showBranchToggle && (
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              checked={branchLinkMode}
+              onChange={(e) => {
+                setBranchLinkMode(e.target.checked);
+                setBranchLinkError('');
+                setBranchPreview(null);
+              }}
+              className={styles.checkbox}
+            />
+            ربط من مساحة أخرى
+          </label>
+        )}
+
+        {branchLinkMode ? (
+          <>
+            <div className={styles.fieldGroup}>
+              <label htmlFor="branchToken" className={styles.label}>رمز المشاركة</label>
+              <div className={styles.row}>
+                <Input
+                  id="branchToken"
+                  label=""
+                  value={branchToken}
+                  onChange={(e) => { setBranchToken(e.target.value); setBranchPreview(null); }}
+                  placeholder="brsh_..."
+                  dir="ltr"
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="md"
+                  type="button"
+                  onClick={handleValidateToken}
+                  disabled={!branchToken.trim() || branchLinkLoading}
+                  loading={branchLinkLoading && !branchPreview}
+                >
+                  تحقق
+                </Button>
+              </div>
+            </div>
+            {branchPreview && (
+              <div className={styles.branchPreviewCard}>
+                <div className={styles.branchPreviewLabel}>معلومات الفرع</div>
+                {branchPreview.sourceWorkspaceNameAr && (
+                  <div className={styles.branchPreviewRow}>
+                    <span className={styles.branchPreviewKey}>المصدر:</span>
+                    <span>{branchPreview.sourceWorkspaceNameAr}</span>
+                  </div>
+                )}
+                <div className={styles.branchPreviewRow}>
+                  <span className={styles.branchPreviewKey}>عدد الأشخاص:</span>
+                  <span>{branchPreview.people.length}</span>
+                </div>
+                <div className={styles.fieldGroup} style={{ marginTop: 'var(--space-3)' }}>
+                  <label className={styles.label}>اختر الشخص المراد ربطه</label>
+                  <div className={styles.branchPersonList}>
+                    {branchPreview.people.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`${styles.branchPersonItem} ${selectedBranchPersonId === p.id ? styles.branchPersonItemSelected : ''}`}
+                        onClick={() => setSelectedBranchPersonId(p.id)}
+                      >
+                        <span className={p.sex === 'M' ? styles.branchPersonMale : p.sex === 'F' ? styles.branchPersonFemale : ''}>{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+        <>
 
         {/* Name fields */}
         <div className={styles.row}>
@@ -352,6 +504,9 @@ export function IndividualForm({
             rows={3}
           />
         </div>
+
+        </>
+        )}
       </form>
     </Modal>
   );

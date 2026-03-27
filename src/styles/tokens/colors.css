@@ -84,6 +84,14 @@
   --color-lineage-path: var(--color-accent);
   --color-lineage-path-bg: rgba(246, 173, 85, 0.08);
 
+  /* Branch Pointer Colors (Teal) */
+  --color-pointer: #38b2ac;
+  --color-pointer-light: #81e6d9;
+  --color-pointer-dark: #2c7a7b;
+  --color-pointer-bg: rgba(56, 178, 172, 0.08);
+  --color-pointer-border: rgba(56, 178, 172, 0.25);
+  --color-pointer-badge-bg: rgba(56, 178, 172, 0.12);
+
   /* Dimmed State */
   --opacity-dimmed-node: 0.35;
   --opacity-dimmed-edge: 0.20;

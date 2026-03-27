@@ -26,6 +26,7 @@ import {
   getFamiliesForPicker,
 } from '@/lib/person-detail-helpers';
 import type { AddParentResult } from '@/lib/person-detail-helpers';
+import { apiFetch } from '@/lib/api/client';
 import styles from './PersonDetail.module.css';
 
 // ---------------------------------------------------------------------------
@@ -350,6 +351,36 @@ export function PersonDetail({ personId }: PersonDetailProps) {
     moveChild(targetFamilyId);
   }, [moveChild]);
 
+  // Branch link handler — redeem a share token via the branch-pointers API
+  const handleBranchLink = useCallback(async (token: string, selectedPersonId: string) => {
+    if (!person || !workspace?.workspaceId || !formMode) return;
+    const relationshipMap: Record<string, string> = {
+      addChild: 'child',
+      addSibling: 'sibling',
+      addSpouse: 'spouse',
+      addParent: 'parent',
+    };
+    const relationship = relationshipMap[formMode.kind];
+    if (!relationship) return;
+
+    const res = await apiFetch(`/api/workspaces/${workspace.workspaceId}/branch-pointers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        anchorIndividualId: person.id,
+        selectedPersonId,
+        relationship,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      throw new Error(body.error || 'فشل في ربط الفرع');
+    }
+    setFormMode(null);
+    workspace.refreshTree?.();
+  }, [person, workspace, formMode, setFormMode]);
+
   // -------------------------------------------------------------------------
   // Derived: form submit dispatcher + initial data
   // -------------------------------------------------------------------------
@@ -475,7 +506,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
               <path d="M12 2V5M12 19V22M2 12H5M19 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </button>
-          {canEdit && (
+          {canEdit && !person._pointed && (
             <button
               className={styles.focusButton}
               onClick={() => { setFormMode({ kind: 'edit' }); setFormError(''); }}
@@ -491,7 +522,28 @@ export function PersonDetail({ personId }: PersonDetailProps) {
         </div>
       </div>
 
-      {canEdit && (
+      {person._pointed && (
+        <div className={styles.pointerBanner}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>
+            {(() => {
+              // Look up source workspace name from pointer metadata (admin only)
+              const pointer = workspace?.pointers?.find(
+                (p) => p.id === person._pointerId,
+              );
+              if (pointer?.sourceWorkspaceNameAr) {
+                return `مرتبط من: ${pointer.sourceWorkspaceNameAr} — للقراءة فقط`;
+              }
+              return 'فرع مرتبط — للقراءة فقط';
+            })()}
+          </span>
+        </div>
+      )}
+
+      {canEdit && !person._pointed && (
         <div className={styles.actionBar}>
           <button
             className={styles.actionButton}
@@ -607,7 +659,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
                     <span className={styles.marriageSpouseName}>
                       {spouseName ?? 'بدون زوج/زوجة'}
                     </span>
-                    {canEdit && (
+                    {canEdit && !person._pointed && !family._pointed && (
                       <button
                         className={styles.marriageEditButton}
                         onClick={() => { setFormMode({ kind: 'editFamilyEvent', familyId }); setFormError(''); }}
@@ -659,7 +711,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
         )}
       </div>
 
-      {canEdit && (
+      {canEdit && !person._pointed && (
         <div className={styles.deleteSection}>
           {!deleteConfirm ? (
             <button
@@ -705,6 +757,8 @@ export function PersonDetail({ personId }: PersonDetailProps) {
           error={formError}
           lockedSex={formLockedSex}
           workspaceId={workspace?.workspaceId}
+          allowBranchLink={formMode.kind !== 'edit' && !!workspace?.workspaceId}
+          onBranchLink={handleBranchLink}
         />
       )}
 

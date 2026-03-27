@@ -2,10 +2,23 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 
+/** Metadata about an active branch pointer (from GET /tree response) */
+export interface PointerMetadata {
+  id: string;
+  sourceWorkspaceNameAr?: string;
+  sourceWorkspaceSlug?: string;
+  sourceRootName: string;
+  anchorIndividualId: string;
+  relationship: string;
+  status: string;
+}
+
 interface WorkspaceTreeContextValue {
   workspaceId: string;
   canEdit: boolean;
   refreshTree: () => Promise<void>;
+  /** Branch pointer metadata from GET /tree response */
+  pointers?: PointerMetadata[];
 }
 
 const WorkspaceTreeContext = createContext<WorkspaceTreeContextValue | null>(null);
@@ -15,6 +28,7 @@ interface WorkspaceTreeProviderProps {
   workspaceId: string;
   canEdit: boolean;
   refreshTree: () => Promise<void>;
+  pointers?: PointerMetadata[];
 }
 
 export function WorkspaceTreeProvider({
@@ -22,9 +36,10 @@ export function WorkspaceTreeProvider({
   workspaceId,
   canEdit,
   refreshTree,
+  pointers,
 }: WorkspaceTreeProviderProps) {
   return (
-    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, refreshTree }}>
+    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, refreshTree, pointers }}>
       {children}
     </WorkspaceTreeContext.Provider>
   );

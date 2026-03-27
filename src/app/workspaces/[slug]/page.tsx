@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { roleLabel } from '@/lib/workspace/labels';
 import { Spinner } from '@/components/ui/Spinner';
+import { ShareBranchModal } from '@/components/workspace/ShareBranchModal/ShareBranchModal';
+import { ShareTokenList } from '@/components/workspace/ShareTokenList/ShareTokenList';
+import { IncomingPointerList } from '@/components/workspace/IncomingPointerList/IncomingPointerList';
+import type { GedcomData } from '@/lib/gedcom/types';
 import styles from './workspace.module.css';
 
 interface Workspace {
@@ -57,6 +61,30 @@ export default function WorkspaceDetailPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [togglingRoleId, setTogglingRoleId] = useState<string | null>(null);
   const [memberActionError, setMemberActionError] = useState('');
+
+  // Branch sharing state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareTokenRefresh, setShareTokenRefresh] = useState(0);
+  const [treeData, setTreeData] = useState<GedcomData | null>(null);
+
+  const handleShareTokenCreated = useCallback(() => {
+    setShareTokenRefresh((prev) => prev + 1);
+  }, []);
+
+  // Lazy-load tree data when share modal opens (tree context is not available on settings page)
+  const handleOpenShareModal = useCallback(async () => {
+    setShowShareModal(true);
+    if (treeData || !workspace) return;
+    try {
+      const res = await apiFetch(`/api/workspaces/${workspace.id}/tree`);
+      if (res.ok) {
+        const body = await res.json();
+        setTreeData(body.data);
+      }
+    } catch {
+      // Tree data fetch failed — modal still works but person search will be empty
+    }
+  }, [treeData, workspace]);
 
   useEffect(() => {
     async function fetchData() {
@@ -367,7 +395,49 @@ export default function WorkspaceDetailPage() {
             ))}
           </div>
         </div>
+
+        {/* Branch Sharing Section (admin only) */}
+        {isAdmin && (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}>مشاركة الفروع</h3>
+              <button
+                onClick={handleOpenShareModal}
+                className={styles.inviteButton}
+                style={{ borderColor: 'var(--color-pointer)', color: 'var(--color-pointer-light)' }}
+              >
+                إنشاء رمز مشاركة
+              </button>
+            </div>
+            <ShareTokenList
+              workspaceId={workspace.id}
+              refreshTrigger={shareTokenRefresh}
+            />
+          </div>
+        )}
+
+        {/* Incoming Pointers Section */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>الفروع المرتبطة</h3>
+          </div>
+          <IncomingPointerList
+            workspaceId={workspace.id}
+            isAdmin={isAdmin}
+          />
+        </div>
       </div>
+
+      {/* Share Branch Modal */}
+      {showShareModal && workspace && (
+        <ShareBranchModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          workspaceId={workspace.id}
+          treeData={treeData}
+          onTokenCreated={handleShareTokenCreated}
+        />
+      )}
 
       {/* Invite Modal */}
       {showInvite && (

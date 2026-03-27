@@ -4,12 +4,21 @@ import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeFamily, getTreeIndividual } from '@/lib/tree/queries';
 import { updateFamilySchema } from '@/lib/tree/schemas';
+import { isSyntheticFamilyId } from '@/lib/tree/branch-pointer-guards';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string }> };
 
 // PATCH /api/workspaces/[id]/tree/families/[familyId] — Update a family
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id: workspaceId, familyId } = await params;
+
+  // Reject mutations on synthetic pointer families
+  if (isSyntheticFamilyId(familyId)) {
+    return NextResponse.json(
+      { error: 'معرف العائلة غير صالح' },
+      { status: 400 },
+    );
+  }
 
   const result = await requireTreeEditor(request, workspaceId);
   if (isErrorResponse(result)) return result;
@@ -104,6 +113,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/workspaces/[id]/tree/families/[familyId] — Delete a family
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { id: workspaceId, familyId } = await params;
+
+  // Reject mutations on synthetic pointer families
+  if (isSyntheticFamilyId(familyId)) {
+    return NextResponse.json(
+      { error: 'معرف العائلة غير صالح' },
+      { status: 400 },
+    );
+  }
 
   const result = await requireTreeEditor(request, workspaceId);
   if (isErrorResponse(result)) return result;

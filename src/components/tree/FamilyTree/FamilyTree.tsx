@@ -80,6 +80,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     const rootClass = isMainPerson && isRoot ? 'root' : '';
     const deceasedClass = p.isDeceased ? 'deceased' : '';
     const inLawClass = isInLawExpansion ? 'in-law-expansion' : '';
+    const pointedClass = p._pointed ? 'pointed' : '';
     const isMatch =
       searchQuery && displayName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchClass = isMatch ? 'search-match' : '';
@@ -99,7 +100,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     return (
       <div className="person-card-wrapper">
         <div
-          className={`person person-clickable ${sexClass} ${rootClass} ${deceasedClass} ${matchClass} ${highlightClass} ${inLawClass}`.trim()}
+          className={`person person-clickable ${sexClass} ${rootClass} ${deceasedClass} ${matchClass} ${highlightClass} ${inLawClass} ${pointedClass}`.trim()}
           onClick={handleClick}
         >
           <div className="person-name">{displayName}</div>
@@ -120,6 +121,23 @@ function PersonNode({ data }: { data: PersonNodeData }) {
             </div>
           )}
         </div>
+        {p._pointed && (
+          <div className="pointed-badge" title="فرع مرتبط — للقراءة فقط">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
+        {p._sharedRoot && (
+          <div className="shared-root-badge" title="فرع مُشارَك">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="16 6 12 2 8 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
         {isSelected && (
           <button
             className="person-detail-fab"
@@ -432,6 +450,13 @@ function buildTreeData(
 
       // Determine edge highlight class
       let edgeClassName = '';
+
+      // Pointed edge: both parent and child are from a branch pointer
+      const child = data.individuals[childId];
+      if (person._pointed && child?._pointed) {
+        edgeClassName = 'pointed-edge';
+      }
+
       if (highlightState.highlightedId) {
         const sourceInLineage = personId === highlightState.highlightedId ||
           highlightState.ancestors.has(personId) ||

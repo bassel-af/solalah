@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireWorkspaceMember, isErrorResponse } from '@/lib/api/workspace-auth';
-import { getOrCreateTree } from '@/lib/tree/queries';
+import { getOrCreateTree, getTreeByWorkspaceId } from '@/lib/tree/queries';
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper';
+import { getActivePointersForWorkspace } from '@/lib/tree/branch-pointer-queries';
+import { extractPointedSubtree, mergePointedSubtree } from '@/lib/tree/branch-pointer-merge';
+import type { GedcomData } from '@/lib/gedcom/types';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -13,7 +16,30 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   if (isErrorResponse(result)) return result;
 
   const tree = await getOrCreateTree(workspaceId);
-  const gedcomData = dbTreeToGedcomData(tree);
+  let gedcomData: GedcomData = dbTreeToGedcomData(tree);
+
+  // Merge pointed subtrees from active branch pointers
+  const pointers = await getActivePointersForWorkspace(workspaceId);
+  for (const pointer of pointers) {
+    const sourceTree = await getTreeByWorkspaceId(pointer.sourceWorkspaceId);
+    if (!sourceTree) continue;
+
+    const sourceData = dbTreeToGedcomData(sourceTree);
+    const pointedSubtree = extractPointedSubtree(sourceData, {
+      rootIndividualId: pointer.rootIndividualId,
+      depthLimit: pointer.depthLimit,
+      includeGrafts: pointer.includeGrafts,
+    });
+
+    gedcomData = mergePointedSubtree(gedcomData, pointedSubtree, {
+      pointerId: pointer.id,
+      anchorIndividualId: pointer.anchorIndividualId,
+      selectedIndividualId: pointer.selectedIndividualId,
+      relationship: pointer.relationship,
+      sourceWorkspaceId: pointer.sourceWorkspaceId,
+    });
+  }
+
   const safeData = redactPrivateIndividuals(gedcomData);
 
   return NextResponse.json({ data: safeData });

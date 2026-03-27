@@ -53,6 +53,12 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// Mock branch pointer queries — individuals are not pointed in these tests
+vi.mock('@/lib/tree/branch-pointer-queries', () => ({
+  isPointedIndividualInWorkspace: vi.fn().mockResolvedValue(false),
+  getActivePointersForWorkspace: vi.fn().mockResolvedValue([]),
+}));
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------

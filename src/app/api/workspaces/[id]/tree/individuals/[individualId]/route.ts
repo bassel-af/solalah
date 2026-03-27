@@ -4,6 +4,7 @@ import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeIndividual } from '@/lib/tree/queries';
 import { updateIndividualSchema } from '@/lib/tree/schemas';
+import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
 
 type RouteParams = { params: Promise<{ id: string; individualId: string }> };
 
@@ -29,6 +30,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { error: parsed.error.issues[0].message },
       { status: 400 },
+    );
+  }
+
+  // Reject mutations on pointed (read-only) individuals
+  const isPointed = await isPointedIndividualInWorkspace(individualId, workspaceId);
+  if (isPointed) {
+    return NextResponse.json(
+      { error: 'لا يمكن تعديل شخص مرتبط من مساحة أخرى' },
+      { status: 403 },
     );
   }
 
@@ -69,6 +79,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   const { allowed, retryAfterSeconds } = treeMutateLimiter.check(result.user.id);
   if (!allowed) return rateLimitResponse(retryAfterSeconds);
+
+  // Reject mutations on pointed (read-only) individuals
+  const isPointed = await isPointedIndividualInWorkspace(individualId, workspaceId);
+  if (isPointed) {
+    return NextResponse.json(
+      { error: 'لا يمكن حذف شخص مرتبط من مساحة أخرى' },
+      { status: 403 },
+    );
+  }
 
   const tree = await getOrCreateTree(workspaceId);
   const existing = await getTreeIndividual(tree.id, individualId);

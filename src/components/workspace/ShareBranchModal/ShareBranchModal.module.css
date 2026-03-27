@@ -1,0 +1,206 @@
+/* ShareBranchModal styles */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-50);
+  font-weight: var(--font-weight-medium);
+}
+
+.searchResults {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--alpha-white-10);
+  border-radius: var(--radius-md);
+  background: var(--alpha-white-04);
+}
+
+.searchResultItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--alpha-white-06);
+  color: var(--alpha-white-70);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  text-align: right;
+}
+
+.searchResultItem:last-child {
+  border-bottom: none;
+}
+
+.searchResultItem:hover {
+  background: var(--alpha-white-08);
+}
+
+.searchResultItemSelected {
+  composes: searchResultItem;
+  background: var(--color-pointer-bg);
+  border-color: var(--color-pointer-border);
+}
+
+.selectedPerson {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-pointer-bg);
+  border: 1px solid var(--color-pointer-border);
+  color: var(--alpha-white-80);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.selectedPersonClear {
+  margin-inline-start: auto;
+  background: transparent;
+  border: none;
+  color: var(--alpha-white-40);
+  cursor: pointer;
+  padding: var(--space-1);
+  font-size: var(--font-size-xs);
+}
+
+.selectedPersonClear:hover {
+  color: var(--alpha-white-70);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-60);
+  cursor: pointer;
+}
+
+.checkbox {
+  accent-color: var(--color-pointer);
+}
+
+/* Token display */
+.tokenDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--alpha-white-04);
+  border: 1px solid var(--alpha-white-10);
+}
+
+.tokenLabel {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-40);
+  font-weight: var(--font-weight-medium);
+}
+
+.tokenValue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tokenText {
+  flex: 1;
+  font-family: monospace;
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-85);
+  word-break: break-all;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.tokenCopyButton {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-pointer-border);
+  background: var(--color-pointer-bg);
+  color: var(--color-pointer);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.tokenCopyButton:hover {
+  background: var(--color-pointer-badge-bg);
+}
+
+.tokenWarning {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-35);
+  font-style: italic;
+}
+
+.error {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(229, 62, 62, 0.1);
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  color: #fc8181;
+  font-size: var(--font-size-sm);
+}
+
+/* Modal width override */
+.modal {
+  max-width: 520px;
+}
+
+/* Number input */
+.numberInput {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--alpha-white-10);
+  background: var(--alpha-white-04);
+  color: var(--alpha-white-85);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  transition: border-color var(--transition-base);
+}
+
+.numberInput::placeholder {
+  color: var(--alpha-white-25);
+}
+
+.numberInput:focus {
+  border-color: var(--color-primary);
+}
+
+.textInput {
+  composes: numberInput;
+}

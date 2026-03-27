@@ -1,0 +1,93 @@
+/* ShareTokenList styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tokenCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  border: 1px solid var(--alpha-white-06);
+  background: var(--alpha-white-04);
+  gap: var(--space-3);
+}
+
+.tokenInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.tokenRootName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--alpha-white-70);
+}
+
+.tokenMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-35);
+}
+
+.tokenActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.revokeButton {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  border: 1px solid rgba(229, 62, 62, 0.3);
+  background: transparent;
+  color: #fc8181;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.revokeButton:hover:not(:disabled) {
+  background: rgba(229, 62, 62, 0.1);
+}
+
+.revokeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-35);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.error {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 8px;
+  background: rgba(229, 62, 62, 0.1);
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  color: #fc8181;
+  font-size: var(--font-size-sm);
+}
+
+.revokedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  background: rgba(229, 62, 62, 0.1);
+  color: rgba(229, 62, 62, 0.7);
+  border: 1px solid rgba(229, 62, 62, 0.15);
+}

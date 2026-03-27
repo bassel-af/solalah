@@ -124,6 +124,27 @@
 }
 
 /* ============================================
+   BRANCH POINTER BANNER
+   ============================================ */
+
+.pointerBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-9);
+  background: var(--color-pointer-bg);
+  border-bottom: 1px solid var(--color-pointer-border);
+  color: var(--color-pointer-light);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.pointerBanner svg {
+  flex-shrink: 0;
+  color: var(--color-pointer);
+}
+
+/* ============================================
    ACTION BAR — Add child / spouse / parent
    ============================================ */
 
@@ -561,6 +582,10 @@
   .notesContent {
     padding: var(--space-3) var(--space-7);
   }
+
+  .pointerBanner {
+    padding: var(--space-3) var(--space-7);
+  }
 }
 
 @media (max-width: 480px) {
@@ -604,6 +629,10 @@
   }
 
   .notesContent {
+    padding: var(--space-3) var(--space-6);
+  }
+
+  .pointerBanner {
     padding: var(--space-3) var(--space-6);
   }
 

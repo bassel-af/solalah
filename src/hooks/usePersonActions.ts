@@ -66,14 +66,24 @@ export function usePersonActions({
   data,
   setSelectedPersonId,
 }: UsePersonActionsParams): UsePersonActionsReturn {
+  // Pointed individuals are read-only — block all mutations
+  const isPointed = person?._pointed === true;
+
   // Form modal state
-  const [formMode, setFormMode] = useState<FormMode | null>(null);
+  const [formModeRaw, setFormModeRaw] = useState<FormMode | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Guarded setFormMode — no-op when person is pointed
+  const formMode = formModeRaw;
+  const setFormMode = useCallback((mode: FormMode | null) => {
+    if (isPointed && mode !== null) return;
+    setFormModeRaw(mode);
+  }, [isPointed]);
 
   // -------------------------------------------------------------------------
   // Internal API helpers
@@ -140,7 +150,7 @@ export function usePersonActions({
   // -------------------------------------------------------------------------
 
   const handleEditSubmit = useCallback(async (formData: IndividualFormData) => {
-    if (!workspace) return;
+    if (!workspace || isPointed) return;
     setFormLoading(true);
     setFormError('');
     try {
@@ -160,10 +170,10 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, personId]);
+  }, [workspace, personId, isPointed]);
 
   const handleAddChildSubmit = useCallback(async (formData: IndividualFormData) => {
-    if (!workspace || !person || !data) return;
+    if (!workspace || !person || !data || isPointed) return;
     setFormLoading(true);
     setFormError('');
     try {
@@ -197,10 +207,10 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, person, data, personId, formMode, createIndividual, addChildToFamily, createFamily]);
+  }, [workspace, person, data, personId, formMode, createIndividual, addChildToFamily, createFamily, isPointed]);
 
   const handleAddSpouseSubmit = useCallback(async (formData: IndividualFormData) => {
-    if (!workspace || !person) return;
+    if (!workspace || !person || isPointed) return;
     setFormLoading(true);
     setFormError('');
     try {
@@ -226,10 +236,10 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, person, personId, createIndividual, createFamily]);
+  }, [workspace, person, personId, createIndividual, createFamily, isPointed]);
 
   const handleAddParentSubmit = useCallback(async (formData: IndividualFormData) => {
-    if (!workspace || !person || !data) return;
+    if (!workspace || !person || !data || isPointed) return;
     setFormLoading(true);
     setFormError('');
     try {
@@ -265,10 +275,10 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, person, data, personId, createIndividual, patchFamily, createFamily]);
+  }, [workspace, person, data, personId, createIndividual, patchFamily, createFamily, isPointed]);
 
   const handleAddSiblingSubmit = useCallback(async (formData: IndividualFormData) => {
-    if (!workspace || formMode?.kind !== 'addSibling') return;
+    if (!workspace || formMode?.kind !== 'addSibling' || isPointed) return;
     setFormLoading(true);
     setFormError('');
     try {
@@ -281,10 +291,10 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, formMode, createIndividual, addChildToFamily]);
+  }, [workspace, formMode, createIndividual, addChildToFamily, isPointed]);
 
   const handleFamilyEventSubmit = useCallback(async (eventData: FamilyEventFormData) => {
-    if (!workspace || formMode?.kind !== 'editFamilyEvent') return;
+    if (!workspace || formMode?.kind !== 'editFamilyEvent' || isPointed) return;
     setFormLoading(true);
     setFormError('');
     try {
@@ -324,14 +334,14 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, formMode]);
+  }, [workspace, formMode, isPointed]);
 
   // -------------------------------------------------------------------------
   // Move child
   // -------------------------------------------------------------------------
 
   const moveChild = useCallback(async (targetFamilyId: string) => {
-    if (!workspace || !person?.familyAsChild) return;
+    if (!workspace || !person?.familyAsChild || isPointed) return;
     setFormLoading(true);
     try {
       const res = await apiFetch(
@@ -352,14 +362,14 @@ export function usePersonActions({
     } finally {
       setFormLoading(false);
     }
-  }, [workspace, person, personId]);
+  }, [workspace, person, personId, isPointed]);
 
   // -------------------------------------------------------------------------
   // Delete handler
   // -------------------------------------------------------------------------
 
   const handleDelete = useCallback(async () => {
-    if (!workspace) return;
+    if (!workspace || isPointed) return;
     setDeleteLoading(true);
     try {
       const res = await apiFetch(`/api/workspaces/${workspace.workspaceId}/tree/individuals/${personId}`, {
@@ -377,7 +387,7 @@ export function usePersonActions({
     } finally {
       setDeleteLoading(false);
     }
-  }, [workspace, personId, setSelectedPersonId]);
+  }, [workspace, personId, setSelectedPersonId, isPointed]);
 
   return {
     formMode,

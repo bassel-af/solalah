@@ -356,6 +356,76 @@
   pointer-events: none;
 }
 
+/* ============================================
+   BRANCH POINTER STYLES (pointed individuals)
+   ============================================ */
+
+/* Pointed person card: teal dashed border + subtle teal bg */
+.person.pointed {
+  border-right: 2px dashed var(--color-pointer-border);
+  border-bottom: 2px dashed var(--color-pointer-border);
+  border-left: 2px dashed var(--color-pointer-border);
+  background: var(--color-pointer-bg);
+  cursor: default;
+}
+
+.person.pointed:hover {
+  transform: none;
+}
+
+/* Small teal circle badge at top-right with link icon */
+.pointed-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-pointer-badge-bg);
+  border: 1.5px solid var(--color-pointer);
+  color: var(--color-pointer-dark);
+  pointer-events: none;
+}
+
+.pointed-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Shared root badge (source tree) at top-left */
+.shared-root-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-pointer-badge-bg);
+  border: 1.5px solid var(--color-pointer);
+  color: var(--color-pointer-dark);
+  cursor: help;
+}
+
+.shared-root-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Pointed edge: dashed teal stroke */
+.react-flow__edge.pointed-edge .react-flow__edge-path {
+  stroke: var(--color-pointer) !important;
+  stroke-dasharray: 6 4;
+  stroke-width: 2 !important;
+}
+
 /* Graft overflow card "+N" */
 .graft-overflow {
   display: flex;

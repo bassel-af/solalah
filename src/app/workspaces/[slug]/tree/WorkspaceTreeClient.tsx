@@ -84,7 +84,7 @@ function TreeContent({
   canEdit: boolean;
 }) {
   const { isLoading, error, data } = useTree();
-  const { refreshTree } = useWorkspaceTreeData(workspace.id);
+  const { refreshTree, pointers } = useWorkspaceTreeData(workspace.id);
 
   if (error) {
     return <div className="error">خطأ في تحميل شجرة العائلة: {error}</div>;
@@ -108,6 +108,7 @@ function TreeContent({
         workspaceId={workspace.id}
         canEdit={canEdit}
         refreshTree={refreshTree}
+        pointers={pointers}
       >
         <EmptyTreeWithForm canEdit={canEdit} />
       </WorkspaceTreeProvider>
@@ -119,6 +120,7 @@ function TreeContent({
       workspaceId={workspace.id}
       canEdit={canEdit}
       refreshTree={refreshTree}
+      pointers={pointers}
     >
       <div className="app-layout">
         <Sidebar />
