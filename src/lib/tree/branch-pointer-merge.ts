@@ -17,6 +17,48 @@ export interface MergePointerConfig {
   selectedIndividualId: string; // the person from the branch being stitched
   relationship: 'child' | 'sibling' | 'spouse' | 'parent';
   sourceWorkspaceId: string;
+  linkChildrenToAnchor?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// detectOrphanedChildren
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect children of selectedPerson in the subtree who lack a parent of the
+ * given anchorSex. Used to determine if linkChildrenToAnchor is applicable
+ * for spouse stitching.
+ *
+ * Pure function — no DB access.
+ */
+export function detectOrphanedChildren(
+  subtree: GedcomData,
+  selectedPersonId: string,
+  anchorSex: 'M' | 'F',
+): { hasOrphans: boolean; childNames: string[] } {
+  const childNames: string[] = [];
+  const parentRole = anchorSex === 'M' ? 'husband' : 'wife';
+
+  const selectedPerson = subtree.individuals[selectedPersonId];
+  if (!selectedPerson) return { hasOrphans: false, childNames: [] };
+
+  for (const familyId of selectedPerson.familiesAsSpouse) {
+    const family = subtree.families[familyId];
+    if (!family) continue;
+
+    // Check if this family lacks a parent of anchorSex
+    if (family[parentRole] !== null) continue;
+
+    // Children in this family are orphaned w.r.t. anchorSex
+    for (const childId of family.children) {
+      const child = subtree.individuals[childId];
+      if (child) {
+        childNames.push(child.givenName || child.name || childId);
+      }
+    }
+  }
+
+  return { hasOrphans: childNames.length > 0, childNames };
 }
 
 // ---------------------------------------------------------------------------
@@ -387,7 +429,7 @@ export function mergePointedSubtree(
       stitchAsSibling(individuals, families, syntheticFamId, anchor, anchorIndividualId, pointedRoot, pointedRootId, sourceWorkspaceId);
       break;
     case 'spouse':
-      stitchAsSpouse(individuals, families, syntheticFamId, anchor, anchorIndividualId, pointedRoot, pointedRootId, sourceWorkspaceId);
+      stitchAsSpouse(individuals, families, syntheticFamId, anchor, anchorIndividualId, pointedRoot, pointedRootId, sourceWorkspaceId, config.linkChildrenToAnchor ?? false);
       break;
     case 'parent':
       stitchAsParent(individuals, families, syntheticFamId, anchor, anchorIndividualId, pointedRoot, pointedRootId, sourceWorkspaceId);
@@ -509,6 +551,7 @@ function stitchAsSpouse(
   pointedRoot: Individual,
   pointedRootId: string,
   sourceWorkspaceId: string,
+  linkChildrenToAnchor: boolean = false,
 ): void {
   // Determine husband/wife based on sex
   let husband: string | null = null;
@@ -529,9 +572,27 @@ function stitchAsSpouse(
     wife = pointedRootId;
   }
 
+  // Collect orphaned children if linkChildrenToAnchor is true
+  const orphanedChildIds: string[] = [];
+  if (linkChildrenToAnchor && anchor.sex) {
+    const parentRole = anchor.sex === 'M' ? 'husband' : 'wife';
+    // Find families where pointedRoot is a spouse and children lack a parent of anchor's sex
+    for (const familyId of (individuals[pointedRootId]?.familiesAsSpouse ?? [])) {
+      const family = families[familyId];
+      if (!family) continue;
+      if (family[parentRole] !== null) continue;
+      for (const childId of family.children) {
+        if (individuals[childId]) {
+          orphanedChildIds.push(childId);
+        }
+      }
+    }
+  }
+
   families[syntheticFamId] = makeSyntheticFamily(syntheticFamId, sourceWorkspaceId, {
     husband,
     wife,
+    children: orphanedChildIds,
   });
 
   individuals[anchorId] = {

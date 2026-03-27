@@ -37,6 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       selectedIndividualId: pointer.selectedIndividualId,
       relationship: pointer.relationship,
       sourceWorkspaceId: pointer.sourceWorkspaceId,
+      linkChildrenToAnchor: pointer.linkChildrenToAnchor,
     });
   }
 

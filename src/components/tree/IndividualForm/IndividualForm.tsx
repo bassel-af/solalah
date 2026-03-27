@@ -5,6 +5,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { PlaceComboBox } from '@/components/ui/PlaceComboBox';
 import { Button } from '@/components/ui/Button';
+import { getDisplayNameWithNasab } from '@/lib/gedcom/display';
+import type { GedcomData } from '@/lib/gedcom/types';
 import styles from './IndividualForm.module.css';
 
 export interface IndividualFormData {
@@ -40,7 +42,13 @@ interface IndividualFormProps {
   /** When true and mode is 'create', show "link from another workspace" toggle */
   allowBranchLink?: boolean;
   /** Called when user submits a branch link token with a selected person from the branch */
-  onBranchLink?: (token: string, selectedPersonId: string) => Promise<void>;
+  onBranchLink?: (token: string, selectedPersonId: string, linkChildrenToAnchor?: boolean) => Promise<void>;
+  /** The relationship type determined by the form mode (child/sibling/spouse/parent) */
+  relationshipType?: 'child' | 'sibling' | 'spouse' | 'parent';
+  /** The anchor person's sex (needed for Rule 3 orphaned children detection) */
+  anchorSex?: 'M' | 'F' | '';
+  /** The anchor person's display name (shown in Rule 3 prompt) */
+  anchorName?: string;
 }
 
 const EMPTY_FORM: IndividualFormData = {
@@ -73,6 +81,9 @@ export function IndividualForm({
   workspaceId,
   allowBranchLink = false,
   onBranchLink,
+  relationshipType,
+  anchorSex,
+  anchorName,
 }: IndividualFormProps) {
   const [formData, setFormData] = useState<IndividualFormData>(() => {
     const base = { ...EMPTY_FORM, ...initialData };
@@ -93,11 +104,18 @@ export function IndividualForm({
     people: Array<{ id: string; name: string; sex: string }>;
   } | null>(null);
   const [selectedBranchPersonId, setSelectedBranchPersonId] = useState<string | null>(null);
+  // Rule 3: orphaned children prompt state
+  const [orphanedChildNames, setOrphanedChildNames] = useState<string[]>([]);
+  const [linkChildrenToAnchor, setLinkChildrenToAnchor] = useState<boolean | null>(null);
+  // Store the full subtree from preview for client-side orphan detection
+  const [branchSubtree, setBranchSubtree] = useState<Record<string, unknown> | null>(null);
 
   const showBranchToggle = allowBranchLink && mode === 'create' && !!onBranchLink;
 
   const title = branchLinkMode ? 'ربط فرع من مساحة أخرى' : (mode === 'create' ? 'إضافة شخص جديد' : 'تعديل بيانات الشخص');
-  const submitLabel = branchLinkMode ? 'ربط الفرع' : (mode === 'create' ? 'إضافة' : 'حفظ');
+  const submitLabel = branchLinkMode
+    ? (orphanedChildNames.length > 0 ? 'تأكيد الربط' : 'ربط الفرع')
+    : (mode === 'create' ? 'إضافة' : 'حفظ');
 
   const updateField = useCallback(
     <K extends keyof IndividualFormData>(key: K, value: IndividualFormData[K]) => {
@@ -112,6 +130,38 @@ export function IndividualForm({
     },
     [],
   );
+
+  // Client-side orphaned children detection from the preview subtree
+  const detectOrphans = useCallback((personId: string) => {
+    if (!branchSubtree || relationshipType !== 'spouse' || !anchorSex) {
+      setOrphanedChildNames([]);
+      setLinkChildrenToAnchor(null);
+      return;
+    }
+    const individuals = (branchSubtree.individuals || {}) as Record<string, Record<string, unknown>>;
+    const families = (branchSubtree.families || {}) as Record<string, Record<string, unknown>>;
+    const person = individuals[personId];
+    if (!person) { setOrphanedChildNames([]); setLinkChildrenToAnchor(null); return; }
+
+    const parentRole = anchorSex === 'M' ? 'husband' : 'wife';
+    const names: string[] = [];
+    const spouseFamilies = (person.familiesAsSpouse || []) as string[];
+    for (const famId of spouseFamilies) {
+      const fam = families[famId];
+      if (!fam || fam[parentRole] !== null) continue;
+      const children = (fam.children || []) as string[];
+      for (const childId of children) {
+        const child = individuals[childId];
+        if (child) {
+          names.push(
+            [child.givenName, child.surname].filter(Boolean).join(' ') as string || (child.name as string) || 'غير معروف'
+          );
+        }
+      }
+    }
+    setOrphanedChildNames(names);
+    if (names.length === 0) setLinkChildrenToAnchor(null);
+  }, [branchSubtree, relationshipType, anchorSex]);
 
   const handleValidateToken = useCallback(async () => {
     if (!workspaceId || !branchToken.trim()) return;
@@ -130,17 +180,21 @@ export function IndividualForm({
       }
       const body = await res.json();
       const subtree = body.data.subtree || {};
-      const people = Object.values(subtree.individuals || {}).map((ind: Record<string, unknown>) => ({
-        id: ind.id as string,
-        name: [ind.givenName, ind.surname].filter(Boolean).join(' ') || (ind.name as string) || 'غير معروف',
-        sex: (ind.sex as string) || '',
+      const subtreeAsGedcom = subtree as GedcomData;
+      const people = Object.values(subtreeAsGedcom.individuals || {}).map((ind) => ({
+        id: ind.id,
+        name: getDisplayNameWithNasab(subtreeAsGedcom, ind, 2),
+        sex: ind.sex || '',
       }));
       setBranchPreview({
         sourceWorkspaceNameAr: body.data.sourceWorkspaceNameAr || '',
         rootPersonName: body.data.rootPersonName || '',
         people,
       });
+      setBranchSubtree(subtree);
       setSelectedBranchPersonId(null);
+      setOrphanedChildNames([]);
+      setLinkChildrenToAnchor(null);
     } catch (err) {
       setBranchLinkError(err instanceof Error ? err.message : 'حدث خطأ');
       setBranchPreview(null);
@@ -157,10 +211,15 @@ export function IndividualForm({
           setBranchLinkError('اختر الشخص المراد ربطه');
           return;
         }
+        // Rule 3: require radio selection when orphaned children detected
+        if (orphanedChildNames.length > 0 && linkChildrenToAnchor === null) {
+          setBranchLinkError('يجب تحديد علاقة الأبناء قبل الربط');
+          return;
+        }
         setBranchLinkLoading(true);
         setBranchLinkError('');
         try {
-          await onBranchLink(branchToken.trim(), selectedBranchPersonId);
+          await onBranchLink(branchToken.trim(), selectedBranchPersonId, linkChildrenToAnchor === true ? true : undefined);
         } catch (err) {
           setBranchLinkError(err instanceof Error ? err.message : 'حدث خطأ');
         } finally {
@@ -170,7 +229,7 @@ export function IndividualForm({
       }
       await onSubmit(formData);
     },
-    [formData, onSubmit, branchLinkMode, onBranchLink, branchToken, selectedBranchPersonId],
+    [formData, onSubmit, branchLinkMode, onBranchLink, branchToken, selectedBranchPersonId, orphanedChildNames, linkChildrenToAnchor],
   );
 
   const effectiveLoading = branchLinkMode ? branchLinkLoading : isLoading;
@@ -273,13 +332,55 @@ export function IndividualForm({
                         key={p.id}
                         type="button"
                         className={`${styles.branchPersonItem} ${selectedBranchPersonId === p.id ? styles.branchPersonItemSelected : ''}`}
-                        onClick={() => setSelectedBranchPersonId(p.id)}
+                        onClick={() => { setSelectedBranchPersonId(p.id); detectOrphans(p.id); }}
                       >
                         <span className={p.sex === 'M' ? styles.branchPersonMale : p.sex === 'F' ? styles.branchPersonFemale : ''}>{p.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
+                {/* Rule 3: orphaned children prompt */}
+                {selectedBranchPersonId && orphanedChildNames.length > 0 && (
+                  <div className={styles.childrenPromptCard}>
+                    <div className={styles.branchPreviewLabel}>تأكيد علاقة الأبناء</div>
+                    <div className={styles.childrenPromptText}>
+                      الأبناء التالية أسماؤهم ليس لديهم {anchorSex === 'M' ? 'أب' : 'أم'} في الفرع المشارَك:
+                    </div>
+                    <ul className={styles.childrenList}>
+                      {orphanedChildNames.slice(0, 5).map((name, i) => (
+                        <li key={i}>{name}</li>
+                      ))}
+                      {orphanedChildNames.length > 5 && (
+                        <li className={styles.childrenMore}>و{orphanedChildNames.length - 5} آخرون</li>
+                      )}
+                    </ul>
+                    <div className={styles.childrenPromptText}>
+                      هل {anchorName || ''} هو {anchorSex === 'M' ? 'أبوهم' : 'أمهم'}؟
+                    </div>
+                    <div className={styles.radioGroup} role="radiogroup" aria-label="علاقة الأبناء">
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          name="linkChildren"
+                          checked={linkChildrenToAnchor === true}
+                          onChange={() => setLinkChildrenToAnchor(true)}
+                          className={styles.radioInput}
+                        />
+                        نعم، هو {anchorSex === 'M' ? 'أبوهم' : 'أمهم'}
+                      </label>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          name="linkChildren"
+                          checked={linkChildrenToAnchor === false}
+                          onChange={() => setLinkChildrenToAnchor(false)}
+                          className={styles.radioInput}
+                        />
+                        لا، ليس {anchorSex === 'M' ? 'أبوهم' : 'أمهم'}
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>

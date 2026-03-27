@@ -4,6 +4,7 @@ import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeIndividual } from '@/lib/tree/queries';
 import { createFamilySchema } from '@/lib/tree/schemas';
+import { validateFamilyGender } from '@/lib/tree/family-validators';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -55,6 +56,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 },
       );
     }
+  }
+
+  // Validate gender consistency for husband/wife roles
+  const genderCheck = await validateFamilyGender(husbandId ?? null, wifeId ?? null, tree.id);
+  if (!genderCheck.valid) {
+    return NextResponse.json({ error: genderCheck.error }, { status: 400 });
   }
 
   // Verify all children belong to this tree

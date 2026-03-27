@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { apiFetch } from '@/lib/api/client';
 import type { GedcomData, Individual } from '@/lib/gedcom/types';
-import { getDisplayName } from '@/lib/gedcom';
+import { getDisplayName, getDisplayNameWithNasab } from '@/lib/gedcom';
 import { matchesSearch } from '@/lib/utils/search';
 import styles from './ShareBranchModal.module.css';
 
@@ -190,7 +190,7 @@ export function ShareBranchModal({
           <span className={styles.label}>اختر الشخص الجذر</span>
           {selectedPerson ? (
             <div className={styles.selectedPerson}>
-              <span>{getDisplayName(selectedPerson)}</span>
+              <span>{getDisplayNameWithNasab(treeData!, selectedPerson, 2)}</span>
               <button
                 type="button"
                 className={styles.selectedPersonClear}
@@ -221,7 +221,7 @@ export function ShareBranchModal({
                         setSearchQuery('');
                       }}
                     >
-                      {getDisplayName(person)}
+                      {getDisplayNameWithNasab(treeData!, person, 2)}
                     </button>
                   ))}
                 </div>

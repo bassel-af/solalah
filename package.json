@@ -13,8 +13,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "npx tsx prisma/seed.ts",
-    "preprocess-geonames": "npx tsx scripts/preprocess-geonames.ts",
-    "seed:places": "npx tsx src/lib/seed/run-seed-places.ts"
+    "seed:places": "npx tsx src/lib/seed/run-seed-places.ts",
+    "clean:links": "npx tsx scripts/clean-links.ts",
+    "reseed:tree": "npx tsx scripts/reseed-tree.ts",
+    "reseed:places": "npx tsx scripts/reseed-places.ts",
+    "reseed:all": "npx tsx scripts/reseed-all.ts",
+    "start:fresh": "npx tsx scripts/start-fresh.ts",
+    "preprocess-geonames": "npx tsx scripts/preprocess-geonames.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.8",

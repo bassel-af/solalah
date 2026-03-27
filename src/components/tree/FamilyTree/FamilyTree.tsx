@@ -434,6 +434,28 @@ function buildTreeData(
       }
     }
 
+    // Pointed spouse source families: discover children from the pointed spouse's
+    // own families in the source workspace (not reachable through the current person)
+    const personFamilyIds = new Set(person.familiesAsSpouse);
+    for (const spouseId of spouseIds) {
+      const spouse = data.individuals[spouseId];
+      if (!spouse?._pointed) continue;
+      const spouseIndex = spouseIds.indexOf(spouseId);
+      const edgeColor = SPOUSE_EDGE_COLORS[Math.max(0, spouseIndex) % SPOUSE_EDGE_COLORS.length];
+      const sourceHandle = `spouse-${spouseIndex}`;
+      for (const famId of spouse.familiesAsSpouse) {
+        if (personFamilyIds.has(famId)) continue; // already traversed
+        const fam = data.families[famId];
+        if (!fam) continue;
+        for (const childId of fam.children) {
+          const child = data.individuals[childId];
+          if (!child || child.isPrivate || visitedChildren.has(childId)) continue;
+          visitedChildren.add(childId);
+          allChildren.push({ childId, spouseIndex, edgeColor, sourceHandle });
+        }
+      }
+    }
+
     // Sort children by spouse index first, then by birth year
     allChildren.sort((a, b) => {
       if (a.spouseIndex !== b.spouseIndex) return a.spouseIndex - b.spouseIndex;

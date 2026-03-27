@@ -91,6 +91,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     data: {
       sourceWorkspaceNameAr: sourceWorkspace?.nameAr || '',
       rootPersonName,
+      rootIndividualId: shareToken.rootIndividualId,
       individualCount,
       depthLimit: shareToken.depthLimit,
       includeGrafts: shareToken.includeGrafts,

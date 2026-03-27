@@ -352,7 +352,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
   }, [moveChild]);
 
   // Branch link handler — redeem a share token via the branch-pointers API
-  const handleBranchLink = useCallback(async (token: string, selectedPersonId: string) => {
+  const handleBranchLink = useCallback(async (token: string, selectedPersonId: string, linkChildrenToAnchor?: boolean) => {
     if (!person || !workspace?.workspaceId || !formMode) return;
     const relationshipMap: Record<string, string> = {
       addChild: 'child',
@@ -371,6 +371,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
         anchorIndividualId: person.id,
         selectedPersonId,
         relationship,
+        ...(linkChildrenToAnchor !== undefined && { linkChildrenToAnchor }),
       }),
     });
     if (!res.ok) {
@@ -759,6 +760,15 @@ export function PersonDetail({ personId }: PersonDetailProps) {
           workspaceId={workspace?.workspaceId}
           allowBranchLink={formMode.kind !== 'edit' && !!workspace?.workspaceId}
           onBranchLink={handleBranchLink}
+          relationshipType={
+            formMode.kind === 'addChild' ? 'child'
+              : formMode.kind === 'addSibling' ? 'sibling'
+              : formMode.kind === 'addSpouse' ? 'spouse'
+              : formMode.kind === 'addParent' ? 'parent'
+              : undefined
+          }
+          anchorSex={person?.sex || ''}
+          anchorName={person ? getDisplayName(person) : ''}
         />
       )}
 

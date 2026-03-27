@@ -14,6 +14,7 @@ export interface ActivePointer {
   targetWorkspaceId: string;
   anchorIndividualId: string;
   relationship: 'child' | 'sibling' | 'spouse' | 'parent';
+  linkChildrenToAnchor: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ export async function getActivePointersForWorkspace(
       targetWorkspaceId: true,
       anchorIndividualId: true,
       relationship: true,
+      linkChildrenToAnchor: true,
     },
   });
 

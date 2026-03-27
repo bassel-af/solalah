@@ -4,6 +4,7 @@ import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeFamily, getTreeIndividual } from '@/lib/tree/queries';
 import { updateFamilySchema } from '@/lib/tree/schemas';
+import { validateFamilyGender } from '@/lib/tree/family-validators';
 import { isSyntheticFamilyId } from '@/lib/tree/branch-pointer-guards';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string }> };
@@ -88,6 +89,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         );
       }
     }
+  }
+
+  // Validate gender consistency for the effective husband/wife after update
+  const effectiveHusbandId = parsed.data.husbandId !== undefined ? parsed.data.husbandId : existing.husbandId;
+  const effectiveWifeId = parsed.data.wifeId !== undefined ? parsed.data.wifeId : existing.wifeId;
+  const genderCheck = await validateFamilyGender(effectiveHusbandId, effectiveWifeId, tree.id);
+  if (!genderCheck.valid) {
+    return NextResponse.json({ error: genderCheck.error }, { status: 400 });
   }
 
   const family = await prisma.family.update({

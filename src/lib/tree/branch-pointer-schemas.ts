@@ -23,6 +23,7 @@ export const redeemTokenSchema = z.object({
   anchorIndividualId: z.string().uuid(),
   selectedPersonId: z.string().min(1), // The person from the shared branch to link (may not be the token root)
   relationship: z.enum(['child', 'sibling', 'spouse', 'parent']),
+  linkChildrenToAnchor: z.boolean().optional().default(false),
 });
 
 // ---------------------------------------------------------------------------

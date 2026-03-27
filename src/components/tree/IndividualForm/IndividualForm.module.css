@@ -211,6 +211,47 @@
   color: var(--color-pointer-light);
 }
 
+/* Rule 3: orphaned children prompt card */
+.childrenPromptCard {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-pointer-bg);
+  border: 1px solid var(--color-pointer-border);
+}
+
+.childrenPromptText {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-70);
+  margin-bottom: var(--space-2);
+}
+
+.childrenList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.childrenList li {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-70);
+  padding-right: var(--space-3);
+}
+
+.childrenList li::before {
+  content: '•';
+  margin-left: var(--space-2);
+  color: var(--alpha-white-40);
+}
+
+.childrenMore {
+  color: var(--alpha-white-40);
+  font-style: italic;
+}
+
 /* Modal width override */
 .modal {
   max-width: 500px;

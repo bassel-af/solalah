@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireWorkspaceMember, requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { redeemTokenSchema } from '@/lib/tree/branch-pointer-schemas';
 import { hashToken } from '@/lib/tree/branch-share-token';
+import { validateSpouseGender } from '@/lib/tree/family-validators';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -63,12 +64,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const parsed = redeemTokenSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0].message },
+      { error: 'بيانات غير صالحة' },
       { status: 400 },
     );
   }
 
-  const { token, anchorIndividualId, selectedPersonId, relationship } = parsed.data;
+  const { token, anchorIndividualId, selectedPersonId, relationship, linkChildrenToAnchor } = parsed.data;
 
   // Look up token by hash
   const tokenHash = hashToken(token);
@@ -142,29 +143,128 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Increment use count
-  await prisma.branchShareToken.update({
-    where: { id: shareToken.id },
-    data: { useCount: { increment: 1 } },
-  });
-
-  // Create the branch pointer
-  // rootIndividualId = boundary root (token's root, e.g., فدوى)
-  // selectedIndividualId = the person picked by the admin (e.g., خالد)
-  const pointer = await prisma.branchPointer.create({
-    data: {
-      sourceWorkspaceId: shareToken.sourceWorkspaceId,
-      rootIndividualId: shareToken.rootIndividualId,
-      selectedIndividualId: selectedPersonId,
-      depthLimit: shareToken.depthLimit,
-      includeGrafts: shareToken.includeGrafts,
+  // Rule 4: One pointer per anchor — reject if anchor already has an active pointer
+  const existingPointer = await prisma.branchPointer.findFirst({
+    where: {
       targetWorkspaceId: workspaceId,
       anchorIndividualId,
-      relationship,
       status: 'active',
-      shareTokenId: shareToken.id,
-      createdById: result.user.id,
     },
+  });
+
+  if (existingPointer) {
+    return NextResponse.json(
+      { error: 'يوجد ربط فرع مسبق لهذا الشخص. لا يمكن إضافة أكثر من ربط واحد حالياً.' },
+      { status: 400 },
+    );
+  }
+
+  // Rule 1: Child/sibling — selected person must not have parents in the subtree
+  if (relationship === 'child' || relationship === 'sibling') {
+    // Check if the selected person has a familyAsChild in the source tree
+    const selectedAsChild = await prisma.familyChild.findFirst({
+      where: {
+        individualId: selectedPersonId,
+        family: { tree: { workspaceId: shareToken.sourceWorkspaceId } },
+      },
+    });
+    if (selectedAsChild) {
+      return NextResponse.json(
+        { error: 'لا يمكن الربط كابن أو أخ: الشخص المختار لديه والدان في الفرع المشارَك.' },
+        { status: 400 },
+      );
+    }
+  }
+
+  // Rule 2: Parent — no duplicate gender
+  if (relationship === 'parent') {
+    const selectedPerson = await prisma.individual.findFirst({
+      where: {
+        id: selectedPersonId,
+        tree: { workspaceId: shareToken.sourceWorkspaceId },
+      },
+      select: { sex: true },
+    });
+
+    if (!selectedPerson || !selectedPerson.sex) {
+      return NextResponse.json(
+        { error: 'يجب تحديد جنس الشخص المختار أولاً.' },
+        { status: 400 },
+      );
+    }
+
+    // Check if anchor already has a parent of the same gender
+    const anchorFamiliesAsChild = await prisma.family.findMany({
+      where: {
+        children: { some: { individualId: anchorIndividualId } },
+        tree: { workspaceId },
+      },
+      select: { husbandId: true, wifeId: true },
+    });
+
+    const hasSameGenderParent = anchorFamiliesAsChild.some((fam) =>
+      selectedPerson.sex === 'M' ? fam.husbandId !== null : fam.wifeId !== null,
+    );
+
+    if (hasSameGenderParent) {
+      const errorMsg = selectedPerson.sex === 'M'
+        ? 'لا يمكن إضافة أب — يوجد بالفعل أب لهذا الشخص في الشجرة.'
+        : 'لا يمكن إضافة أم — يوجد بالفعل أم لهذا الشخص في الشجرة.';
+      return NextResponse.json({ error: errorMsg }, { status: 400 });
+    }
+  }
+
+  // Spouse gender validation: anchor and selected must not be same known sex
+  if (relationship === 'spouse') {
+    const selectedPerson = await prisma.individual.findFirst({
+      where: { id: selectedPersonId, tree: { workspaceId: shareToken.sourceWorkspaceId } },
+      select: { sex: true },
+    });
+    const spouseCheck = validateSpouseGender(anchor.sex, selectedPerson?.sex ?? null);
+    if (!spouseCheck.valid) {
+      return NextResponse.json({ error: spouseCheck.error }, { status: 400 });
+    }
+  }
+
+  // Wrap pointer creation in a transaction to prevent race conditions
+  const pointer = await prisma.$transaction(async (tx) => {
+    // Re-check Rule 4 inside transaction to prevent races
+    const raceCheck = await tx.branchPointer.findFirst({
+      where: {
+        targetWorkspaceId: workspaceId,
+        anchorIndividualId,
+        status: 'active',
+      },
+    });
+    if (raceCheck) {
+      throw new Error('DUPLICATE_ANCHOR_POINTER');
+    }
+
+    // Increment use count
+    await tx.branchShareToken.update({
+      where: { id: shareToken.id },
+      data: { useCount: { increment: 1 } },
+    });
+
+    // Create the branch pointer
+    // rootIndividualId = boundary root (token's root, e.g., فدوى)
+    // selectedIndividualId = the person picked by the admin (e.g., خالد)
+    return tx.branchPointer.create({
+      data: {
+        sourceWorkspaceId: shareToken.sourceWorkspaceId,
+        rootIndividualId: shareToken.rootIndividualId,
+        selectedIndividualId: selectedPersonId,
+        depthLimit: shareToken.depthLimit,
+        includeGrafts: shareToken.includeGrafts,
+        targetWorkspaceId: workspaceId,
+        anchorIndividualId,
+        relationship,
+        linkChildrenToAnchor: relationship === 'spouse' ? linkChildrenToAnchor : false,
+        status: 'active',
+        shareTokenId: shareToken.id,
+        createdById: result.user.id,
+      },
+    });
   });
 
   return NextResponse.json({ data: pointer }, { status: 201 });

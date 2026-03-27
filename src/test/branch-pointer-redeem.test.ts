@@ -18,8 +18,10 @@ const mockShareTokenFindFirst = vi.fn();
 const mockShareTokenUpdate = vi.fn();
 const mockBranchPointerCreate = vi.fn();
 const mockBranchPointerCount = vi.fn();
+const mockBranchPointerFindFirst = vi.fn();
 const mockIndividualFindFirst = vi.fn();
 const mockFamilyTreeFindUnique = vi.fn();
+const mockTransaction = vi.fn();
 
 vi.mock('@/lib/db', () => ({
   prisma: {
@@ -33,6 +35,7 @@ vi.mock('@/lib/db', () => ({
     branchPointer: {
       create: (...args: unknown[]) => mockBranchPointerCreate(...args),
       count: (...args: unknown[]) => mockBranchPointerCount(...args),
+      findFirst: (...args: unknown[]) => mockBranchPointerFindFirst(...args),
     },
     individual: {
       findFirst: (...args: unknown[]) => mockIndividualFindFirst(...args),
@@ -40,6 +43,10 @@ vi.mock('@/lib/db', () => ({
     familyTree: {
       findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
     },
+    familyChild: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
@@ -175,6 +182,7 @@ describe('POST /api/workspaces/[id]/branch-pointers — redeem token', () => {
     mockValidToken();
     mockBranchPointerCount.mockResolvedValue(0);
     mockIndividualFindFirst.mockResolvedValue({ id: anchorId });
+    mockBranchPointerFindFirst.mockResolvedValue(null); // No existing pointer on anchor
     mockFamilyTreeFindUnique.mockResolvedValue({
       id: 'tree-target',
       workspaceId: wsId,
@@ -188,6 +196,18 @@ describe('POST /api/workspaces/[id]/branch-pointers — redeem token', () => {
       anchorIndividualId: anchorId,
       relationship: 'child',
       status: 'active',
+    });
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const txProxy = {
+        branchShareToken: {
+          update: (...args: unknown[]) => mockShareTokenUpdate(...args),
+        },
+        branchPointer: {
+          create: (...args: unknown[]) => mockBranchPointerCreate(...args),
+          findFirst: (...args: unknown[]) => mockBranchPointerFindFirst(...args),
+        },
+      };
+      return fn(txProxy);
     });
 
     const { POST } = await import(

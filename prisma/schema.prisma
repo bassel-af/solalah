@@ -506,6 +506,7 @@ model BranchPointer {
   anchorIndividualId     String                    @map("anchor_individual_id") @db.Uuid
   relationship        BranchPointerRelationship
   status              BranchPointerStatus       @default(active)
+  linkChildrenToAnchor Boolean                  @default(false) @map("link_children_to_anchor")
   shareTokenId        String?                   @map("share_token_id") @db.Uuid // token used to create this pointer
   createdById         String                    @map("created_by") @db.Uuid
   createdAt           DateTime                  @default(now()) @map("created_at")
