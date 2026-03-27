@@ -634,56 +634,77 @@ Notification
 - `hasExternalFamily()` — O(1) check per spouse for badge visibility
 - `findTopmostAncestor()` — upward traversal for re-root target
 
-### Phase 5 — Branch Pointers
+### Phase 5 — Branch Pointers (IN PROGRESS)
 
 **Motivating scenario:** فدوى شربك exists in both `/saeed` (married in) and `/sharbek` (maiden family). Her descendants are maintained in `/saeed`. The `/sharbek` workspace can link to her branch instead of duplicating and maintaining it separately.
 
-**Data model:**
-- `BranchSharingPolicy` enum on Workspace: `shareable` / `copyable_only` / `none` (default: `none`)
-- `BranchShareToken` table: token string, source workspace, root individual, depth limit, target workspace slug (scoped) or null (public), expiry, max uses, revoked flag
-- `BranchPointer` table: source workspace + root individual → target workspace + anchor individual, status (`active` / `revoked` / `broken`), relationship type (child/sibling/spouse/parent)
+**✅ Data model:**
+- `BranchSharingPolicy` enum on Workspace (default: `shareable` — no enablement step needed)
+- `BranchShareToken` table: SHA-256 hashed token, source workspace, root individual, depth limit, include-grafts flag, target workspace ID (scoped) or null (public), expiry, max uses, revoked flag
+- `BranchPointer` table: source workspace + root individual + selected individual → target workspace + anchor individual, status (`active` / `revoked` / `broken`), relationship type
+- `selectedIndividualId` on BranchPointer — the person picked by the target admin from within the shared branch (may differ from the boundary root)
 
-**Share creation flow (source workspace admin):**
+**✅ Token security:**
+- 256-bit tokens via `crypto.randomBytes(32)` with `brsh_` prefix
+- SHA-256 hashed storage — plaintext never stored in DB
+- Generic error messages for all rejection paths (no info leakage)
+- Token scoped by workspace UUID (not slug — immune to slug re-registration)
+
+**✅ Share creation flow (source workspace admin):**
 - Select a person as the root of the shared branch
 - Set optional depth limit (number of generations below the root; no limit = entire subtree)
 - Toggle: include married-in spouse families yes/no (if yes, graft data included as-is, no separate depth setting)
-- Preview: renders the shared branch as a read-only mini-tree so admin sees exactly what will be visible
-- Scope: type the target workspace slug (only that workspace can redeem) OR mark as public (any workspace)
-- Generate shareable token/link
+- Scope: type the target workspace slug (resolved to UUID) OR mark as public (any workspace)
+- Generate shareable token with copy button
+- List existing tokens with revoke buttons on workspace settings page
 
-**Visual indicator on source tree:**
-- Shared branch root person gets a visible badge/marker in the source tree so it's easy to find which branches are being shared
-
-**Target redemption flow (target workspace admin):**
+**✅ Target redemption flow (target workspace admin):**
 - Inside any "add" modal (child/sibling/spouse/parent), a subtle toggle: "ربط من مساحة أخرى" (link from another workspace)
-- Paste the share token → preview the branch → confirm
+- Paste the share token → validate → preview shows branch info (source workspace, person count)
+- Person picker: admin browses all people in the shared branch and selects which specific person to link (not necessarily the branch root)
 - The anchor individual is always required — the linked branch attaches to a specific person in the target tree
 - The relationship type (child/sibling/spouse/parent) is determined by which add modal the user is in
 
-**Live sync:**
+**✅ Live sync:**
 - Target's `GET /tree` merges source subtree at query time — no data duplication
-- Pointed individuals are marked read-only in the API response
+- Pointed individuals marked with `_pointed: true` and `_sourceWorkspaceId` in API response
 - Edits in source are visible automatically in target
 
-**Read-only enforcement:**
-- Pointed individuals: edit/delete/add buttons hidden in sidebar
-- Pointed PersonCards: visual indicator (badge, border, or tint) distinguishing them from native individuals
-- Server-side guard: mutation endpoints reject changes to pointed individuals
+**✅ Read-only enforcement:**
+- Pointed individuals: edit/delete/add buttons hidden in sidebar, replaced with teal info banner "فرع مرتبط — للقراءة فقط"
+- Pointed PersonCards: teal dashed border on 3 sides (preserving gender-colored top border), teal badge with link icon, teal background tint
+- Pointed edges: teal dashed stroke between pointed individuals
+- Shared root badge: teal share icon on source tree for persons whose branch is being shared
+- Server-side mutation guard: 403 for pointed individuals, 400 for synthetic family IDs
+- `usePersonActions` state machine: all edit modes disabled for pointed individuals
 
-**Break pointer (target action):**
-- Target admin can break the live link at any time
-- Triggers automatic deep copy of the entire linked branch into the target workspace
-- Branch becomes independent editable data from that point on
+**✅ Frontend components:**
+- `ShareBranchModal` — person search, depth limit, grafts toggle, target slug, token generation
+- `ShareTokenList` — list outgoing tokens with revoke buttons
+- `IncomingPointerList` — list incoming pointers with break/copy buttons
+- Teal design tokens added to `colors.css` (6 new CSS custom properties)
+- Workspace settings page: "مشاركة الفروع" and "الفروع المرتبطة" sections (admin only)
 
-**Revocation / source deletion:**
-- Source admin can revoke a pointer, OR source deletes the linked person
-- Triggers automatic deep copy into target workspace + notification to target admin
-- No data loss — target gets an independent copy with a notification explaining what happened
+**✅ Deep copy mechanism:**
+- `prepareDeepCopy()` — new UUIDs, full ID remapping, workspace-specific placeIds nulled
+- Break pointer endpoint: target admin triggers deep copy, pointer status set to `broken`
+- Auto deep-copy on revocation/source deletion with notification
 
-**Boundary rules:**
-- Depth limit applies to the main branch (generations below the root person)
-- Married-in spouse families (graft data) have no separate depth setting — included as-is if the toggle is on
-- The share token encodes: root person + depth limit + include-grafts flag + target scope
+**✅ Tests:**
+- 939 tests pass (12 new test files, 117 new tests)
+- Covers: token generation, schemas, extraction, merge, mutation guards, API endpoints, deep copy
+
+**⚠️ TODO — Relationship stitching scenarios (needs design + testing):**
+The merge stitching logic currently handles the basic case but does not account for all relationship scenarios. The following cases need to be designed, validated, and tested before Phase 5 is complete:
+
+- **Sibling with different parents**: If the selected person (خالد) already has parents (فدوى + عبدالناصر) in the source tree, linking him as a sibling to someone (عماد) who has different parents (رلى + محمد) is semantically invalid — they can't share a parent family. The system should either: (a) reject this combination, (b) show خالد's own parents from the source alongside him, or (c) present a different UX for this case.
+- **Child when selected person has parents**: If linking خالد as a child of someone, should his source parents (فدوى) also appear in the tree above him?
+- **Parent linking**: Linking a source person as a parent of a target person — how does the source person's own ancestry appear?
+- **Spouse linking**: Linking a source person as a spouse — simplest case, but need to verify children rendering
+- **Selected person vs boundary root**: When the selected person is deep in the branch (not the root), what subset of the pointed subtree should be visible? Just the selected person + their descendants? Or the full boundary from root down?
+- **Multiple pointers to the same anchor**: Can a target person have multiple branch pointers attached? How do they render?
+
+These scenarios must be resolved before marking Phase 5 complete. See `docs/design-branch-pointers.md` for the full technical design.
 
 ### Phase 6 — GEDCOM Import/Export
 
