@@ -128,7 +128,7 @@ export function IncomingPointerList({ workspaceId, isAdmin }: IncomingPointerLis
             <div className={styles.pointerActions}>
               {confirmBreak === pointer.id ? (
                 <div className={styles.confirmInline}>
-                  <span className={styles.confirmText}>فصل؟</span>
+                  <span className={styles.confirmText}>فصل الفرع؟ ستختفي البيانات المرتبطة من الشجرة.</span>
                   <button
                     className={styles.confirmYes}
                     onClick={() => handleBreak(pointer.id)}

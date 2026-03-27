@@ -367,6 +367,7 @@ function mockTransactionPassthrough() {
     const txProxy = {
       branchShareToken: {
         update: (...args: unknown[]) => mockShareTokenUpdate(...args),
+        findUnique: vi.fn().mockResolvedValue({ isRevoked: false }),
       },
       branchPointer: {
         create: (...args: unknown[]) => mockBranchPointerCreate(...args),

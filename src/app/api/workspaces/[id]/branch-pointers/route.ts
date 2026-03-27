@@ -227,45 +227,72 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Wrap pointer creation in a transaction to prevent race conditions
-  const pointer = await prisma.$transaction(async (tx) => {
-    // Re-check Rule 4 inside transaction to prevent races
-    const raceCheck = await tx.branchPointer.findFirst({
-      where: {
-        targetWorkspaceId: workspaceId,
-        anchorIndividualId,
-        status: 'active',
-      },
+  let pointer;
+  try {
+    pointer = await prisma.$transaction(async (tx) => {
+      // Re-check Rule 4 inside transaction to prevent races
+      const raceCheck = await tx.branchPointer.findFirst({
+        where: {
+          targetWorkspaceId: workspaceId,
+          anchorIndividualId,
+          status: 'active',
+        },
+      });
+      if (raceCheck) {
+        throw new Error('DUPLICATE_ANCHOR_POINTER');
+      }
+
+      // Re-check token revocation inside transaction to prevent race with concurrent revoke
+      const freshToken = await tx.branchShareToken.findUnique({
+        where: { id: shareToken.id },
+        select: { isRevoked: true },
+      });
+      if (!freshToken || freshToken.isRevoked) {
+        throw new Error('TOKEN_REVOKED');
+      }
+
+      // Increment use count
+      await tx.branchShareToken.update({
+        where: { id: shareToken.id },
+        data: { useCount: { increment: 1 } },
+      });
+
+      // Create the branch pointer
+      // rootIndividualId = boundary root (token's root, e.g., فدوى)
+      // selectedIndividualId = the person picked by the admin (e.g., خالد)
+      return tx.branchPointer.create({
+        data: {
+          sourceWorkspaceId: shareToken.sourceWorkspaceId,
+          rootIndividualId: shareToken.rootIndividualId,
+          selectedIndividualId: selectedPersonId,
+          depthLimit: shareToken.depthLimit,
+          includeGrafts: shareToken.includeGrafts,
+          targetWorkspaceId: workspaceId,
+          anchorIndividualId,
+          relationship,
+          linkChildrenToAnchor: relationship === 'spouse' ? linkChildrenToAnchor : false,
+          status: 'active',
+          shareTokenId: shareToken.id,
+          createdById: result.user.id,
+        },
+      });
     });
-    if (raceCheck) {
-      throw new Error('DUPLICATE_ANCHOR_POINTER');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '';
+    if (message === 'DUPLICATE_ANCHOR_POINTER') {
+      return NextResponse.json(
+        { error: 'يوجد ربط نشط بالفعل على هذا الشخص' },
+        { status: 400 },
+      );
     }
-
-    // Increment use count
-    await tx.branchShareToken.update({
-      where: { id: shareToken.id },
-      data: { useCount: { increment: 1 } },
-    });
-
-    // Create the branch pointer
-    // rootIndividualId = boundary root (token's root, e.g., فدوى)
-    // selectedIndividualId = the person picked by the admin (e.g., خالد)
-    return tx.branchPointer.create({
-      data: {
-        sourceWorkspaceId: shareToken.sourceWorkspaceId,
-        rootIndividualId: shareToken.rootIndividualId,
-        selectedIndividualId: selectedPersonId,
-        depthLimit: shareToken.depthLimit,
-        includeGrafts: shareToken.includeGrafts,
-        targetWorkspaceId: workspaceId,
-        anchorIndividualId,
-        relationship,
-        linkChildrenToAnchor: relationship === 'spouse' ? linkChildrenToAnchor : false,
-        status: 'active',
-        shareTokenId: shareToken.id,
-        createdById: result.user.id,
-      },
-    });
-  });
+    if (message === 'TOKEN_REVOKED') {
+      return NextResponse.json(
+        { error: 'الرمز غير صالح أو منتهي الصلاحية' },
+        { status: 400 },
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json({ data: pointer }, { status: 201 });
 }

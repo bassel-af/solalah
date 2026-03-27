@@ -379,8 +379,9 @@ export function PersonDetail({ personId }: PersonDetailProps) {
       throw new Error(body.error || 'فشل في ربط الفرع');
     }
     setFormMode(null);
-    workspace.refreshTree?.();
-  }, [person, workspace, formMode, setFormMode]);
+    await workspace.refreshTree?.();
+    setFocusPersonId(selectedPersonId);
+  }, [person, workspace, formMode, setFormMode, setFocusPersonId]);
 
   // -------------------------------------------------------------------------
   // Derived: form submit dispatcher + initial data

@@ -150,6 +150,103 @@ export function prepareDeepCopy(
 }
 
 // ---------------------------------------------------------------------------
+// persistDeepCopy
+// ---------------------------------------------------------------------------
+
+/**
+ * Persists a prepared deep-copy result into the database within a transaction.
+ * Creates individuals, families, familyChild records, and optional stitch family.
+ */
+export async function persistDeepCopy(
+  tx: any, // Prisma transaction client
+  targetTreeId: string,
+  copyResult: DeepCopyResult,
+): Promise<void> {
+  // Create copied individuals
+  const individualData = Object.values(copyResult.individuals).map((ind) => ({
+    id: ind.id,
+    treeId: targetTreeId,
+    givenName: ind.givenName || null,
+    surname: ind.surname || null,
+    fullName: ind.name || null,
+    sex: ind.sex,
+    birthDate: ind.birth || null,
+    birthPlace: ind.birthPlace || null,
+    birthDescription: ind.birthDescription || null,
+    birthNotes: ind.birthNotes || null,
+    birthHijriDate: ind.birthHijriDate || null,
+    deathDate: ind.death || null,
+    deathPlace: ind.deathPlace || null,
+    deathDescription: ind.deathDescription || null,
+    deathNotes: ind.deathNotes || null,
+    deathHijriDate: ind.deathHijriDate || null,
+    notes: ind.notes || null,
+    isDeceased: ind.isDeceased,
+    isPrivate: ind.isPrivate,
+  }));
+
+  if (individualData.length > 0) {
+    await tx.individual.createMany({ data: individualData });
+  }
+
+  // Create copied families
+  const familyData = Object.values(copyResult.families).map((fam) => ({
+    id: fam.id,
+    treeId: targetTreeId,
+    husbandId: fam.husband || null,
+    wifeId: fam.wife || null,
+    marriageContractDate: fam.marriageContract?.date || null,
+    marriageContractHijriDate: fam.marriageContract?.hijriDate || null,
+    marriageContractPlace: fam.marriageContract?.place || null,
+    marriageContractDescription: fam.marriageContract?.description || null,
+    marriageContractNotes: fam.marriageContract?.notes || null,
+    marriageDate: fam.marriage?.date || null,
+    marriageHijriDate: fam.marriage?.hijriDate || null,
+    marriagePlace: fam.marriage?.place || null,
+    marriageDescription: fam.marriage?.description || null,
+    marriageNotes: fam.marriage?.notes || null,
+    divorceDate: fam.divorce?.date || null,
+    divorceHijriDate: fam.divorce?.hijriDate || null,
+    divorcePlace: fam.divorce?.place || null,
+    divorceDescription: fam.divorce?.description || null,
+    divorceNotes: fam.divorce?.notes || null,
+    isDivorced: fam.isDivorced,
+  }));
+
+  if (familyData.length > 0) {
+    await tx.family.createMany({ data: familyData });
+  }
+
+  // Create stitch family (connects copied root to anchor)
+  if (copyResult.stitchFamily) {
+    const sf = copyResult.stitchFamily;
+    await tx.family.create({
+      data: {
+        id: sf.id,
+        treeId: targetTreeId,
+        husbandId: sf.husband || null,
+        wifeId: sf.wife || null,
+      },
+    });
+
+    for (const childId of sf.children) {
+      await tx.familyChild.create({
+        data: { familyId: sf.id, individualId: childId },
+      });
+    }
+  }
+
+  // Create family_children records for copied families
+  for (const fam of Object.values(copyResult.families)) {
+    for (const childId of fam.children) {
+      await tx.familyChild.create({
+        data: { familyId: fam.id, individualId: childId },
+      });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
