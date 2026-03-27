@@ -233,12 +233,20 @@ function PersonNode({ data }: { data: PersonNodeData }) {
           {/* If only one spouse: centered handle between couple */}
           {/* If multiple spouses: handles under each wife */}
           {spouses.length === 1 ? (
-            <Handle
-              type="source"
-              position={Position.Bottom}
-              id="spouse-0"
-              style={{ opacity: 0 }}
-            />
+            <>
+              <Handle
+                type="source"
+                position={Position.Bottom}
+                id="spouse-0"
+                style={{ opacity: 0 }}
+              />
+              <Handle
+                type="source"
+                position={Position.Bottom}
+                id="default"
+                style={{ opacity: 0, left: 70 }}
+              />
+            </>
           ) : (
             <>
               {spouses.map((_, index) => (
@@ -342,6 +350,7 @@ function buildTreeData(
     const personFamilies = person.familiesAsSpouse
       .map((fid) => data.families[fid])
       .filter(Boolean);
+
 
     // Collect all unique non-private spouses
     const spouseIds: string[] = [];
