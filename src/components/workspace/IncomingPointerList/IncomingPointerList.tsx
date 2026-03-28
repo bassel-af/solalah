@@ -15,7 +15,6 @@ interface IncomingPointer {
 
 interface IncomingPointerListProps {
   workspaceId: string;
-  isAdmin: boolean;
 }
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
@@ -25,12 +24,10 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   parent: 'والد/والدة',
 };
 
-export function IncomingPointerList({ workspaceId, isAdmin }: IncomingPointerListProps) {
+export function IncomingPointerList({ workspaceId }: IncomingPointerListProps) {
   const [pointers, setPointers] = useState<IncomingPointer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [actionId, setActionId] = useState<string | null>(null);
-  const [confirmBreak, setConfirmBreak] = useState<string | null>(null);
 
   const fetchPointers = useCallback(async () => {
     try {
@@ -51,45 +48,6 @@ export function IncomingPointerList({ workspaceId, isAdmin }: IncomingPointerLis
   useEffect(() => {
     fetchPointers();
   }, [fetchPointers]);
-
-  const handleBreak = useCallback(async (pointerId: string) => {
-    setActionId(pointerId);
-    setError('');
-    try {
-      const res = await apiFetch(`/api/workspaces/${workspaceId}/branch-pointers/${pointerId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || 'فشل في فصل الفرع');
-      }
-      setConfirmBreak(null);
-      await fetchPointers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ');
-    } finally {
-      setActionId(null);
-    }
-  }, [workspaceId, fetchPointers]);
-
-  const handleCopy = useCallback(async (pointerId: string) => {
-    setActionId(pointerId);
-    setError('');
-    try {
-      const res = await apiFetch(`/api/workspaces/${workspaceId}/branch-pointers/${pointerId}/copy`, {
-        method: 'POST',
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || 'فشل في نسخ الفرع');
-      }
-      await fetchPointers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ');
-    } finally {
-      setActionId(null);
-    }
-  }, [workspaceId, fetchPointers]);
 
   if (loading) {
     return <div className={styles.empty}>جاري التحميل...</div>;
@@ -124,46 +82,6 @@ export function IncomingPointerList({ workspaceId, isAdmin }: IncomingPointerLis
               </span>
             </div>
           </div>
-          {isAdmin && pointer.status === 'active' && (
-            <div className={styles.pointerActions}>
-              {confirmBreak === pointer.id ? (
-                <div className={styles.confirmInline}>
-                  <span className={styles.confirmText}>فصل الفرع؟ ستختفي البيانات المرتبطة من الشجرة.</span>
-                  <button
-                    className={styles.confirmYes}
-                    onClick={() => handleBreak(pointer.id)}
-                    disabled={actionId === pointer.id}
-                  >
-                    {actionId === pointer.id ? '...' : 'نعم'}
-                  </button>
-                  <button
-                    className={styles.confirmNo}
-                    onClick={() => setConfirmBreak(null)}
-                    disabled={actionId === pointer.id}
-                  >
-                    لا
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    className={styles.breakButton}
-                    onClick={() => setConfirmBreak(pointer.id)}
-                    disabled={actionId === pointer.id}
-                  >
-                    فصل
-                  </button>
-                  <button
-                    className={styles.copyButton}
-                    onClick={() => handleCopy(pointer.id)}
-                    disabled={actionId === pointer.id}
-                  >
-                    {actionId === pointer.id ? '...' : 'نسخ'}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
         </div>
       ))}
     </div>

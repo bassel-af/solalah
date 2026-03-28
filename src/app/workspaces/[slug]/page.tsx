@@ -423,7 +423,6 @@ export default function WorkspaceDetailPage() {
           </div>
           <IncomingPointerList
             workspaceId={workspace.id}
-            isAdmin={isAdmin}
           />
         </div>
       </div>
