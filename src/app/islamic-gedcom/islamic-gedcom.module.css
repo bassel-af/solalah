@@ -164,13 +164,119 @@
   margin-top: var(--space-4);
 }
 
-.lastUpdated {
-  text-align: center;
+.header {
+  margin-bottom: var(--space-10);
+}
+
+/* Tag type label (قياسي / امتداد) */
+.tagLabel {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-40);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--alpha-white-15);
+  border-radius: 4px;
+}
+
+.inlineCode {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #60a5fa;
+}
+
+/* Mapping table (MARC ← عقد القران) */
+.mappingTable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+  padding: var(--space-5);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid var(--alpha-white-08);
+}
+
+.mappingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.mappingTag {
+  direction: ltr;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
   font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #60a5fa;
+  min-width: 60px;
+  text-align: center;
+}
+
+.mappingArrow {
   color: var(--alpha-white-25);
+  font-size: var(--font-size-lg);
+}
+
+.mappingConcept {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-70);
+}
+
+/* Compatibility grid */
+.compatGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.compatItem {
+  padding: var(--space-5);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid var(--alpha-white-08);
+}
+
+.compatVersion {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #34d399;
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.compatDesc {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-60);
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* Footer */
+.footer {
   margin-top: var(--space-10);
   padding-top: var(--space-6);
   border-top: 1px solid var(--alpha-white-08);
+  text-align: center;
+}
+
+.lastUpdated {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-25);
+  margin: 0 0 var(--space-3);
+}
+
+.footerNote {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-30);
+  margin: 0;
+  line-height: 1.7;
 }
 
 @media (max-width: 640px) {
@@ -189,5 +295,9 @@
   .tagHeader {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .compatGrid {
+    grid-template-columns: 1fr;
   }
 }

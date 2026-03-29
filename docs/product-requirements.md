@@ -540,10 +540,15 @@ Notification
 - Button text auto-determined by person's sex: "إضافة زوجة" for males, "إضافة زوج" for females
 - Sex field auto-locked in the form (opposite of selected person's sex)
 
-**✅ Islamic GEDCOM standard page:**
-- Public page at `/islamic-gedcom` documenting custom `_HIJR` tag and standard GEDCOM tag mappings to Islamic marriage concepts
+**✅ Islamic GEDCOM reference page (مرجع GEDCOM الإسلامي):**
+- Public page at `/islamic-gedcom` — comprehensive reference for documenting Islamic genealogy in GEDCOM format
+- Custom extension tag: `_HIJR` (Hijri date subtag on any event)
+- Standard GEDCOM tag mappings to Islamic marriage: `MARC` → عقد القران, `MARR` → الزفاف, `DIV` → الطلاق/الخلع
+- Rada'a (milk kinship) extension: `_RADA_FAM` (milk family record), `_RADA_WIFE` / `_RADA_HUSB` / `_RADA_CHIL` (milk parents and nursed children), `_RADA_FAMC` (individual's milk family link) — all custom-namespaced to prevent mixing with nasab data
+- Rada'a records do not alter the nasab tree; they document kinship between existing tree members for sharia implications (e.g., marriage prohibition)
 - Covers GEDCOM 5.5.1 and 7.0 compatibility
-- Arabic-first RTL layout with LTR code examples on separate lines
+- Full SEO metadata (OpenGraph, Twitter cards, keywords in Arabic + English)
+- Arabic-first RTL layout with LTR code examples
 
 **✅ Architecture improvements:**
 - Shared Zod schemas extracted to `src/lib/tree/schemas.ts` — individual and family field schemas reused across create/update routes
