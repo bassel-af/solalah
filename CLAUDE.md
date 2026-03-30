@@ -124,7 +124,7 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 ### Hooks
 
 - `useCalendarPreference` — manages hijri/gregorian preference with localStorage persistence and server sync
-- `usePersonActions` — Phase 3 editing state machine (modes: `edit`, `addChild`, `addSpouse`, `addParent`, `editFamilyEvent`) with submit/delete handlers and child-move support
+- `usePersonActions` — Phase 3 editing state machine (modes: `edit`, `addChild`, `addSpouse`, `addParent`, `editFamilyEvent`) with submit/delete handlers and child-move support; uses `withFormAction()` wrapper for consistent loading/error/cleanup cycle
 - `useWorkspaceTreeData` — fetches and manages workspace tree data
 - `usePointerActions` — shared hook for branch pointer break/copy API calls (used by sidebar)
 - `useGedcomData` — fetches GEDCOM file from `/public/` for legacy routes
@@ -220,6 +220,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - 19 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, TreeEditLog, BranchShareToken, BranchPointer, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place
 - `BranchShareToken` — SHA-256 hashed token with root individual, depth limit, target workspace scope, revoke flag
 - `BranchPointer` — links source subtree to target workspace anchor; status (`active`/`revoked`/`broken`), relationship type, `linkChildrenToAnchor` flag, `shareTokenId` FK
+- `FamilyTree` has `lastModifiedAt` timestamp (updated on every tree mutation, used for ETag caching)
 - `User` has `calendarPreference` field (default: `'hijri'`)
 - `Individual` has `birthHijriDate`, `deathHijriDate`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`
 - `Family` has marriage contract (MARC), marriage (MARR), and divorce (DIV) event fields: `{type}Date`, `{type}HijriDate`, `{type}Place`, `{type}Description`, `{type}Notes`, plus `isDivorced`
@@ -248,6 +249,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 **API Utilities**:
 - Auth guard: `src/lib/api/auth.ts` — `getAuthenticatedUser(request)` parses Bearer token, verifies via Supabase
 - Workspace guards: `src/lib/api/workspace-auth.ts` — `requireWorkspaceMember()`, `requireWorkspaceAdmin()`, `requireTreeEditor()`
+- Request helpers: `src/lib/api/route-helpers.ts` — `parseValidatedBody(request, zodSchema)` parses JSON + validates with Zod in one call; `isParseError()` type guard. Used by all mutable API routes to eliminate boilerplate.
 - Rate limiting: `src/lib/api/rate-limit.ts` — in-memory `RateLimiter` class with pre-configured instances per endpoint (single-process; needs Redis before horizontal scaling)
 - Client fetch: `src/lib/api/client.ts` — `apiFetch(path, options)` auto-attaches Bearer token
 - Serialization: `src/lib/api/serialize.ts` — `serializeBigInt()` for JSON responses with BigInt fields
@@ -268,7 +270,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `POST /api/invitations/[id]/accept` — accept email invitation (atomic transaction)
 
 **Tree API Routes** (`src/app/api/workspaces/[id]/tree/`):
-- `GET /api/workspaces/[id]/tree` — full tree as `GedcomData` (private individuals redacted server-side)
+- `GET /api/workspaces/[id]/tree` — full tree as `GedcomData` (private individuals redacted server-side); supports ETag/`If-None-Match` for 304 responses, returns `Cache-Control: private, max-age=30, stale-while-revalidate=300`; branch pointer source trees are fetched in parallel and deduplicated by workspace ID
 - `POST /api/workspaces/[id]/tree/individuals` — create individual (`tree_editor` or admin)
 - `PATCH /api/workspaces/[id]/tree/individuals/[id]` — update individual
 - `DELETE /api/workspaces/[id]/tree/individuals/[id]` — delete individual
@@ -300,7 +302,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `POST /api/workspaces/[id]/share-tokens/preview` — preview a token's subtree before redeeming
 
 **Tree Library** (`src/lib/tree/`):
-- `queries.ts` — database query helpers for tree CRUD
+- `queries.ts` — database query helpers for tree CRUD; `touchTreeTimestamp(treeId)` updates `FamilyTree.lastModifiedAt` (called by all mutation routes for ETag invalidation)
 - `mapper.ts` — `dbTreeToGedcomData()` maps DB records to `GedcomData` shape; `redactPrivateIndividuals()` strips PII from private individuals
 - `seed-helpers.ts` — helpers for seeding tree data from GEDCOM
 - `schemas.ts` — Zod validation schemas for tree API requests
