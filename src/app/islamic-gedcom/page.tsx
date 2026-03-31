@@ -287,7 +287,12 @@ export default function IslamicGedcomPage() {
               <span className={styles.tagName}>عائلة من الرضاعة</span>
             </div>
             <p className={styles.tagDesc}>
-              سجل يُجمّع الأفراد الذين تربطهم علاقة رضاعة واحدة.
+              سجل يجمع الأفراد الذين تربطهم علاقة رضاعة واحدة.
+              استُخدم سجل مخصص بدلاً من <span className={styles.inlineCode}>FAMC</span> مع{' '}
+              <span className={styles.inlineCode}>PEDI</span> لأن ذلك سيجعل البرامج القياسية
+              ترسم الطفل تحت المرضعة في شجرة النسب — وهذا خطأ لأن الرضاعة لا تغيّر النسب.
+            </p>
+            <p className={styles.tagDesc}>
               يعمل بنفس منطق سجل العائلة (<span className={styles.inlineCode}>FAM</span>)
               في GEDCOM: من يشتركون في نفس{' '}
               <span className={styles.inlineCode}>_RADA_FAM</span> عبر{' '}
@@ -338,7 +343,7 @@ export default function IslamicGedcomPage() {
             <div className={styles.tagHeader}>
               <span className={`${styles.tagBadge} ${styles.tagBadgeCustom}`}>_RADA_FAMC</span>
               <span className={styles.tagLabel}>امتداد</span>
-              <span className={styles.tagName}>الانتماء لعائلة من رضاعة</span>
+              <span className={styles.tagName}>الانتماء لعائلة من الرضاعة</span>
             </div>
             <p className={styles.tagDesc}>
               يوضع على سجل الفرد للإشارة إلى عائلة الرضاعة التي ينتمي إليها.
