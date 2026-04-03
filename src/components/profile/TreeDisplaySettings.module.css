@@ -5,61 +5,83 @@
 .wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-7);
 }
 
-/* Color picker row */
-.colorRow {
-  display: flex;
-  align-items: center;
+/* ---- Color picker tiles ---- */
+.colorTiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-5);
 }
 
-.colorInfo {
+.colorTile {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-  min-width: 0;
-}
-
-.colorLabel {
-  font-size: var(--font-size-base);
-  color: var(--alpha-white-70);
-  font-weight: var(--font-weight-medium);
-}
-
-.colorHex {
-  font-size: var(--font-size-xs);
-  color: var(--alpha-white-30);
-  direction: ltr;
-  unicode-bidi: isolate;
-  font-family: monospace;
-}
-
-/* Swatch + native color input */
-.swatchButton {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--alpha-white-15);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-7) var(--space-5) var(--space-5);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--alpha-white-08);
+  background: var(--alpha-white-04);
   cursor: pointer;
-  overflow: hidden;
-  flex-shrink: 0;
-  transition: border-color var(--transition-base), transform var(--transition-fast);
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
-.swatchButton:hover {
-  border-color: var(--alpha-white-30);
-  transform: scale(1.05);
+.colorTile:hover {
+  border-color: var(--alpha-white-15);
+  background: var(--alpha-white-06);
 }
 
-.swatchButton:focus-within {
+.colorTile:focus-within {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-focus-primary);
 }
 
+/* The swatch (rounded rectangle, large, premium feel) */
+.swatch {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+  transition:
+    background-color var(--transition-slow),
+    transform var(--transition-fast),
+    box-shadow var(--transition-base);
+}
+
+.colorTile:hover .swatch {
+  transform: scale(1.06);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Subtle glass highlight overlay */
+.swatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.06) 40%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* Hidden native color input stretched over the swatch */
 .colorInput {
   position: absolute;
   inset: -8px;
@@ -69,78 +91,182 @@
   padding: 0;
   cursor: pointer;
   background: transparent;
+  opacity: 0;
 }
 
-/* Hide the native color input's chrome so only the swatch is visible */
 .colorInput::-webkit-color-swatch-wrapper {
   padding: 0;
 }
 
 .colorInput::-webkit-color-swatch {
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
 }
 
 .colorInput::-moz-color-swatch {
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
 }
 
-/* Preview strip */
-.previewStrip {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
+/* Label beneath the swatch */
+.colorLabel {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-50);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  line-height: var(--line-height-snug);
+}
+
+/* ---- Preview stage ---- */
+.previewStage {
+  position: relative;
+  padding: var(--space-11) var(--space-9);
+  border-radius: var(--radius-2xl);
   border: 1px solid var(--alpha-white-06);
   background: var(--alpha-white-04);
+  overflow: hidden;
 }
 
+/* Subtle dot grid to evoke a canvas / graph paper feel */
+.previewStage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--alpha-white-06) 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+}
+
+.previewLabel {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-25);
+  text-align: center;
+  margin-bottom: var(--space-5);
+  position: relative;
+}
+
+.previewCards {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-7);
+  position: relative;
+}
+
+/* Preview cards mirroring the real PersonCard component */
 .previewCard {
-  flex: 1;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
+  width: 140px;
   background: white;
+  border: 1px solid var(--color-light-500);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6);
   text-align: center;
   border-top-width: 4px;
   border-top-style: solid;
   box-shadow: var(--shadow-sm);
+  transition:
+    border-top-color var(--transition-slow),
+    box-shadow var(--transition-base);
 }
 
-.previewCardLabel {
-  font-size: var(--font-size-sm);
+.previewCardName {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
   color: var(--color-text-primary);
-  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-1);
 }
 
-.previewCardSub {
-  font-size: var(--font-size-xs);
+.previewCardDates {
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin-top: 2px;
 }
 
-/* Reset button row */
-.resetRow {
+/* Connector line between preview cards (spouse connector) */
+.previewConnector {
+  display: flex;
+  align-items: center;
+}
+
+.previewConnectorLine {
+  width: 20px;
+  height: 2px;
+  background: var(--color-light-600);
+  border-radius: 1px;
+}
+
+/* ---- Reset footer ---- */
+.resetFooter {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: var(--space-1);
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--alpha-white-06);
+  background: var(--alpha-white-04);
+  transition: background var(--transition-base);
+}
+
+.resetFooter:has(button:not(:disabled):hover) {
+  background: var(--alpha-white-06);
 }
 
 .resetHint {
   font-size: var(--font-size-xs);
   color: var(--alpha-white-25);
+  line-height: 1.5;
 }
 
-/* Separator */
-.divider {
-  border: none;
-  border-top: 1px solid var(--alpha-white-06);
-  margin: 0;
+.resetHintSuccess {
+  color: #68d391;
+  animation: fadeInReset 0.2s ease;
 }
 
+@keyframes fadeInReset {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Responsive ---- */
 @media (max-width: 480px) {
-  .previewStrip {
+  .colorTiles {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .swatch {
+    width: 48px;
+    height: 48px;
+  }
+
+  .previewStage {
+    padding: var(--space-9) var(--space-5);
+  }
+
+  .previewCards {
+    gap: var(--space-4);
+  }
+
+  .previewCard {
+    width: 110px;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .previewCardName {
+    font-size: var(--font-size-sm);
+  }
+
+  .previewCardDates {
+    font-size: var(--font-size-xs);
+  }
+
+  .previewConnectorLine {
+    width: 12px;
+  }
+
+  .resetFooter {
     flex-direction: column;
+    text-align: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
   }
 }

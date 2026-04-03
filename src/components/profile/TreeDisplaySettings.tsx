@@ -48,70 +48,73 @@ export function TreeDisplaySettings() {
 
   return (
     <div className={styles.wrapper}>
-      {/* Male node color */}
-      <div className={styles.colorRow}>
-        <div className={styles.colorInfo}>
+      {/* Color picker tiles */}
+      <div className={styles.colorTiles}>
+        <label className={styles.colorTile}>
+          <div
+            className={styles.swatch}
+            style={{ backgroundColor: settings.maleNodeColor }}
+          >
+            <input
+              type="color"
+              className={styles.colorInput}
+              value={settings.maleNodeColor}
+              onChange={(e) => handleColorChange('maleNodeColor', e.target.value)}
+              aria-label="لون عقد الذكور"
+            />
+          </div>
           <span className={styles.colorLabel}>لون عقد الذكور</span>
-          <span className={styles.colorHex}>{settings.maleNodeColor}</span>
-        </div>
-        <div
-          className={styles.swatchButton}
-          style={{ backgroundColor: settings.maleNodeColor }}
-        >
-          <input
-            type="color"
-            className={styles.colorInput}
-            value={settings.maleNodeColor}
-            onChange={(e) => handleColorChange('maleNodeColor', e.target.value)}
-            aria-label="لون عقد الذكور"
-          />
-        </div>
-      </div>
+        </label>
 
-      {/* Female node color */}
-      <div className={styles.colorRow}>
-        <div className={styles.colorInfo}>
+        <label className={styles.colorTile}>
+          <div
+            className={styles.swatch}
+            style={{ backgroundColor: settings.femaleNodeColor }}
+          >
+            <input
+              type="color"
+              className={styles.colorInput}
+              value={settings.femaleNodeColor}
+              onChange={(e) => handleColorChange('femaleNodeColor', e.target.value)}
+              aria-label="لون عقد الإناث"
+            />
+          </div>
           <span className={styles.colorLabel}>لون عقد الإناث</span>
-          <span className={styles.colorHex}>{settings.femaleNodeColor}</span>
-        </div>
-        <div
-          className={styles.swatchButton}
-          style={{ backgroundColor: settings.femaleNodeColor }}
-        >
-          <input
-            type="color"
-            className={styles.colorInput}
-            value={settings.femaleNodeColor}
-            onChange={(e) => handleColorChange('femaleNodeColor', e.target.value)}
-            aria-label="لون عقد الإناث"
-          />
-        </div>
+        </label>
       </div>
 
-      <hr className={styles.divider} />
-
-      {/* Preview */}
-      <div className={styles.previewStrip}>
-        <div
-          className={styles.previewCard}
-          style={{ borderTopColor: settings.maleNodeColor }}
-        >
-          <div className={styles.previewCardLabel}>محمد</div>
-          <div className={styles.previewCardSub}>1950 - 2020</div>
-        </div>
-        <div
-          className={styles.previewCard}
-          style={{ borderTopColor: settings.femaleNodeColor }}
-        >
-          <div className={styles.previewCardLabel}>فاطمة</div>
-          <div className={styles.previewCardSub}>1955 - 2018</div>
+      {/* Live preview */}
+      <div className={styles.previewStage}>
+        <div className={styles.previewLabel}>معاينة</div>
+        <div className={styles.previewCards}>
+          <div
+            className={styles.previewCard}
+            style={{ borderTopColor: settings.maleNodeColor }}
+          >
+            <div className={styles.previewCardName}>محمد</div>
+            <div className={styles.previewCardDates}>1950 - 2020</div>
+          </div>
+          <div className={styles.previewConnector}>
+            <div className={styles.previewConnectorLine} />
+          </div>
+          <div
+            className={styles.previewCard}
+            style={{ borderTopColor: settings.femaleNodeColor }}
+          >
+            <div className={styles.previewCardName}>فاطمة</div>
+            <div className={styles.previewCardDates}>1955 - 2018</div>
+          </div>
         </div>
       </div>
 
       {/* Reset */}
-      <div className={styles.resetRow}>
-        <span className={styles.resetHint}>
-          {resetSuccess ? 'تم إعادة تعيين الألوان' : 'الألوان الافتراضية: أزرق للذكور، وردي للإناث'}
+      <div className={styles.resetFooter}>
+        <span
+          className={`${styles.resetHint} ${resetSuccess ? styles.resetHintSuccess : ''}`}
+        >
+          {resetSuccess
+            ? 'تم إعادة تعيين الألوان'
+            : 'الألوان الافتراضية: أزرق للذكور، وردي للإناث'}
         </span>
         <Button
           variant="ghost"
@@ -120,7 +123,7 @@ export function TreeDisplaySettings() {
           onClick={handleReset}
           disabled={isDefault}
         >
-          إعادة تعيين الألوان
+          إعادة تعيين
         </Button>
       </div>
     </div>
