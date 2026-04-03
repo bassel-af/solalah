@@ -20,9 +20,12 @@ export async function POST(request: NextRequest) {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
+    console.log('[sync-user] Auth failed:', authError?.message ?? 'no user');
     return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
   }
 
+  console.log('[sync-user] Syncing user:', user.id, 'email:', user.email);
   const dbUser = await syncUserToDb(user);
+  console.log('[sync-user] Synced successfully, db email:', dbUser.email);
   return NextResponse.json({ user: dbUser });
 }

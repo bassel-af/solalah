@@ -45,6 +45,18 @@ export default function ProfileClient() {
   useEffect(() => {
     async function fetchProfile() {
       try {
+        // If returning from an email change, sync GoTrue user -> public.users first
+        // so the profile reflects the new email address.
+        if (searchParams.get('email_changed') === 'true') {
+          console.log('[profile] email_changed=true, syncing user before fetch');
+          try {
+            const syncRes = await apiFetch('/api/auth/sync-user', { method: 'POST' });
+            console.log('[profile] sync-user response:', syncRes.status);
+          } catch (e) {
+            console.warn('[profile] sync-user failed (non-blocking):', e);
+          }
+        }
+
         const res = await apiFetch('/api/users/me');
         if (!res.ok) {
           const body = await res.json();
@@ -52,6 +64,7 @@ export default function ProfileClient() {
           return;
         }
         const body = await res.json();
+        console.log('[profile] Fetched profile, email:', body.data?.email);
         setProfile(body.data);
       } catch {
         setError('فشل في تحميل الملف الشخصي');
@@ -60,7 +73,7 @@ export default function ProfileClient() {
       }
     }
     fetchProfile();
-  }, []);
+  }, [searchParams]);
 
   const handleSaveName = useCallback(
     async (name: string) => {
