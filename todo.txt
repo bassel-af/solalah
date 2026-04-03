@@ -1,10 +1,6 @@
+A way to navigate from canvas tree to the workspace page.
 - Test mobile.
 gedcom export and import.
-
-Phase 7
-- Profile
-- Logout UI and info of the logged person.
-- Change person email, password etc.
 
 Create multiple test trees for each phase that run only for specific users.
 point the line to the right person, not the center.

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/context/ToastContext';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
+import { UserNav } from '@/components/ui/UserNav';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { AccountSettings } from '@/components/profile/AccountSettings';
 import { SecuritySettings } from '@/components/profile/SecuritySettings';
@@ -147,9 +148,12 @@ export default function ProfileClient() {
     <main className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.headerTitle}>الملف الشخصي</h1>
-        <Link href="/dashboard" className={styles.backLink}>
-          &rarr; لوحة التحكم
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+          <UserNav />
+          <Link href="/dashboard" className={styles.backLink}>
+            &rarr; لوحة التحكم
+          </Link>
+        </div>
       </header>
 
       <div className={styles.content}>

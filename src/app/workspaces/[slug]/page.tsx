@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { roleLabel } from '@/lib/workspace/labels';
 import { Spinner } from '@/components/ui/Spinner';
+import { UserNav } from '@/components/ui/UserNav';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { ShareBranchModal } from '@/components/workspace/ShareBranchModal/ShareBranchModal';
 import { ShareTokenList } from '@/components/workspace/ShareTokenList/ShareTokenList';
@@ -323,6 +324,7 @@ export default function WorkspaceDetailPage() {
       <header className={styles.header}>
         <h1 className={styles.headerTitle}>{workspace.nameAr}</h1>
         <div className={styles.headerRight}>
+          <UserNav />
           <Link href="/dashboard" className={styles.backLink}>
             &rarr; لوحة التحكم
           </Link>
