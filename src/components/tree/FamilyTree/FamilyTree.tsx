@@ -257,8 +257,6 @@ function PersonNode({ data }: { data: PersonNodeData }) {
                     opacity: 0,
                     // Position under each wife: husband(140) + gap(20) + index*160 + halfCard(70)
                     left: 140 + 20 + index * 160 + 70,
-                    // Offset vertically so edges don't overlap when going down
-                    bottom: -(index * 8),
                   }}
                 />
               ))}
@@ -475,7 +473,8 @@ function buildTreeData(
 
     // Create edges and add children to queue (BFS)
     for (const { childId, spouseIndex, edgeColor, sourceHandle } of allChildren) {
-      const edgeOffset = 20 + spouseIndex * 15;
+      // Cap offset to avoid exceeding the vertical gap between generations
+      const edgeOffset = Math.min(20 + spouseIndex * 15, 50);
 
       // Determine edge highlight class
       let edgeClassName = '';
