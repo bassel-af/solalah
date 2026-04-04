@@ -780,7 +780,7 @@ Notification
   - Smoke test script (`pnpm smoke`): hits key endpoints on running dev server to catch runtime errors that mocked tests miss
   - Islamic GEDCOM reference page: section anchors on all sections, umm walad elevated to its own section, rada'a justification for `_RADA_FAM` over `FAMC`+`PEDI`
   - 1136 tests (71 new), 0 regressions
-- Validate that all Islamic GEDCOM reference tags are implementable and the data model is sound before building export/import
+- ✅ Validate that all Islamic GEDCOM reference tags are implementable and the data model is sound before building export/import
 
 **Phase 6b — Export:**
 - Any workspace member can export the full tree as a `.ged` file at any time
