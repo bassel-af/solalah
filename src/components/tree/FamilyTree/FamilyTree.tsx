@@ -158,7 +158,7 @@ function PersonNode({ data }: { data: PersonNodeData }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, left: NODE_WIDTH / 2 }} />
       {spouses.length === 0 ? (
         <>
           {renderPersonCard(person, true)}
