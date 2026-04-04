@@ -254,6 +254,72 @@ describe('hasExternalFamily', () => {
     expect(hasExternalFamily(data, '@NONEXISTENT@', rootDescendants)).toBe(false);
   });
 
+  test('returns true for spouse with another marriage outside the root tree', () => {
+    // MotherB has a second marriage with an outsider (not a root descendant)
+    const data = buildFixture();
+    // Add an outsider husband and a second family for MotherB
+    data.individuals['@OUTSIDER_HUSBAND@'] = makeIndividual({
+      id: '@OUTSIDER_HUSBAND@',
+      name: 'OutsiderHusband',
+      sex: 'M',
+      familiesAsSpouse: ['@F_EXT@'],
+    });
+    data.families['@F_EXT@'] = makeFamily({
+      id: '@F_EXT@',
+      husband: '@OUTSIDER_HUSBAND@',
+      wife: '@MOTHER_B@',
+    });
+    data.individuals['@MOTHER_B@'].familiesAsSpouse.push('@F_EXT@');
+
+    // Remove MotherB's parents so the existing check would return false
+    data.individuals['@MOTHER_B@'].familyAsChild = null;
+
+    const rootDescendants = getAllDescendants(data, '@GRANDPA_A@');
+    rootDescendants.add('@GRANDPA_A@');
+
+    // Should be true: MotherB has another family with a non-descendant partner
+    expect(hasExternalFamily(data, '@MOTHER_B@', rootDescendants)).toBe(true);
+  });
+
+  test('returns true for spouse with children from another marriage outside root tree', () => {
+    const data = buildFixture();
+    // Add a second family for MotherB with children outside the root tree
+    data.individuals['@EXT_CHILD@'] = makeIndividual({
+      id: '@EXT_CHILD@',
+      name: 'ExternalChild',
+      sex: 'F',
+      familyAsChild: '@F_EXT2@',
+    });
+    data.families['@F_EXT2@'] = makeFamily({
+      id: '@F_EXT2@',
+      wife: '@MOTHER_B@',
+      children: ['@EXT_CHILD@'],
+    });
+    data.individuals['@MOTHER_B@'].familiesAsSpouse.push('@F_EXT2@');
+
+    // Remove MotherB's parents so the existing check would return false
+    data.individuals['@MOTHER_B@'].familyAsChild = null;
+
+    const rootDescendants = getAllDescendants(data, '@GRANDPA_A@');
+    rootDescendants.add('@GRANDPA_A@');
+
+    // Should be true: MotherB has children from another family outside root tree
+    expect(hasExternalFamily(data, '@MOTHER_B@', rootDescendants)).toBe(true);
+  });
+
+  test('returns false when spouse other families are all within the root tree', () => {
+    const data = buildFixture();
+    // Remove MotherB's parents so the parent check returns false
+    data.individuals['@MOTHER_B@'].familyAsChild = null;
+
+    const rootDescendants = getAllDescendants(data, '@GRANDPA_A@');
+    rootDescendants.add('@GRANDPA_A@');
+
+    // MotherB's only familiesAsSpouse is @F_A2@ where husband is @FATHER_A@ (a root descendant)
+    // and child is @CHILD@ (a root descendant) — should be false
+    expect(hasExternalFamily(data, '@MOTHER_B@', rootDescendants)).toBe(false);
+  });
+
   test('returns false when familyAsChild points to family with no parents', () => {
     // Person has familyAsChild but the family has no husband/wife
     const individuals: Record<string, Individual> = {
@@ -273,5 +339,34 @@ describe('hasExternalFamily', () => {
     const rootDescendants = new Set<string>();
 
     expect(hasExternalFamily(data, '@PERSON@', rootDescendants)).toBe(false);
+  });
+
+  test('re-root target falls back to person when they have no parents but have external family', () => {
+    // Parentless spouse with another marriage outside root tree
+    const data = buildFixture();
+    data.individuals['@OUTSIDER_HUSBAND@'] = makeIndividual({
+      id: '@OUTSIDER_HUSBAND@',
+      name: 'OutsiderHusband',
+      sex: 'M',
+      familiesAsSpouse: ['@F_EXT@'],
+    });
+    data.families['@F_EXT@'] = makeFamily({
+      id: '@F_EXT@',
+      husband: '@OUTSIDER_HUSBAND@',
+      wife: '@MOTHER_B@',
+    });
+    data.individuals['@MOTHER_B@'].familiesAsSpouse.push('@F_EXT@');
+    data.individuals['@MOTHER_B@'].familyAsChild = null;
+
+    const rootDescendants = getAllDescendants(data, '@GRANDPA_A@');
+    rootDescendants.add('@GRANDPA_A@');
+
+    // hasExternalFamily is true (other marriage)
+    expect(hasExternalFamily(data, '@MOTHER_B@', rootDescendants)).toBe(true);
+    // findTopmostAncestor returns null (no parents)
+    expect(findTopmostAncestor(data, '@MOTHER_B@')).toBeNull();
+    // Consumer pattern: fallback to person themselves as re-root target
+    const topAncestorId = findTopmostAncestor(data, '@MOTHER_B@') ?? '@MOTHER_B@';
+    expect(topAncestorId).toBe('@MOTHER_B@');
   });
 });

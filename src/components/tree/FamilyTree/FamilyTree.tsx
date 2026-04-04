@@ -379,7 +379,7 @@ function buildTreeData(
           color: SPOUSE_EDGE_COLORS[index % SPOUSE_EDGE_COLORS.length],
           highlightClass: getPersonHighlightClass(id),
           hasExternalFamily: hasExtFam,
-          topAncestorId: hasExtFam ? findTopmostAncestor(data, id) : null,
+          topAncestorId: hasExtFam ? (findTopmostAncestor(data, id) ?? id) : null,
         };
       })
       .filter((s): s is SpouseWithColor => s !== null);

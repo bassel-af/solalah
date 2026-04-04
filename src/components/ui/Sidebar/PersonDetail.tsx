@@ -325,8 +325,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
     const rootDescendants = getAllDescendants(data, selectedRootId);
     rootDescendants.add(selectedRootId);
     if (!hasExternalFamily(data, personId, rootDescendants)) return null;
-    const topAncestorId = findTopmostAncestor(data, personId);
-    if (!topAncestorId) return null;
+    const topAncestorId = findTopmostAncestor(data, personId) ?? personId;
     return { topAncestorId };
   }, [data, selectedRootId, person, personId]);
 

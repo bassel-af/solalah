@@ -379,8 +379,11 @@ export function findTopmostAncestor(data: GedcomData, personId: string): string 
 
 /**
  * Check whether a person has an "external family" — i.e., they are NOT
- * a descendant of the current root AND they have at least one parent
- * in the database (via `familyAsChild` -> family -> husband/wife exists).
+ * a descendant of the current root AND they have family connections outside
+ * the root tree. This includes:
+ * 1. Having at least one parent in the database (via `familyAsChild`)
+ * 2. Having another marriage where the partner is not a root descendant
+ * 3. Having children from another marriage that are not root descendants
  *
  * Used to determine if a married-in spouse's family tree badge should be shown.
  */
@@ -398,17 +401,41 @@ export function hasExternalFamily(
 
   // Check if person has at least one parent in the database
   const familyId = person.familyAsChild;
-  if (!familyId) return false;
+  if (familyId) {
+    const family = families[familyId];
+    if (family) {
+      const hasParent =
+        (family.husband !== null && individuals[family.husband] !== undefined) ||
+        (family.wife !== null && individuals[family.wife] !== undefined);
+      if (hasParent) return true;
+    }
+  }
 
-  const family = families[familyId];
-  if (!family) return false;
+  // Check other marriages for external partners or children
+  for (const spouseFamilyId of person.familiesAsSpouse) {
+    const family = families[spouseFamilyId];
+    if (!family) continue;
 
-  // Check if at least one parent exists in the data
-  const hasParent =
-    (family.husband !== null && individuals[family.husband] !== undefined) ||
-    (family.wife !== null && individuals[family.wife] !== undefined);
+    // Check if the other partner in this family is outside the root tree
+    const otherPartnerId =
+      family.husband === personId ? family.wife : family.husband;
+    if (
+      otherPartnerId !== null &&
+      individuals[otherPartnerId] !== undefined &&
+      !rootDescendants.has(otherPartnerId)
+    ) {
+      return true;
+    }
 
-  return hasParent;
+    // Check if any children in this family are outside the root tree
+    for (const childId of family.children) {
+      if (individuals[childId] !== undefined && !rootDescendants.has(childId)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 // ---------------------------------------------------------------------------
