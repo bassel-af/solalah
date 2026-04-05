@@ -393,7 +393,9 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Next.js plugin enabled for enhanced type checking
 
 ## After editing files
-Do not run pnpm commands unless I ask to. pnpm dev will be already running by me in the terminal.
+Do not run pnpm commands unless I ask to. pnpm dev is already running — do not start it.
+
+**Never ask the user to run commands. Execute them yourself.** This includes Docker Compose restarts, migrations, builds, tests, and any other shell commands. Just do it.
 
 Run `pnpm test` after logic changes (skip for trivial changes like print statements or comments).
 

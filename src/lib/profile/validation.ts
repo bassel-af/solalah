@@ -14,10 +14,17 @@ export const displayNameSchema = z
   .refine((val) => val.trim().length > 0, { message: 'الاسم مطلوب' })
   .pipe(noHtmlTags);
 
+export const passwordStrengthSchema = z
+  .string()
+  .min(8, 'كلمة المرور يجب أن تكون ٨ أحرف على الأقل')
+  .max(256, 'كلمة المرور طويلة جداً')
+  .regex(/[a-zA-Z\u0600-\u06FF]/, 'يجب أن تحتوي على حرف واحد على الأقل')
+  .regex(/[0-9]/, 'يجب أن تحتوي على رقم واحد على الأقل');
+
 export const passwordChangeSchema = z
   .object({
     currentPassword: z.string().min(1, 'كلمة المرور الحالية مطلوبة'),
-    newPassword: z.string().min(6, 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل'),
+    newPassword: passwordStrengthSchema,
     confirmPassword: z.string(),
   })
   .refine((data) => data.newPassword !== data.currentPassword, {

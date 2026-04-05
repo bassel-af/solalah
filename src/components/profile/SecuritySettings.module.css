@@ -30,7 +30,7 @@
   font-size: var(--font-size-base);
   font-family: inherit;
   outline: none;
-  transition: border-color var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .input::placeholder {
@@ -39,6 +39,7 @@
 
 .input:focus {
   border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus-primary);
 }
 
 .input:disabled {
@@ -50,20 +51,72 @@
   border-color: var(--color-error);
 }
 
-.passwordGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
+.inputError:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
 }
 
+/* Divider between current password and new password sections */
+.divider {
+  height: 1px;
+  background: var(--alpha-white-06);
+  margin: var(--space-1) 0;
+}
+
+/* Field-level error text */
+.fieldError {
+  color: #fc8181;
+  font-size: var(--font-size-xs);
+  animation: fadeIn 0.2s ease;
+}
+
+/* Password strength requirements checklist */
+.requirements {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--alpha-white-04);
+  animation: fadeIn 0.2s ease;
+}
+
+.requirement {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  transition: color var(--transition-fast);
+}
+
+.requirementIcon {
+  font-size: var(--font-size-sm);
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.requirementMet {
+  color: #68d391;
+}
+
+.requirementUnmet {
+  color: var(--alpha-white-25);
+}
+
+/* Form-level messages */
 .errorText {
   color: #fc8181;
   font-size: var(--font-size-xs);
+  animation: fadeIn 0.2s ease;
 }
 
 .successText {
   color: #68d391;
   font-size: var(--font-size-xs);
+  animation: fadeIn 0.2s ease;
 }
 
 .actions {
@@ -72,8 +125,13 @@
   padding-top: var(--space-1);
 }
 
-@media (max-width: 480px) {
-  .passwordGrid {
-    grid-template-columns: 1fr;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

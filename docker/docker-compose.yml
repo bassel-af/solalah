@@ -78,6 +78,10 @@ services:
       GOTRUE_MAILER_URLPATHS_RECOVERY: "/auth/v1/verify"
       GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "/auth/v1/verify"
 
+      # Password policy
+      GOTRUE_PASSWORD_MIN_LENGTH: "8"
+      GOTRUE_PASSWORD_REQUIRED_CHARACTERS: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"
+
       # Custom email templates (GoTrue fetches via HTTP; host.docker.internal reaches the host)
       GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: "http://host.docker.internal:4000/templates/email-change.html"
     depends_on:

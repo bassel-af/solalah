@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { validateRedirectPath } from '@/lib/auth/validate-redirect';
+import { passwordStrengthSchema } from '@/lib/profile/validation';
 import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout';
 import styles from '../auth.module.css';
 
@@ -38,6 +39,13 @@ function SignupForm() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    const passwordResult = passwordStrengthSchema.safeParse(password);
+    if (!passwordResult.success) {
+      setError(passwordResult.error.issues[0].message);
+      setLoading(false);
+      return;
+    }
 
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
@@ -112,9 +120,9 @@ function SignupForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={styles.input}
-            placeholder="٦ أحرف على الأقل"
+            placeholder="٨ أحرف على الأقل"
             dir="ltr"
-            minLength={6}
+            minLength={8}
             required
           />
         </div>

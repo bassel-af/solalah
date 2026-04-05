@@ -104,13 +104,24 @@ export default function ProfileClient() {
     }
   }, []);
 
-  const handleChangePassword = useCallback(async (newPassword: string) => {
+  const handleChangePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     const supabase = createClient();
-    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
-    if (err) {
-      throw new Error(err.message);
+
+    // Verify current password first
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: profile!.email,
+      password: currentPassword,
+    });
+    if (signInErr) {
+      throw new Error('كلمة المرور الحالية غير صحيحة');
     }
-  }, []);
+
+    // Current password is correct — update to new password
+    const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateErr) {
+      throw new Error(updateErr.message);
+    }
+  }, [profile]);
 
   const handleLogout = useCallback(async () => {
     setLogoutLoading(true);
@@ -193,7 +204,7 @@ export default function ProfileClient() {
             <h3 className={styles.sectionTitle}>الأمان</h3>
           </div>
           <div className={styles.sectionBody}>
-            <SecuritySettings onChangePassword={handleChangePassword} />
+            <SecuritySettings email={profile.email} onChangePassword={handleChangePassword} />
           </div>
         </div>
 
