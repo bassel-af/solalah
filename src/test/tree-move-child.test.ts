@@ -36,11 +36,15 @@ vi.mock('@/lib/db', () => ({
     },
     family: {
       findFirst: (...args: unknown[]) => mockFamilyFindFirst(...args),
+      findMany: () => Promise.resolve([]),
     },
     familyChild: {
       findUnique: (...args: unknown[]) => mockFamilyChildFindUnique(...args),
       create: (...args: unknown[]) => mockFamilyChildCreate(...args),
       delete: (...args: unknown[]) => mockFamilyChildDelete(...args),
+    },
+    branchPointer: {
+      findFirst: () => Promise.resolve(null),
     },
     treeEditLog: {
       create: (...args: unknown[]) => mockTreeEditLogCreate(...args),
@@ -334,6 +338,9 @@ describe('POST /api/workspaces/[id]/tree/families/[familyId]/children/[individua
     // Transaction executes the callback
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       return fn({
+        family: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
         familyChild: {
           delete: mockFamilyChildDelete.mockResolvedValue({}),
           create: mockFamilyChildCreate.mockResolvedValue({
@@ -359,7 +366,7 @@ describe('POST /api/workspaces/[id]/tree/families/[familyId]/children/[individua
   // --------------------------------------------------------------------------
   // 12. Verify audit log entry created with correct payload
   // --------------------------------------------------------------------------
-  test('creates audit log with MOVE_CHILD action and correct payload', async () => {
+  test('creates audit log with MOVE_SUBTREE action and correct payload', async () => {
     mockAuth();
     mockTreeEditor();
     mockExistingTree();
@@ -369,6 +376,9 @@ describe('POST /api/workspaces/[id]/tree/families/[familyId]/children/[individua
       .mockResolvedValueOnce(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       return fn({
+        family: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
         familyChild: {
           delete: mockFamilyChildDelete.mockResolvedValue({}),
           create: mockFamilyChildCreate.mockResolvedValue({
@@ -390,13 +400,14 @@ describe('POST /api/workspaces/[id]/tree/families/[familyId]/children/[individua
       data: expect.objectContaining({
         treeId,
         userId: fakeUser.id,
-        action: 'MOVE_CHILD',
+        action: 'MOVE_SUBTREE',
         entityType: 'family_child',
         entityId: childId,
         payload: {
           sourceFamilyId: sourceFamId,
           targetFamilyId: targetFamId,
           individualId: childId,
+          descendantCount: 0,
         },
       }),
     });
@@ -415,6 +426,9 @@ describe('POST /api/workspaces/[id]/tree/families/[familyId]/children/[individua
       .mockResolvedValueOnce(null);
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       return fn({
+        family: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
         familyChild: {
           delete: mockFamilyChildDelete.mockResolvedValue({}),
           create: mockFamilyChildCreate.mockResolvedValue({

@@ -10,9 +10,10 @@ interface ModalProps {
   children: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
+  contentClassName?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children, actions, className }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, actions, className, contentClassName }: ModalProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -43,7 +44,7 @@ export function Modal({ isOpen, onClose, title, children, actions, className }: 
         aria-label={title}
       >
         <h3 className={styles.title}>{title}</h3>
-        <div className={styles.content}>{children}</div>
+        <div className={[styles.content, contentClassName ?? ''].filter(Boolean).join(' ')}>{children}</div>
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>
     </div>

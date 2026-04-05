@@ -28,6 +28,8 @@ const mockFamilyChildDeleteMany = vi.fn();
 const mockFamilyChildFindUnique = vi.fn();
 const mockTreeEditLogCreate = vi.fn();
 
+const mockBranchPointerFindFirst = vi.fn();
+
 const mockPrisma = {
   workspaceMembership: {
     findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
@@ -51,6 +53,9 @@ const mockPrisma = {
     delete: (...args: unknown[]) => mockFamilyChildDelete(...args),
     deleteMany: (...args: unknown[]) => mockFamilyChildDeleteMany(...args),
     findUnique: (...args: unknown[]) => mockFamilyChildFindUnique(...args),
+  },
+  branchPointer: {
+    findFirst: (...args: unknown[]) => mockBranchPointerFindFirst(...args) ?? Promise.resolve(null),
   },
   treeEditLog: {
     create: (...args: unknown[]) => mockTreeEditLogCreate(...args),
@@ -1031,6 +1036,7 @@ describe('POST family — marriage event fields', () => {
     mockTreeEditor();
     mockExistingTree();
     mockIndividualsExist([husbandId, wifeId]);
+    mockFamilyFindFirst.mockResolvedValue(null); // No duplicate family
     mockTreeEditLogCreate.mockResolvedValue({});
 
     const createdFamily = {

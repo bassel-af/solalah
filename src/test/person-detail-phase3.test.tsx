@@ -6,8 +6,9 @@ import {
   getDeceasedLabel,
   needsFamilyPickerForAddChild,
   validateAddParent,
-  canMoveChild,
-  getAlternativeFamilies,
+  canMoveSubtree,
+  getTargetFamiliesForMove,
+  computeSubtreeIds,
   buildEditInitialData,
   buildFamilyEventInitialData,
 } from '@/lib/person-detail-helpers'
@@ -319,7 +320,7 @@ describe('PersonDetail Phase 3 – add-parent validation', () => {
   })
 })
 
-describe('PersonDetail Phase 3 – move child', () => {
+describe('PersonDetail Phase 7a – move subtree', () => {
   const POLYGAMOUS_GEDCOM = `
 0 @I1@ INDI
 1 NAME Father
@@ -347,54 +348,33 @@ describe('PersonDetail Phase 3 – move child', () => {
 1 WIFE @I3@
 `.trim()
 
-  it('canMoveChild returns true when parent has another family', () => {
+  it('canMoveSubtree returns true when person has familyAsChild', () => {
     const data = parseGedcom(POLYGAMOUS_GEDCOM)
     const child = data.individuals['@I4@']
-    expect(canMoveChild(child, data)).toBe(true)
+    expect(canMoveSubtree(child)).toBe(true)
   })
 
-  it('canMoveChild returns false when no parent has another family', () => {
-    const data = parseGedcom(`
-0 @I1@ INDI
-1 NAME Father
-1 SEX M
-1 FAMS @F1@
-0 @I2@ INDI
-1 NAME Mother
-1 SEX F
-1 FAMS @F1@
-0 @I3@ INDI
-1 NAME Child
-1 SEX M
-1 FAMC @F1@
-0 @F1@ FAM
-1 HUSB @I1@
-1 WIFE @I2@
-1 CHIL @I3@
-`.trim())
-    const child = data.individuals['@I3@']
-    expect(canMoveChild(child, data)).toBe(false)
-  })
-
-  it('canMoveChild returns false when person has no familyAsChild', () => {
+  it('canMoveSubtree returns false when person has no familyAsChild', () => {
     const data = parseGedcom(POLYGAMOUS_GEDCOM)
     const father = data.individuals['@I1@']
-    expect(canMoveChild(father, data)).toBe(false)
+    expect(canMoveSubtree(father)).toBe(false)
   })
 
-  it('getAlternativeFamilies returns the other family with spouse name', () => {
+  it('getTargetFamiliesForMove excludes current family', () => {
     const data = parseGedcom(POLYGAMOUS_GEDCOM)
     const child = data.individuals['@I4@']
-    const alternatives = getAlternativeFamilies(child, data)
-    expect(alternatives).toEqual([
-      { familyId: '@F2@', spouseName: 'Wife2' },
-    ])
+    const subtreeIds = computeSubtreeIds(data, child.id)
+    const targets = getTargetFamiliesForMove(child, data, subtreeIds)
+    // Child is in @F1@, so @F1@ should be excluded; @F2@ should be available
+    expect(targets.some(t => t.familyId === '@F1@')).toBe(false)
+    expect(targets.some(t => t.familyId === '@F2@')).toBe(true)
   })
 
-  it('getAlternativeFamilies returns empty when no familyAsChild', () => {
+  it('getTargetFamiliesForMove returns empty when no familyAsChild', () => {
     const data = parseGedcom(POLYGAMOUS_GEDCOM)
     const father = data.individuals['@I1@']
-    expect(getAlternativeFamilies(father, data)).toEqual([])
+    const subtreeIds = computeSubtreeIds(data, father.id)
+    expect(getTargetFamiliesForMove(father, data, subtreeIds)).toEqual([])
   })
 })
 

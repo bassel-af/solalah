@@ -13,6 +13,7 @@ export type FormMode =
   | { kind: 'edit'; ummWaladFamilyId?: string; ummWaladInitialValue?: boolean }
   | { kind: 'addChild'; targetFamilyId?: string }
   | { kind: 'addSpouse'; lockedSex?: 'M' | 'F' }
+  | { kind: 'linkExistingSpouse' }
   | { kind: 'addParent'; lockedSex?: 'M' | 'F' }
   | { kind: 'addSibling'; targetFamilyId: string }
   | { kind: 'editFamilyEvent'; familyId: string; isUmmWalad?: boolean }
@@ -64,10 +65,12 @@ export interface UsePersonActionsReturn {
   handleAddParentSubmit: (formData: IndividualFormData) => Promise<void>;
   handleAddSiblingSubmit: (formData: IndividualFormData) => Promise<void>;
   handleFamilyEventSubmit: (eventData: FamilyEventFormData) => Promise<void>;
+  handleLinkExistingSpouse: (existingPersonId: string) => Promise<void>;
   handleRadaaSubmit: (data: RadaaFormData) => Promise<void>;
   handleRadaaDelete: (radaFamilyId: string) => Promise<void>;
   handleDelete: () => Promise<void>;
-  moveChild: (targetFamilyId: string) => Promise<void>;
+  unlinkSpouse: (familyId: string) => Promise<void>;
+  moveSubtree: (targetFamilyId: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -276,6 +279,23 @@ export function usePersonActions({
     });
   }, [workspace, person, personId, createIndividual, createFamily, isPointed, withFormAction]);
 
+  const handleLinkExistingSpouse = useCallback(async (existingPersonId: string) => {
+    if (!workspace || !person || isPointed) return;
+    await withFormAction(async () => {
+      const familyOpts: { husbandId?: string; wifeId?: string } = {};
+      if (person.sex === 'F') {
+        familyOpts.wifeId = personId;
+        familyOpts.husbandId = existingPersonId;
+      } else {
+        familyOpts.husbandId = personId;
+        familyOpts.wifeId = existingPersonId;
+      }
+      const newFamily = await createFamily(familyOpts);
+      setFormMode({ kind: 'editFamilyEvent', familyId: newFamily.id });
+      setFormError('');
+    });
+  }, [workspace, person, personId, createFamily, isPointed, withFormAction]);
+
   const handleAddParentSubmit = useCallback(async (formData: IndividualFormData) => {
     if (!workspace || !person || !data || isPointed) return;
     await withFormAction(async () => {
@@ -408,10 +428,10 @@ export function usePersonActions({
   }, [workspace, isPointed, withFormAction]);
 
   // -------------------------------------------------------------------------
-  // Move child
+  // Move subtree
   // -------------------------------------------------------------------------
 
-  const moveChild = useCallback(async (targetFamilyId: string) => {
+  const moveSubtree = useCallback(async (targetFamilyId: string) => {
     if (!workspace || !person?.familyAsChild || isPointed) return;
     await withFormAction(async () => {
       const res = await apiFetch(
@@ -428,6 +448,52 @@ export function usePersonActions({
       }
     });
   }, [workspace, person, personId, isPointed, withFormAction]);
+
+  // -------------------------------------------------------------------------
+  // Unlink spouse
+  // -------------------------------------------------------------------------
+
+  const unlinkSpouse = useCallback(async (familyId: string) => {
+    if (!workspace || !person || !data || isPointed) return;
+    await withFormAction(async () => {
+      const family = data.families[familyId];
+      if (!family) throw new Error('حدث خطأ');
+
+      const hasChildren = family.children.length > 0;
+
+      if (hasChildren) {
+        // Clear the current person's spouse slot, preserve children
+        const patch: { husbandId?: null; wifeId?: null } = {};
+        if (family.husband === personId) {
+          patch.husbandId = null;
+        } else {
+          patch.wifeId = null;
+        }
+        const res = await apiFetch(
+          `/api/workspaces/${workspace.workspaceId}/tree/families/${familyId}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+          },
+        );
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error ?? 'حدث خطأ');
+        }
+      } else {
+        // No children — delete the family record entirely
+        const res = await apiFetch(
+          `/api/workspaces/${workspace.workspaceId}/tree/families/${familyId}`,
+          { method: 'DELETE' },
+        );
+        if (!res.ok && res.status !== 204) {
+          const json = await res.json();
+          throw new Error(json.error ?? 'حدث خطأ');
+        }
+      }
+    });
+  }, [workspace, person, data, personId, isPointed, withFormAction]);
 
   // -------------------------------------------------------------------------
   // Delete handler
@@ -467,12 +533,14 @@ export function usePersonActions({
     handleEditSubmit,
     handleAddChildSubmit,
     handleAddSpouseSubmit,
+    handleLinkExistingSpouse,
     handleAddParentSubmit,
     handleAddSiblingSubmit,
     handleFamilyEventSubmit,
     handleRadaaSubmit,
     handleRadaaDelete,
     handleDelete,
-    moveChild,
+    unlinkSpouse,
+    moveSubtree,
   };
 }

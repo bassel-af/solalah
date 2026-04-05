@@ -678,6 +678,47 @@
 }
 
 /* ============================================
+   LINK EXISTING SPOUSE BUTTON (teal)
+   ============================================ */
+
+.actionButtonLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid rgba(56, 178, 172, 0.3);
+  border-radius: var(--radius-md);
+  color: rgba(56, 178, 172, 0.8);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.actionButtonLink:hover {
+  background: rgba(56, 178, 172, 0.1);
+  border-color: rgba(56, 178, 172, 0.5);
+  color: rgb(56, 178, 172);
+}
+
+.actionButtonLink:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.15);
+  border-color: rgb(56, 178, 172);
+}
+
+.actionButtonLink:active {
+  transform: scale(0.97);
+}
+
+.actionButtonLink svg {
+  flex-shrink: 0;
+}
+
+/* ============================================
    ACTION ERROR BANNER
    ============================================ */
 
@@ -928,6 +969,108 @@
   color: var(--alpha-white-70);
 }
 
+.marriageHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.marriageUnlinkButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(229, 62, 62, 0.15);
+  border-radius: var(--radius-full);
+  color: rgba(229, 62, 62, 0.5);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.marriageUnlinkButton:hover {
+  background: rgba(229, 62, 62, 0.1);
+  border-color: rgba(229, 62, 62, 0.3);
+  color: var(--color-error);
+}
+
+/* Unlink confirmation — inline within marriage block */
+.unlinkConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  background: rgba(229, 62, 62, 0.06);
+  border: 1px solid rgba(229, 62, 62, 0.15);
+  border-radius: var(--radius-lg);
+}
+
+.unlinkConfirmText {
+  font-size: var(--font-size-xs);
+  color: rgba(229, 62, 62, 0.8);
+  line-height: 1.5;
+}
+
+.unlinkConfirmActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.unlinkConfirmYes {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-4);
+  background: rgba(229, 62, 62, 0.15);
+  border: 1px solid rgba(229, 62, 62, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.unlinkConfirmYes:hover {
+  background: rgba(229, 62, 62, 0.25);
+  border-color: rgba(229, 62, 62, 0.5);
+}
+
+.unlinkConfirmYes:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.unlinkConfirmNo {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--alpha-white-15);
+  border-radius: var(--radius-md);
+  color: var(--alpha-white-60);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.unlinkConfirmNo:hover {
+  background: var(--alpha-white-08);
+  border-color: var(--alpha-white-25);
+  color: var(--color-text-inverse);
+}
+
+.unlinkConfirmNo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .marriageEvent {
   display: flex;
   flex-direction: column;
@@ -1070,4 +1213,13 @@
   padding: var(--space-3) var(--space-9);
   font-size: var(--font-size-sm);
   color: var(--alpha-white-35);
+}
+
+/* ============================================
+   LINK SPOUSE MODAL — allow picker dropdown
+   to overlay outside the modal content area
+   ============================================ */
+
+.linkSpouseModalContent {
+  overflow: visible;
 }

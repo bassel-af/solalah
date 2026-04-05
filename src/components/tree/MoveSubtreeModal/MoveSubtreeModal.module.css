@@ -1,0 +1,235 @@
+.modal {
+  max-width: 480px;
+}
+
+/* ============================================
+   SEARCH INPUT
+   ============================================ */
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  padding-inline-start: 36px;
+  padding-inline-end: 32px;
+  background: var(--alpha-white-04);
+  border: 1px solid var(--alpha-white-12);
+  border-radius: var(--radius-lg);
+  color: var(--alpha-white-85);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.searchInput::placeholder {
+  color: var(--alpha-white-40);
+}
+
+.searchInput:focus {
+  border-color: rgba(99, 179, 237, 0.4);
+  box-shadow: var(--shadow-focus-primary);
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  width: 16px;
+  height: 16px;
+  color: var(--alpha-white-40);
+  pointer-events: none;
+}
+
+.clearButton {
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--alpha-white-40);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.clearButton:hover {
+  color: var(--alpha-white-70);
+}
+
+.clearIcon {
+  width: 12px;
+  height: 12px;
+}
+
+/* ============================================
+   FAMILY LIST
+   ============================================ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 280px;
+  overflow-y: auto;
+  composes: thin from '../../../styles/scrollbar.module.css';
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--alpha-white-04);
+  border: 1px solid var(--alpha-white-10);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.row:hover {
+  background: var(--alpha-white-06);
+  border-color: var(--alpha-white-15);
+}
+
+.rowSelected {
+  background: rgba(74, 144, 217, 0.1);
+  border-color: rgba(99, 179, 237, 0.3);
+}
+
+.rowSelected:hover {
+  background: rgba(74, 144, 217, 0.15);
+  border-color: rgba(99, 179, 237, 0.4);
+}
+
+.radioInput {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--alpha-white-25);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.radioInput:checked {
+  border-color: var(--color-primary);
+}
+
+.radioInput:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.radioInput:focus-visible {
+  box-shadow: var(--shadow-focus-primary);
+}
+
+.familyLabel {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-85);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
+}
+
+/* ============================================
+   RESULT COUNT
+   ============================================ */
+
+.resultCount {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-35);
+  text-align: center;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.emptyState {
+  padding: var(--space-9) var(--space-5);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-40);
+}
+
+/* ============================================
+   CONFIRMATION STEP
+   ============================================ */
+
+.confirmContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.confirmWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: rgba(246, 173, 85, 0.08);
+  border: 1px solid rgba(246, 173, 85, 0.2);
+  border-radius: var(--radius-lg);
+}
+
+.confirmIcon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+  margin-top: 1px;
+}
+
+.confirmText {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-85);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+}
+
+.confirmDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--alpha-white-04);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--alpha-white-08);
+}
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.confirmLabel {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-50);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.confirmValue {
+  font-size: var(--font-size-base);
+  color: var(--alpha-white-85);
+  font-weight: var(--font-weight-medium);
+}

@@ -1,5 +1,6 @@
 import type { Individual, Family, GedcomData } from '@/lib/gedcom/types';
 import { getDisplayName } from '@/lib/gedcom';
+import { getAllDescendants } from '@/lib/gedcom/graph';
 
 /** Format date with place for display */
 export function formatDateWithPlace(date: string, place: string): string {
@@ -64,53 +65,58 @@ export function validateAddSibling(person: Individual, data: GedcomData): AddSib
   return { allowed: true, targetFamilyId: person.familyAsChild };
 }
 
-/** Check if person can be moved to another family */
-export function canMoveChild(person: Individual, data: GedcomData): boolean {
-  if (!person.familyAsChild) return false;
-  const family = data.families[person.familyAsChild];
-  if (!family) return false;
-
-  const parentIds = [family.husband, family.wife].filter(Boolean) as string[];
-  for (const parentId of parentIds) {
-    const parent = data.individuals[parentId];
-    if (parent && parent.familiesAsSpouse.length > 1) {
-      return true;
-    }
-  }
-  return false;
+/** Check if person can be moved as a subtree (has a familyAsChild) */
+export function canMoveSubtree(person: Individual): boolean {
+  return person.familyAsChild !== null;
 }
 
-/** Get alternative families for move-child action */
-export function getAlternativeFamilies(
+/**
+ * Get all possible target families for move-subtree.
+ * Caller must pre-compute subtreeIds (person + all descendants) and pass it in
+ * to avoid recomputing on every call.
+ */
+export function getTargetFamiliesForMove(
   person: Individual,
   data: GedcomData,
-): Array<{ familyId: string; spouseName: string | null }> {
+  subtreeIds: Set<string>,
+): Array<{ familyId: string; parentNames: string }> {
   if (!person.familyAsChild) return [];
-  const currentFamily = data.families[person.familyAsChild];
-  if (!currentFamily) return [];
 
-  const parentIds = [currentFamily.husband, currentFamily.wife].filter(Boolean) as string[];
-  const alternativeFamilies: Array<{ familyId: string; spouseName: string | null }> = [];
-  const seen = new Set<string>();
+  const results: Array<{ familyId: string; parentNames: string }> = [];
+  const currentFamilyId = person.familyAsChild;
 
-  for (const parentId of parentIds) {
-    const parent = data.individuals[parentId];
-    if (!parent) continue;
-    for (const famId of parent.familiesAsSpouse) {
-      if (famId === person.familyAsChild) continue;
-      if (seen.has(famId)) continue;
-      seen.add(famId);
-      const fam = data.families[famId];
-      if (!fam) continue;
-      const spouseId = fam.husband === parentId ? fam.wife : fam.husband;
-      const spouse = spouseId ? data.individuals[spouseId] : null;
-      alternativeFamilies.push({
-        familyId: famId,
-        spouseName: spouse ? getDisplayName(spouse) : null,
-      });
+  for (const [famId, family] of Object.entries(data.families)) {
+    if (famId === currentFamilyId) continue;
+    // Skip pointed families — can't move into external data
+    if (family._pointed) continue;
+    // Exclude families where either parent is inside the subtree (cycle prevention)
+    if (family.husband && subtreeIds.has(family.husband)) continue;
+    if (family.wife && subtreeIds.has(family.wife)) continue;
+    // Exclude families where the person is already a child
+    if (family.children.includes(person.id)) continue;
+
+    const names: string[] = [];
+    if (family.husband) {
+      const h = data.individuals[family.husband];
+      if (h) names.push(getDisplayName(h));
     }
+    if (family.wife) {
+      const w = data.individuals[family.wife];
+      if (w) names.push(getDisplayName(w));
+    }
+    results.push({
+      familyId: famId,
+      parentNames: names.length > 0 ? names.join(' + ') : 'عائلة بدون والدين',
+    });
   }
-  return alternativeFamilies;
+  return results;
+}
+
+/** Compute subtree IDs (person + all descendants) for move-subtree operations */
+export function computeSubtreeIds(data: GedcomData, personId: string): Set<string> {
+  const descendants = getAllDescendants(data, personId);
+  descendants.add(personId);
+  return descendants;
 }
 
 /** Build initial data for edit form including new Phase 3 fields */
@@ -192,6 +198,36 @@ export function serializeIndividualForm(formData: {
     isPrivate: formData.isPrivate,
     notes: formData.notes || null,
   };
+}
+
+/** Build exclude set for link-existing-spouse picker: self + existing spouses + pointed */
+export function getSpouseExcludeIds(person: Individual, data: GedcomData): Set<string> {
+  const excluded = new Set<string>();
+
+  // Self
+  excluded.add(person.id);
+
+  // Existing spouses from all families
+  for (const famId of person.familiesAsSpouse) {
+    const family = data.families[famId];
+    if (!family) continue;
+    const spouseId = family.husband === person.id ? family.wife : family.husband;
+    if (spouseId) excluded.add(spouseId);
+  }
+
+  // Pointed individuals (read-only from branch pointers)
+  for (const ind of Object.values(data.individuals)) {
+    if (ind._pointed) excluded.add(ind.id);
+  }
+
+  return excluded;
+}
+
+/** Get sex filter for spouse picker: opposite sex, or undefined if unknown */
+export function getSexFilterForSpouse(person: Individual): 'M' | 'F' | undefined {
+  if (person.sex === 'M') return 'F';
+  if (person.sex === 'F') return 'M';
+  return undefined;
 }
 
 /** Get families for family picker with spouse names */

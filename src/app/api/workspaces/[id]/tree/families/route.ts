@@ -6,6 +6,7 @@ import { getOrCreateTree, getTreeIndividual, touchTreeTimestamp } from '@/lib/tr
 import { createFamilySchema } from '@/lib/tree/schemas';
 import { validateFamilyGender } from '@/lib/tree/family-validators';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -22,8 +23,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const parsed = await parseValidatedBody(request, createFamilySchema);
   if (isParseError(parsed)) return parsed;
 
-  const tree = await getOrCreateTree(workspaceId);
   const { husbandId, wifeId, childrenIds, ...eventFields } = parsed.data;
+
+  // Self-marriage check
+  if (husbandId && wifeId && husbandId === wifeId) {
+    return NextResponse.json(
+      { error: 'لا يمكن أن يكون الشخص زوجًا وزوجة في نفس العائلة' },
+      { status: 400 },
+    );
+  }
+
+  const tree = await getOrCreateTree(workspaceId);
 
   // Guard: isUmmWalad requires workspace enableUmmWalad
   if (eventFields.isUmmWalad) {
@@ -45,6 +55,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 },
       );
     }
+    // Reject creating families with pointed (read-only) individuals
+    const husbandPointed = await isPointedIndividualInWorkspace(husbandId, workspaceId);
+    if (husbandPointed) {
+      return NextResponse.json(
+        { error: 'لا يمكن إنشاء عائلة مع شخص مرتبط من مساحة أخرى' },
+        { status: 403 },
+      );
+    }
   }
 
   // Verify wife belongs to this tree
@@ -56,12 +74,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 },
       );
     }
+    // Reject creating families with pointed (read-only) individuals
+    const wifePointed = await isPointedIndividualInWorkspace(wifeId, workspaceId);
+    if (wifePointed) {
+      return NextResponse.json(
+        { error: 'لا يمكن إنشاء عائلة مع شخص مرتبط من مساحة أخرى' },
+        { status: 403 },
+      );
+    }
   }
 
   // Validate gender consistency for husband/wife roles
   const genderCheck = await validateFamilyGender(husbandId ?? null, wifeId ?? null, tree.id);
   if (!genderCheck.valid) {
     return NextResponse.json({ error: genderCheck.error }, { status: 400 });
+  }
+
+  // Duplicate family check (both directions for null-sex cases)
+  if (husbandId && wifeId) {
+    const existingFamily = await prisma.family.findFirst({
+      where: {
+        treeId: tree.id,
+        OR: [
+          { husbandId, wifeId },
+          { husbandId: wifeId, wifeId: husbandId },
+        ],
+      },
+    });
+    if (existingFamily) {
+      return NextResponse.json(
+        { error: 'يوجد سجل عائلة بين هذين الشخصين بالفعل' },
+        { status: 409 },
+      );
+    }
   }
 
   // Verify all children belong to this tree

@@ -4,11 +4,11 @@ landing page and login page.
 
 Think of app name
 Next phases:
-- Assign existing relative (assign parent that already exists to person with no parent)
 
 Check other inputs in MacFamilyTree.
 
 Handle deleting a parent (can check mac family tree)
+المساحات shall be مساحات العمل (it appears in profile and workspaces sub pages)
 
 
 title - الكنية, standard or not in gedcom. shall we create tag?

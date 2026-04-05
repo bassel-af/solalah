@@ -550,10 +550,10 @@ describe('usePersonActions', () => {
   });
 
   // -----------------------------------------------------------------------
-  // moveChild
+  // moveSubtree
   // -----------------------------------------------------------------------
 
-  it('moveChild calls move API and refreshes tree', async () => {
+  it('moveSubtree calls move API and refreshes tree', async () => {
     const person = makeIndividual({ familyAsChild: '@F1@' });
     const data = makeGedcomData(
       { [person.id]: person },
@@ -579,7 +579,7 @@ describe('usePersonActions', () => {
     );
 
     await act(async () => {
-      await result.current.moveChild('@F2@');
+      await result.current.moveSubtree('@F2@');
     });
 
     expect(mockApiFetch).toHaveBeenCalledWith(
@@ -680,10 +680,10 @@ describe('usePersonActions', () => {
   });
 
   // -----------------------------------------------------------------------
-  // moveChild error handling
+  // moveSubtree error handling
   // -----------------------------------------------------------------------
 
-  it('moveChild sets formError on failure', async () => {
+  it('moveSubtree sets formError on failure', async () => {
     const person = makeIndividual({ familyAsChild: '@F1@' });
     const data = makeGedcomData(
       { [person.id]: person },
@@ -709,7 +709,7 @@ describe('usePersonActions', () => {
     );
 
     await act(async () => {
-      await result.current.moveChild('@F2@');
+      await result.current.moveSubtree('@F2@');
     });
 
     expect(result.current.formError).toBe('move failed');
