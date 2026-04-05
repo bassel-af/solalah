@@ -280,12 +280,22 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `POST /api/workspaces/[id]/tree/families/[id]/children` — add child to family
 - `DELETE /api/workspaces/[id]/tree/families/[id]/children/[individualId]` — remove child from family
 - `POST /api/workspaces/[id]/tree/families/[familyId]/children/[individualId]/move` — move child to another family
+- `GET /api/workspaces/[id]/tree/export` — GEDCOM export (5.5.1 or 7.0 format via `?version=` query param)
+- `POST /api/workspaces/[id]/tree/import` — GEDCOM import (empty trees only, multipart form data)
+
+**Rada'a API Routes** (`src/app/api/workspaces/[id]/tree/rada-families/`):
+- `POST /api/workspaces/[id]/tree/rada-families` — create rada'a family (milk kinship link)
+- `DELETE /api/workspaces/[id]/tree/rada-families/[radaFamilyId]` — delete rada'a family
+- `POST /api/workspaces/[id]/tree/rada-families/[radaFamilyId]/children` — add child to rada'a family
+- `DELETE /api/workspaces/[id]/tree/rada-families/[radaFamilyId]/children/[individualId]` — remove child from rada'a family
 
 **Places API Route** (`src/app/api/workspaces/[id]/places/`):
 - `GET /api/workspaces/[id]/places?q=...` — search places (global seed + workspace custom)
 - `POST /api/workspaces/[id]/places` — create custom place for workspace
 
 **User API Routes** (`src/app/api/users/`):
+- `GET /api/users/me` — get current user profile
+- `PATCH /api/users/me` — update display name / avatar
 - `GET /api/users/me/preferences` — get user preferences (calendar preference)
 - `PATCH /api/users/me/preferences` — update user preferences
 
@@ -312,6 +322,16 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `branch-pointer-queries.ts` — `getActivePointersForWorkspace()` with source workspace name join
 - `branch-pointer-guards.ts` — `isSyntheticFamilyId()` for mutation guards on synthetic families
 - `family-validators.ts` — centralized gender validation: `validateFamilyGender()` (DB), `validateSpouseGender()` (pure)
+- `rada-validators.ts` — validation for rada'a family operations (duplicate checks, workspace feature toggle)
+
+**GEDCOM Export** (`src/lib/gedcom/exporter.ts`):
+- `exportGedcom(data, options)` — serializes `GedcomData` to GEDCOM 5.5.1 or 7.0 format
+- Supports all Islamic extensions: `@#DHIJRI@` calendar escape, MARC/MARR/DIV, `_UMM_WALAD`, `_RADA_*` tags
+- GEDCOM injection sanitization on all user-provided strings
+
+**Profile** (`src/lib/profile/`):
+- `validation.ts` — Zod schemas for profile update, email change, password change
+- `tree-settings.ts` — tree color/display settings types and defaults
 
 **Email** (`src/lib/email/`):
 - `transport.ts` — Nodemailer with Gmail SMTP
@@ -379,6 +399,6 @@ Run `pnpm test` after logic changes (skip for trivial changes like print stateme
 
 Check the browser when you have done work related to the frontend. It's better to use the default browser. Do not specify a browser.
 
-**IMPORTANT: For browser/Playwright testing, ALWAYS use the test route: `http://localhost:3000/test?only=canvas`. See `docs/testing.md` for all query parameters.**
+**IMPORTANT: For browser/Playwright testing, ALWAYS use the test route: `http://localhost:4000/test?only=canvas`. See `docs/testing.md` for all query parameters.**
 
 **IMPORTANT: After implementing a new feature, you MUST perform a complete end-to-end test using real infrastructure (GoTrue, Kong, PostgreSQL, SMTP).** Unit tests with mocks are not sufficient — they can pass while the actual flow is broken (e.g., misconfigured GoTrue URL paths, Kong routing issues, missing DB sync). For auth-related features, this means: create a real test user via the GoTrue admin API, exercise the full flow through Kong and the Next.js app, verify the result in the database, and clean up the test user afterward. For features involving email (email change, password reset, invitations), send a real email and verify the link works. Do not assume a feature is fixed without e2e verification against the running services.
