@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { validateRedirectPath } from '@/lib/auth/validate-redirect';
 import { passwordStrengthSchema } from '@/lib/profile/validation';
+import { preloadZxcvbn, checkPasswordStrength } from '@/lib/profile/password-strength';
 import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout';
 import styles from '../auth.module.css';
 
@@ -25,6 +26,8 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => { preloadZxcvbn(); }, []);
+
   async function handleGoogleSignup() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -43,6 +46,18 @@ function SignupForm() {
     const passwordResult = passwordStrengthSchema.safeParse(password);
     if (!passwordResult.success) {
       setError(passwordResult.error.issues[0].message);
+      setLoading(false);
+      return;
+    }
+
+    const strength = checkPasswordStrength(password, [email, displayName].filter(Boolean));
+    if (strength === null) {
+      setError('جاري التحميل، حاول مرة أخرى');
+      setLoading(false);
+      return;
+    }
+    if (strength.score < 3) {
+      setError(strength.feedback[0] || 'كلمة المرور ضعيفة، اختر كلمة مرور أقوى');
       setLoading(false);
       return;
     }

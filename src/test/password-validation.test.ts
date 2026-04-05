@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { passwordStrengthSchema, passwordChangeSchema } from '@/lib/profile/validation';
+import { preloadZxcvbn, checkPasswordStrength, isZxcvbnReady, getLoadPromise } from '@/lib/profile/password-strength';
 
 describe('passwordStrengthSchema', () => {
   it('rejects passwords shorter than 8 characters', () => {
@@ -28,7 +29,7 @@ describe('passwordStrengthSchema', () => {
   });
 
   it('accepts valid passwords', () => {
-    const result = passwordStrengthSchema.safeParse('MyPass12');
+    const result = passwordStrengthSchema.safeParse('MyStr0ngPw!');
     expect(result.success).toBe(true);
   });
 
@@ -110,5 +111,71 @@ describe('passwordChangeSchema', () => {
       confirmPassword: '12345678',
     });
     expect(noLetters.success).toBe(false);
+  });
+});
+
+describe('checkPasswordStrength', () => {
+  it('isZxcvbnReady returns false before preload', () => {
+    expect(isZxcvbnReady()).toBe(false);
+  });
+
+  it('returns null before loading', () => {
+    const result = checkPasswordStrength('Password1');
+    expect(result).toBeNull();
+  });
+
+  describe('after loading', () => {
+    beforeAll(async () => {
+      preloadZxcvbn();
+      await getLoadPromise();
+    });
+
+    it('loads successfully after preloadZxcvbn', () => {
+      expect(isZxcvbnReady()).toBe(true);
+    });
+
+    it('scores "Password1" below 3', () => {
+      const result = checkPasswordStrength('Password1');
+      expect(result).not.toBeNull();
+      expect(result!.score).toBeLessThan(3);
+    });
+
+    it('scores "Password2" below 3', () => {
+      const result = checkPasswordStrength('Password2');
+      expect(result).not.toBeNull();
+      expect(result!.score).toBeLessThan(3);
+    });
+
+    it('scores "Abcd1234" below 3', () => {
+      const result = checkPasswordStrength('Abcd1234');
+      expect(result).not.toBeNull();
+      expect(result!.score).toBeLessThan(3);
+    });
+
+    it('scores "Qwerty123" below 3', () => {
+      const result = checkPasswordStrength('Qwerty123');
+      expect(result).not.toBeNull();
+      expect(result!.score).toBeLessThan(3);
+    });
+
+    it('scores a strong random password at 3 or above', () => {
+      const result = checkPasswordStrength('Tr0ub4dor&3xY!zQ');
+      expect(result).not.toBeNull();
+      expect(result!.score).toBeGreaterThanOrEqual(3);
+    });
+
+    it('returns feedback messages for weak passwords', () => {
+      const result = checkPasswordStrength('Password1');
+      expect(result).not.toBeNull();
+      expect(result!.feedback.length).toBeGreaterThan(0);
+    });
+
+    it('penalizes passwords containing userInputs', () => {
+      const withoutInputs = checkPasswordStrength('John1234!');
+      const withInputs = checkPasswordStrength('John1234!', ['john@example.com']);
+      expect(withoutInputs).not.toBeNull();
+      expect(withInputs).not.toBeNull();
+      expect(withInputs!.score).toBeLessThanOrEqual(withoutInputs!.score);
+    });
   });
 });
