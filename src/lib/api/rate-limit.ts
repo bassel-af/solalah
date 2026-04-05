@@ -55,10 +55,11 @@ export function rateLimitResponse(retryAfterSeconds: number): NextResponse {
 }
 
 // Pre-configured instances
-export const joinCodeLimiter = new RateLimiter({ maxRequests: 5, windowMs: 15 * 60 * 1000 });
-export const workspaceCreateLimiter = new RateLimiter({ maxRequests: 3, windowMs: 60 * 60 * 1000 });
-export const invitationAcceptLimiter = new RateLimiter({ maxRequests: 10, windowMs: 15 * 60 * 1000 });
-export const treeMutateLimiter = new RateLimiter({ maxRequests: 60, windowMs: 60 * 1000 });
-export const inviteCodeGenLimiter = new RateLimiter({ maxRequests: 5, windowMs: 15 * 60 * 1000 });
-export const profileUpdateLimiter = new RateLimiter({ maxRequests: 10, windowMs: 15 * 60 * 1000 });
-export const treeExportLimiter = new RateLimiter({ maxRequests: 5, windowMs: 15 * 60 * 1000 });
+export const joinCodeLimiter = new RateLimiter({ maxRequests: 20, windowMs: 15 * 60 * 1000 });
+export const workspaceCreateLimiter = new RateLimiter({ maxRequests: 10, windowMs: 60 * 60 * 1000 });
+export const invitationAcceptLimiter = new RateLimiter({ maxRequests: 30, windowMs: 15 * 60 * 1000 });
+export const treeMutateLimiter = new RateLimiter({ maxRequests: 200, windowMs: 60 * 1000 });
+export const inviteCodeGenLimiter = new RateLimiter({ maxRequests: 20, windowMs: 15 * 60 * 1000 });
+export const profileUpdateLimiter = new RateLimiter({ maxRequests: 30, windowMs: 15 * 60 * 1000 });
+export const treeExportLimiter = new RateLimiter({ maxRequests: 20, windowMs: 15 * 60 * 1000 });
+export const treeImportLimiter = new RateLimiter({ maxRequests: 10, windowMs: 60 * 60 * 1000 });

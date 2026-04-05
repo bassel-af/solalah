@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { TreeProvider, useTree } from '@/context/TreeContext';
 import { WorkspaceTreeProvider, useWorkspaceTree } from '@/context/WorkspaceTreeContext';
 import { useWorkspaceTreeData } from '@/hooks/useWorkspaceTreeData';
@@ -11,6 +11,7 @@ import { CanvasToolbar } from '@/components/tree/CanvasToolbar';
 import { Sidebar } from '@/components/ui';
 import { Spinner } from '@/components/ui/Spinner';
 import { apiFetch } from '@/lib/api/client';
+import { useToast } from '@/context/ToastContext';
 import Link from 'next/link';
 
 interface WorkspaceInfo {
@@ -149,9 +150,12 @@ function TreeContent({
 
 function EmptyTreeWithForm({ canEdit }: { canEdit: boolean }) {
   const { workspaceId, refreshTree } = useWorkspaceTree();
+  const { showToast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddFirst = useCallback(() => {
     setShowForm(true);
@@ -192,9 +196,60 @@ function EmptyTreeWithForm({ canEdit }: { canEdit: boolean }) {
     [workspaceId, refreshTree],
   );
 
+  const handleImport = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Reset input so the same file can be re-selected
+      e.target.value = '';
+
+      setImportLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await apiFetch(
+          `/api/workspaces/${workspaceId}/tree/import`,
+          { method: 'POST', body: formData },
+        );
+        const body = await res.json();
+        if (!res.ok) {
+          showToast(body.error || 'فشل في استيراد البيانات', 'error');
+          return;
+        }
+        showToast('تم استيراد البيانات بنجاح', 'success');
+        await refreshTree();
+      } catch {
+        showToast('فشل في استيراد البيانات', 'error');
+      } finally {
+        setImportLoading(false);
+      }
+    },
+    [workspaceId, refreshTree, showToast],
+  );
+
   return (
     <>
-      <EmptyTreeState canEdit={canEdit} onAddFirst={handleAddFirst} />
+      <EmptyTreeState
+        canEdit={canEdit}
+        onAddFirst={handleAddFirst}
+        onImport={handleImport}
+        importLoading={importLoading}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".ged"
+        onChange={handleFileChange}
+        tabIndex={-1}
+        aria-label="استيراد ملف GEDCOM"
+        style={{ display: 'none' }}
+      />
       {showForm && (
         <IndividualForm
           mode="create"

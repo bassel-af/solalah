@@ -6,6 +6,8 @@ import styles from './EmptyTreeState.module.css';
 interface EmptyTreeStateProps {
   canEdit: boolean;
   onAddFirst?: () => void;
+  onImport?: () => void;
+  importLoading?: boolean;
 }
 
 function TreeIcon() {
@@ -39,7 +41,35 @@ function TreeIcon() {
   );
 }
 
-export function EmptyTreeState({ canEdit, onAddFirst }: EmptyTreeStateProps) {
+function UploadIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M9 12V3M9 3L5 7M9 3L13 7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 12V14C3 14.5523 3.44772 15 4 15H14C14.5523 15 15 14.5523 15 14V12"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function EmptyTreeState({ canEdit, onAddFirst, onImport, importLoading }: EmptyTreeStateProps) {
   return (
     <div className={styles.container}>
       <div className={styles.inner}>
@@ -49,18 +79,37 @@ export function EmptyTreeState({ canEdit, onAddFirst }: EmptyTreeStateProps) {
         </h2>
         <p className={styles.subtext}>
           {canEdit
-            ? 'ابدأ بإضافة أول شخص في شجرة العائلة'
+            ? 'ابدأ بإضافة أول شخص أو استيراد ملف GEDCOM'
             : 'سيقوم المحرر بإضافة بيانات شجرة العائلة قريباً'}
         </p>
-        {canEdit && onAddFirst && (
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onAddFirst}
-            className={styles.addButton}
-          >
-            إضافة أول شخص
-          </Button>
+        {canEdit && (onAddFirst || onImport) && (
+          <div className={styles.actions}>
+            {onAddFirst && (
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={onAddFirst}
+                disabled={importLoading}
+              >
+                إضافة أول شخص
+              </Button>
+            )}
+            {onAddFirst && onImport && (
+              <span className={styles.divider}>أو</span>
+            )}
+            {onImport && (
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={onImport}
+                loading={importLoading}
+                disabled={importLoading}
+              >
+                <UploadIcon />
+                {importLoading ? 'جاري الاستيراد...' : 'استيراد ملف GEDCOM'}
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </div>

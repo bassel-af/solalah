@@ -1,7 +1,10 @@
 - Test mobile.
 gedcom export and import.
+stengthen password policy.
+enter current password.
 
-clean backward compatibility.
+- Clean routes and organize. (dashboard, dashboard/profile, etc). 
+Previous links redirects. e.g. /saeed, /sharbek, etc. Request access from admin.
 
 Create multiple test trees for each phase that run only for specific users.
 
@@ -12,7 +15,6 @@ Check other inputs in MacFamilyTree
 
 Handle deleting a parent (can check mac family tree)
 
-Previous links redirects. e.g. /saeed, /sharbek, etc. Request access from admin
 
 title - الكنية, standard or not in gedcom. shall we create tag?
 
@@ -23,8 +25,6 @@ Low priority now:
 Version control
 إصدار نعوة
 UI latest touches.
-divorce/khol3, etc
-
 
 MCP (Model Context Protocol):
 - Consider exposing solalah as an MCP server so AI assistants can query/navigate the family tree
@@ -39,8 +39,6 @@ API / Platform integrations:
 Make people close together. do not make them this much far away.
 
 
-
-
 وصف مساحة العائلة
 وصف العائلة
 التفكير باسم جديد للمنتج، ربما "نسلي"
@@ -51,8 +49,6 @@ Make people close together. do not make them this much far away.
 إخفاء الملاحطات
 الزوجات الأخريات هل هن أمهات في الرضاعة؟ والمطلقات؟
 
-
-
 التنسيق:
 تغيير ألوان النساء والرجال.
 توحيد الألوان
@@ -60,18 +56,7 @@ Make people close together. do not make them this much far away.
 
 all person serach picker shall contain person birth date.
 
-test with non admin role (edit etc)
+Test with non admin role (edit etc)
 
-عدة آباء وعدة أمهات من الرضاعة (الأزواج المتوفين أو المطلقين والزوجات الأخريات)
-
-
-
-i wanna the gedcom expoert check islamic gedcom page and tell me if we made a mistake or not. as you know, if the father from rada   
-  has multiple wives, all of them becomes mothers from rada, but also we need to indicate the main one that gave milk. i wanna know
-  if there are missing gabs, and perhaps if there is a gab also
-
-When adding a person, add the family automatically but make it editable.
-
-When adding person to عائلة الزوج/الزوجة, currently only father create navigation,
-but brother or another husband/wife won't create it. Needs some thinking because
-if there is no father created, this might cause issue because there is no proper root.
+In policy, indicate legally that we are not responsible for the content,
+though we deal with reports

@@ -89,6 +89,11 @@
 }
 
 /* States */
+.button:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-primary);
+}
+
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;

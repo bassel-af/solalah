@@ -1,4 +1,4 @@
-import type { Individual, Family, FamilyEvent, GedcomData } from './types';
+import type { Individual, Family, FamilyEvent, GedcomData, RadaFamily } from './types';
 
 function emptyFamilyEvent(): FamilyEvent {
   return { date: '', hijriDate: '', place: '', description: '', notes: '' };
@@ -55,11 +55,14 @@ function formatGedcomDate(raw: string): string {
 }
 
 export function parseGedcom(text: string): GedcomData {
-  const lines = text.split(/\r\n|\r|\n/);
+  // Strip UTF-8 BOM if present
+  const cleanText = text.startsWith('\uFEFF') ? text.slice(1) : text;
+  const lines = cleanText.split(/\r\n|\r|\n/);
   const individuals: Record<string, Individual> = {};
   const families: Record<string, Family> = {};
+  const radaFamilies: Record<string, RadaFamily> = {};
   const standaloneNotes: Record<string, string> = {};
-  let currentRecord: Individual | Family | null = null;
+  let currentRecord: Individual | Family | RadaFamily | null = null;
   let currentSubRecord: string | null = null;
   let currentLevel1Tag: string | null = null;
   let currentLevel2Tag: string | null = null;
@@ -135,6 +138,16 @@ export function parseGedcom(text: string): GedcomData {
           isDivorced: false,
         };
         families[id] = currentRecord;
+      } else if (tag === '_RADA_FAM' && id) {
+        currentRecord = {
+          id,
+          type: '_RADA_FAM',
+          fosterFather: null,
+          fosterMother: null,
+          children: [],
+          notes: '',
+        };
+        radaFamilies[id] = currentRecord;
       } else {
         currentRecord = null;
       }
@@ -191,6 +204,9 @@ export function parseGedcom(text: string): GedcomData {
             indi.familiesAsSpouse.push(value);
           } else if (tag === 'FAMC' && value) {
             indi.familyAsChild = value;
+          } else if (tag === '_RADA_FAMC' && value) {
+            if (!indi.radaFamiliesAsChild) indi.radaFamiliesAsChild = [];
+            indi.radaFamiliesAsChild.push(value);
           }
         } else if (currentRecord.type === 'FAM') {
           const fam = currentRecord as Family;
@@ -214,6 +230,19 @@ export function parseGedcom(text: string): GedcomData {
             if (trimVal && trimVal !== 'Y') {
               fam.divorce.description = trimVal;
             }
+          } else if (tag === '_UMM_WALAD') {
+            fam.isUmmWalad = true;
+          }
+        } else if (currentRecord.type === '_RADA_FAM') {
+          const rada = currentRecord as RadaFamily;
+          if (tag === '_RADA_HUSB') {
+            rada.fosterFather = value || null;
+          } else if (tag === '_RADA_WIFE') {
+            rada.fosterMother = value || null;
+          } else if (tag === '_RADA_CHIL' && value) {
+            rada.children.push(value);
+          } else if (tag === 'NOTE') {
+            rada.notes = value || '';
           }
         }
       } else if (level === 2) {
@@ -296,6 +325,15 @@ export function parseGedcom(text: string): GedcomData {
               currentLevel2Tag = tag;
             }
           }
+        } else if (currentRecord.type === '_RADA_FAM') {
+          const rada = currentRecord as RadaFamily;
+          if (currentLevel1Tag === 'NOTE' && (tag === 'CONT' || tag === 'CONC')) {
+            if (tag === 'CONT') {
+              rada.notes += '\n' + (value || '');
+            } else {
+              rada.notes += (value || '');
+            }
+          }
         }
       } else if (level === 3) {
         if (currentRecord.type === 'INDI' && currentLevel2Tag === 'NOTE') {
@@ -362,5 +400,9 @@ export function parseGedcom(text: string): GedcomData {
     }
   }
 
-  return { individuals, families };
+  const result: GedcomData = { individuals, families };
+  if (Object.keys(radaFamilies).length > 0) {
+    result.radaFamilies = radaFamilies;
+  }
+  return result;
 }

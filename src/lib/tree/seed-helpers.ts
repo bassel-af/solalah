@@ -9,6 +9,7 @@ export interface SeedTreeResult {
   treeId: string
   individualCount: number
   familyCount: number
+  radaFamilyCount: number
   skipped: boolean
   /** Mapping from GEDCOM ID (e.g. "@I123@") to the generated DB UUID */
   gedcomToDbId: Record<string, string>
@@ -67,6 +68,7 @@ export async function seedTreeFromGedcomData(
         treeId,
         individualCount: 0,
         familyCount: 0,
+        radaFamilyCount: 0,
         skipped: true,
         gedcomToDbId: {},
       }
@@ -75,12 +77,15 @@ export async function seedTreeFromGedcomData(
     const individualEntries = Object.values(gedcomData.individuals)
     const familyEntries = Object.values(gedcomData.families)
 
+    const radaFamilyEntries = Object.values(gedcomData.radaFamilies ?? {})
+
     // 3. If there's no data, return early
     if (individualEntries.length === 0 && familyEntries.length === 0) {
       return {
         treeId,
         individualCount: 0,
         familyCount: 0,
+        radaFamilyCount: 0,
         skipped: false,
         gedcomToDbId: {},
       }
@@ -186,10 +191,51 @@ export async function seedTreeFromGedcomData(
       }
     }
 
+    // 9. Create rada'a (milk kinship) families
+    if (radaFamilyEntries.length > 0) {
+      const radaFamilyGedcomToDbId: Record<string, string> = {}
+      for (const rf of radaFamilyEntries) {
+        radaFamilyGedcomToDbId[rf.id] = randomUUID()
+      }
+
+      await tx.radaFamily.createMany({
+        data: radaFamilyEntries.map((rf) => ({
+          id: radaFamilyGedcomToDbId[rf.id],
+          treeId,
+          gedcomId: rf.id,
+          fosterFatherId: rf.fosterFather ? gedcomToDbId[rf.fosterFather] ?? null : null,
+          fosterMotherId: rf.fosterMother ? gedcomToDbId[rf.fosterMother] ?? null : null,
+          notes: rf.notes || null,
+        })),
+      })
+
+      // 10. Create rada'a family children
+      const radaChildRecords: { radaFamilyId: string; individualId: string }[] = []
+      for (const rf of radaFamilyEntries) {
+        const radaFamilyDbId = radaFamilyGedcomToDbId[rf.id]
+        for (const childGedcomId of rf.children) {
+          const childDbId = gedcomToDbId[childGedcomId]
+          if (childDbId) {
+            radaChildRecords.push({
+              radaFamilyId: radaFamilyDbId,
+              individualId: childDbId,
+            })
+          }
+        }
+      }
+
+      if (radaChildRecords.length > 0) {
+        await tx.radaFamilyChild.createMany({
+          data: radaChildRecords,
+        })
+      }
+    }
+
     return {
       treeId,
       individualCount: individualEntries.length,
       familyCount: familyEntries.length,
+      radaFamilyCount: radaFamilyEntries.length,
       skipped: false,
       gedcomToDbId,
     }
