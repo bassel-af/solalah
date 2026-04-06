@@ -326,7 +326,7 @@ export default function WorkspaceDetailPage() {
         <div className={styles.headerRight}>
           <UserNav />
           <Link href="/workspaces" className={styles.backLink}>
-            &rarr; المساحات
+            &rarr; مساحات العمل
           </Link>
         </div>
       </header>

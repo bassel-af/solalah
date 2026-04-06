@@ -145,7 +145,7 @@ export default function ProfileClient() {
       <main className={styles.container}>
         <header className={styles.header}>
           <Link href="/workspaces" className={styles.backLink}>
-            &rarr; المساحات
+            &rarr; مساحات العمل
           </Link>
         </header>
         <div className={styles.content}>
@@ -162,7 +162,7 @@ export default function ProfileClient() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
           <UserNav />
           <Link href="/workspaces" className={styles.backLink}>
-            &rarr; المساحات
+            &rarr; مساحات العمل
           </Link>
         </div>
       </header>
