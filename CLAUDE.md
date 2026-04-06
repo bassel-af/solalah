@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository ("solalah") is a **private family collaboration platform** evolving from a read-only genealogy viewer. Built with Next.js 15 (App Router) + React 19 + TypeScript, backed by PostgreSQL (Prisma ORM) and Supabase Auth (self-hosted via Docker Compose). The app is RTL (right-to-left) with Arabic as the primary language. See `docs/product-requirements.md` for the full PRD and `docs/auth-provider-decisions.md` for auth architecture decisions.
 
-**Current state**: Phases 1–8 are complete, Phase 9 next. Phase 1 (Auth & Workspace Foundation): email/password + Google OAuth, workspace CRUD, membership/invitations, workspace list UI, policy page. Phase 2 (Editable Family Tree): database-backed tree with full CRUD. Phase 3 (Family-Aware Relationship Editing): add child/spouse/parent, move child between families, marriage events (MARC/MARR/DIV), Hijri date support, calendar preference. Phase 4 (In-Law Visibility & Multi-Root View): re-root on spouse's ancestor, view mode toggle (single/multi), multi-root side-by-side layout, inline spouse family graft expansion. Phase 5 (Branch Pointers): cross-workspace branch linking with live sync, deep copy, stitching rules, pointer management in canvas sidebar. Phase 6a (Islamic Tags): `_UMM_WALAD` flag on families, rada'a (milk kinship) with `RadaFamily`/`RadaFamilyChild` models, 6 API endpoints, sidebar integration, `IndividualPicker` component, workspace feature toggles. Phase 6b (Export): GEDCOM export (5.5.1 + 7.0) with all Islamic extensions, export dropdown in CanvasToolbar, `@#DHIJRI@` calendar escape, GIVN/SURN sub-tags, GEDCOM injection sanitization. Phase 6c (Import): GEDCOM import for empty workspace trees, parser extended for `_UMM_WALAD`/`_RADA_*` tags, seed helper extended for rada'a, import button in EmptyTreeState. Phase 7 (Advanced Tree Editing): move subtree (replaces single-child move with full branch move, `MoveSubtreeModal`, cycle detection), link existing person as spouse (`IndividualPicker` with exclude set), unlink spouse (delete family or clear spouse slot), security fixes (pointed/synthetic guards, self-marriage/duplicate prevention). Phase 8 (Cascade Delete Warning): `computeDeleteImpact()` reachability analysis with married-in spouse detection, `GET /delete-impact` preview endpoint, enhanced DELETE with cascade mode + stale data protection (409) + server-side name confirmation, `CascadeDeleteModal` component, `executeCascadeDelete()` atomic transaction (break pointers, revoke tokens, clean empty families, audit log), dedicated rate limiter, 31 unit tests. The tree visualization reads from the database via `GET /api/workspaces/[id]/tree`; static GEDCOM files in `/public/` are preserved for seeding.
+**Current state**: Phases 1–8 are complete, Phase 9 next. Phase 1 (Auth & Workspace Foundation): email/password + Google OAuth, workspace CRUD, membership/invitations, workspace list UI, policy page. Phase 2 (Editable Family Tree): database-backed tree with full CRUD. Phase 3 (Family-Aware Relationship Editing): add child/spouse/parent, move child between families, marriage events (MARC/MARR/DIV), Hijri date support, calendar preference. Phase 4 (In-Law Visibility & Multi-Root View): re-root on spouse's ancestor, view mode toggle (single/multi), multi-root side-by-side layout, inline spouse family graft expansion. Phase 5 (Branch Pointers): cross-workspace branch linking with live sync, deep copy, stitching rules, pointer management in canvas sidebar. Phase 6a (Islamic Tags): `_UMM_WALAD` flag on families, rada'a (milk kinship) with `RadaFamily`/`RadaFamilyChild` models, 6 API endpoints, sidebar integration, `IndividualPicker` component, workspace feature toggles, kunya (الكنية) field on Individual with `_KUNYA` GEDCOM tag and `enableKunya` workspace toggle. Phase 6b (Export): GEDCOM export (5.5.1 + 7.0) with all Islamic extensions, export dropdown in CanvasToolbar, `@#DHIJRI@` calendar escape, GIVN/SURN sub-tags, GEDCOM injection sanitization. Phase 6c (Import): GEDCOM import for empty workspace trees, parser extended for `_UMM_WALAD`/`_RADA_*` tags, seed helper extended for rada'a, import button in EmptyTreeState. Phase 7 (Advanced Tree Editing): move subtree (replaces single-child move with full branch move, `MoveSubtreeModal`, cycle detection), link existing person as spouse (`IndividualPicker` with exclude set), unlink spouse (delete family or clear spouse slot), security fixes (pointed/synthetic guards, self-marriage/duplicate prevention). Phase 8 (Cascade Delete Warning): `computeDeleteImpact()` reachability analysis with married-in spouse detection, `GET /delete-impact` preview endpoint, enhanced DELETE with cascade mode + stale data protection (409) + server-side name confirmation, `CascadeDeleteModal` component, `executeCascadeDelete()` atomic transaction (break pointers, revoke tokens, clean empty families, audit log), dedicated rate limiter, 31 unit tests. The tree visualization reads from the database via `GET /api/workspaces/[id]/tree`; static GEDCOM files in `/public/` are preserved for seeding.
 
 ## Package Management
 
@@ -96,7 +96,7 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 
 **Types** (`src/lib/gedcom/types.ts`):
 - `FamilyEvent` - Event record with `date`, `hijriDate`, `place`, `description`, `notes`
-- `Individual` - Person record with name, birth/death (with hijri dates, notes, description), sex, family references, `isPrivate`/`isDeceased` flags
+- `Individual` - Person record with name, birth/death (with hijri dates, notes, description), sex, family references, `kunya` (الكنية), `isPrivate`/`isDeceased` flags
 - `Family` - Family unit with husband, wife, children, plus `marriageContract` (MARC), `marriage` (MARR), `divorce` (DIV) as `FamilyEvent`, and `isDivorced` flag
 - `GedcomData` - Container for individuals and families records (keyed by ID)
 
@@ -163,7 +163,7 @@ The `FamilyTree` component (`src/components/tree/FamilyTree/FamilyTree.tsx`) use
 - **Multi-root view** (DISABLED): `ViewModeToggle` code preserved but not rendered; multi-root lays out multiple root ancestor trees side-by-side
 
 **Tree editing components** (`src/components/tree/`):
-- `IndividualForm` — form for creating/editing individuals (name, sex, birth/death with hijri dates, notes)
+- `IndividualForm` — form for creating/editing individuals (name, sex, birth/death with hijri dates, kunya, notes)
 - `FamilyEventForm` — form for marriage contract (MARC), marriage (MARR), divorce (DIV) events with expandable sections
 - `FamilyPickerModal` — modal to select which family when adding/moving a child (polygamy support)
 - `CoupleRow` — displays marriage event information between spouses
@@ -223,7 +223,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `BranchPointer` — links source subtree to target workspace anchor; status (`active`/`revoked`/`broken`), relationship type, `linkChildrenToAnchor` flag, `shareTokenId` FK
 - `FamilyTree` has `lastModifiedAt` timestamp (updated on every tree mutation, used for ETag caching)
 - `User` has `calendarPreference` field (default: `'hijri'`)
-- `Individual` has `birthHijriDate`, `deathHijriDate`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`
+- `Individual` has `birthHijriDate`, `deathHijriDate`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`, `kunya`
 - `Family` has marriage contract (MARC), marriage (MARR), and divorce (DIV) event fields: `{type}Date`, `{type}HijriDate`, `{type}Place`, `{type}Description`, `{type}Notes`, plus `isDivorced`
 - Prisma v7 uses driver adapters — client instantiation requires `PrismaPg` from `@prisma/adapter-pg`
 - **Prisma v7 limitation**: `_count` with `where` filters inside `include` is NOT supported with driver adapters. Use separate `groupBy` queries instead.
@@ -333,7 +333,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 
 **GEDCOM Export** (`src/lib/gedcom/exporter.ts`):
 - `exportGedcom(data, options)` — serializes `GedcomData` to GEDCOM 5.5.1 or 7.0 format
-- Supports all Islamic extensions: `@#DHIJRI@` calendar escape, MARC/MARR/DIV, `_UMM_WALAD`, `_RADA_*` tags
+- Supports all Islamic extensions: `@#DHIJRI@` calendar escape, MARC/MARR/DIV, `_UMM_WALAD`, `_RADA_*`, `_KUNYA` tags
 - GEDCOM injection sanitization on all user-provided strings
 
 **Profile** (`src/lib/profile/`):
@@ -364,7 +364,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `/workspaces/[slug]/tree` — database-backed tree view with edit controls (add/edit individual, add child/spouse/parent, move child, edit family events, delete)
 - `/invite/[id]` — invitation acceptance page
 - `/policy` — public policy page (Arabic + English)
-- `/islamic-gedcom` — public reference page (مرجع GEDCOM الإسلامي): `@#DHIJRI@` calendar escape for Hijri dates, MARC/MARR/DIV Islamic marriage mappings, `_UMM_WALAD` (أم ولد flag on FAM), rada'a extensions (`_RADA_FAM`, `_RADA_WIFE`, `_RADA_HUSB`, `_RADA_CHIL`, `_RADA_FAMC`)
+- `/islamic-gedcom` — public reference page (مرجع GEDCOM الإسلامي): `@#DHIJRI@` calendar escape for Hijri dates, MARC/MARR/DIV Islamic marriage mappings, `_UMM_WALAD` (أم ولد flag on FAM), rada'a extensions (`_RADA_FAM`, `_RADA_WIFE`, `_RADA_HUSB`, `_RADA_CHIL`, `_RADA_FAMC`), `_KUNYA` (الكنية)
 - `/auth/forgot-password` — password reset via Supabase Auth
 
 **Environment Variables** (see `.env.example`):
