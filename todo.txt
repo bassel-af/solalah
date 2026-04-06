@@ -5,9 +5,7 @@ landing page and login page.
 Think of app name
 Next phases:
 
-Check other inputs in MacFamilyTree.
 
-المساحات shall be مساحات العمل (it appears in profile and workspaces sub pages)
 
 
 title - الكنية, standard or not in gedcom. shall we create tag?
@@ -15,7 +13,7 @@ Think about business model.
 
 
 Low priority now:
-
+Check other inputs in MacFamilyTree.
 Version control
 إصدار نعوة
 UI latest touches.
@@ -30,7 +28,7 @@ API / Platform integrations:
 - Think about what data to expose, auth, and use cases
 - Think about adding to the tree.
 
-Make people close together. do not make them this much far away.
+Make people close together. Do not make them this much far away.
 
 
 وصف مساحة العائلة

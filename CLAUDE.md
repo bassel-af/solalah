@@ -15,7 +15,7 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 ## Common Commands
 
 - `pnpm install` - Install dependencies
-- `pnpm dev` - Start development server (Next.js with Turbopack)
+- `pnpm dev` - Start development server (Next.js with Turbopack, port 4000)
 - `pnpm build` - Build for production
 - `pnpm start` - Run production build
 - `pnpm lint` - Run ESLint
@@ -34,6 +34,8 @@ This project uses **pnpm** as the package manager (version 10.28.0).
 - `pnpm reseed:places` - Clean places + re-seed from places.json
 - `pnpm reseed:all` - Clean everything + re-seed places + tree
 - `pnpm start:fresh` - Clean links + clean tree + clean places + re-seed all
+- `pnpm preprocess-geonames` - Preprocess raw GeoNames TSV data into `prisma/seed-data/places.json`
+- `pnpm smoke` - Run smoke tests (`scripts/smoke-test.ts`)
 
 ## Technology Stack
 
@@ -127,8 +129,9 @@ The app wraps the entire application in `<TreeProvider>` via `src/app/providers.
 - `usePersonActions` — Phase 3 editing state machine (modes: `edit`, `addChild`, `addSpouse`, `addParent`, `editFamilyEvent`) with submit/delete handlers and child-move support; uses `withFormAction()` wrapper for consistent loading/error/cleanup cycle
 - `useWorkspaceTreeData` — fetches and manages workspace tree data
 - `usePointerActions` — shared hook for branch pointer break/copy API calls (used by sidebar)
-- `useGedcomData` — fetches GEDCOM file from `/public/` for legacy routes
 - `useTreeLines` — SVG line drawing for playground mode
+- `useTreeColorOverrides` — tree color/display settings
+- `usePasswordStrength` — password strength meter logic
 
 ### Routing
 
@@ -215,7 +218,7 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Secrets in `docker/.env` (gitignored) — all security-sensitive vars use `:?` syntax (Docker fails to start if missing)
 
 **Prisma** (`prisma/schema.prisma`):
-- 19 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, TreeEditLog, BranchShareToken, BranchPointer, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place
+- 21 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, RadaFamily, RadaFamilyChild, TreeEditLog, BranchShareToken, BranchPointer, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place
 - `BranchShareToken` — SHA-256 hashed token with root individual, depth limit, target workspace scope, revoke flag
 - `BranchPointer` — links source subtree to target workspace anchor; status (`active`/`revoked`/`broken`), relationship type, `linkChildrenToAnchor` flag, `shareTokenId` FK
 - `FamilyTree` has `lastModifiedAt` timestamp (updated on every tree mutation, used for ETag caching)
@@ -240,6 +243,8 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Callback: `src/app/auth/callback/route.ts` — handles OAuth redirects, email confirmations, sets cookies, syncs user to DB
 - User sync: `POST /api/auth/sync-user` + shared helper `src/lib/auth/sync-user.ts` — mirrors GoTrue user to `public.users`
 - Password reset: `src/app/auth/forgot-password/page.tsx` → Supabase `resetPasswordForEmail()`
+- Reset password UI: `src/app/auth/reset-password/page.tsx` — new password form with strength meter (after clicking email link)
+- Email confirmation: `src/app/auth/confirm/page.tsx` — two-stage email confirmation page
 - Redirect validation: `src/lib/auth/validate-redirect.ts` — validates `?next` parameter to prevent open redirects
 - Middleware: `src/middleware.ts` — three code paths: static assets (skip), API routes (session refresh only, no login redirect), page routes (session refresh + login redirect)
 - After login/signup, users are redirected to `/workspaces`
@@ -323,6 +328,8 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `cascade-delete.ts` — `computeDeleteImpact()` (BFS reachability with married-in spouse exclusion + upward traversal guard), `computeVersionHash()`, `buildImpactResponse()`
 - `family-validators.ts` — centralized gender validation: `validateFamilyGender()` (DB), `validateSpouseGender()` (pure)
 - `rada-validators.ts` — validation for rada'a family operations (duplicate checks, workspace feature toggle)
+- `branch-share-token.ts` — share token generation and validation utilities
+- `seed-place-mapping.ts` — place ID mapping helpers for seeding
 
 **GEDCOM Export** (`src/lib/gedcom/exporter.ts`):
 - `exportGedcom(data, options)` — serializes `GedcomData` to GEDCOM 5.5.1 or 7.0 format
