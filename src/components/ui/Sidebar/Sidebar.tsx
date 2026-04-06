@@ -11,6 +11,7 @@ import styles from './Sidebar.module.css';
 interface PersonItem {
   id: string;
   name: string;
+  searchText: string;
   dates: string;
   sex: string;
   deceased: boolean;
@@ -75,6 +76,7 @@ export function Sidebar() {
       individuals.push({
         id: person.id,
         name,
+        searchText: person.kunya ? `${name} ${person.kunya}` : name,
         dates,
         sex: person.sex || 'U',
         deceased: person.isDeceased,
@@ -98,8 +100,8 @@ export function Sidebar() {
     // Apply search filter and sort by relevance
     if (searchFilter.trim()) {
       filtered = filtered
-        .filter((p) => matchesSearch(p.name, searchFilter))
-        .sort((a, b) => searchRelevance(a.name, searchFilter) - searchRelevance(b.name, searchFilter));
+        .filter((p) => matchesSearch(p.searchText, searchFilter))
+        .sort((a, b) => searchRelevance(a.searchText, searchFilter) - searchRelevance(b.searchText, searchFilter));
     }
 
     return filtered;

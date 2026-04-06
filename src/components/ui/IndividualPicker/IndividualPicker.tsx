@@ -45,7 +45,8 @@ export function IndividualPicker({
       if (exclude?.has(person.id)) continue;
       if (sexFilter && person.sex && person.sex !== sexFilter) continue;
       const name = getDisplayNameWithNasab(data, person, DEFAULT_NASAB_DEPTH);
-      if (matchesSearch(name, query)) {
+      const searchText = person.kunya ? `${name} ${person.kunya}` : name;
+      if (matchesSearch(searchText, query)) {
         matches.push(person);
       }
     }

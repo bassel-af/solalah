@@ -24,7 +24,8 @@ export function SearchBar() {
 
     for (const person of Object.values(data.individuals)) {
       const name = getDisplayName(person);
-      if (matchesSearch(name, searchQuery)) {
+      const searchText = person.kunya ? `${name} ${person.kunya}` : name;
+      if (matchesSearch(searchText, searchQuery)) {
         let dates = '';
         if (person.birth || person.death) {
           dates = `${person.birth || '?'} - ${person.death || ''}`;

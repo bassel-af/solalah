@@ -26,6 +26,7 @@ export interface Individual {
   deathDescription: string;
   deathNotes: string;
   deathHijriDate: string;
+  kunya: string;
   notes: string;
   isDeceased: boolean;
   isPrivate: boolean;

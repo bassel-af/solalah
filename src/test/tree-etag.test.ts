@@ -23,6 +23,9 @@ vi.mock('@/lib/db', () => ({
     workspaceMembership: {
       findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
     },
+    workspace: {
+      findUnique: vi.fn().mockResolvedValue({ enableKunya: true }),
+    },
     familyTree: {
       findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
       create: (...args: unknown[]) => mockFamilyTreeCreate(...args),

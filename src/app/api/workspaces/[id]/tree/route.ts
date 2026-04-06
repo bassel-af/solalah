@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { requireWorkspaceMember, isErrorResponse } from '@/lib/api/workspace-auth';
 import { getOrCreateTree, getTreeByWorkspaceId } from '@/lib/tree/queries';
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper';
@@ -76,7 +77,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   }
 
-  const safeData = redactPrivateIndividuals(gedcomData);
+  let safeData = redactPrivateIndividuals(gedcomData);
+
+  // Strip kunya when feature is disabled
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { enableKunya: true },
+  });
+  if (!workspace?.enableKunya) {
+    const strippedIndividuals: Record<string, typeof safeData.individuals[string]> = {};
+    for (const [id, ind] of Object.entries(safeData.individuals)) {
+      strippedIndividuals[id] = { ...ind, kunya: '' };
+    }
+    safeData = { ...safeData, individuals: strippedIndividuals };
+  }
 
   // Build pointer metadata for the frontend
   const pointerMetadata = pointers.map((p) => ({

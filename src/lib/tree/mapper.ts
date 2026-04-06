@@ -52,6 +52,7 @@ export interface DbIndividual {
   deathDescription: string | null
   deathNotes: string | null
   deathHijriDate: string | null
+  kunya: string | null
   notes: string | null
   isDeceased: boolean
   isPrivate: boolean
@@ -241,6 +242,7 @@ function mapIndividual(
     deathDescription: dbInd.deathDescription ?? '',
     deathNotes: dbInd.deathNotes ?? '',
     deathHijriDate: dbInd.deathHijriDate ?? '',
+    kunya: dbInd.kunya ?? '',
     notes: dbInd.notes ?? '',
     isDeceased: dbInd.isDeceased,
     isPrivate: dbInd.isPrivate,
@@ -306,6 +308,7 @@ export function redactPrivateIndividuals(data: GedcomData): GedcomData {
         deathDescription: '',
         deathNotes: '',
         deathHijriDate: '',
+        kunya: '',
         notes: '',
       }
       // Remove placeId fields from redacted individuals

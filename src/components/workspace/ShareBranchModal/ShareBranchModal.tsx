@@ -47,7 +47,9 @@ export function ShareBranchModal({
     const results: Individual[] = [];
     for (const person of Object.values(treeData.individuals)) {
       if (person.isPrivate) continue;
-      if (matchesSearch(getDisplayName(person), searchQuery)) {
+      const name = getDisplayName(person);
+      const searchText = person.kunya ? `${name} ${person.kunya}` : name;
+      if (matchesSearch(searchText, searchQuery)) {
         results.push(person);
       }
     }

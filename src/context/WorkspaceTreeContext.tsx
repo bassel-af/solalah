@@ -24,6 +24,8 @@ interface WorkspaceTreeContextValue {
   enableUmmWalad?: boolean;
   /** Whether the workspace has rada'a (foster nursing) feature enabled */
   enableRadaa?: boolean;
+  /** Whether the workspace has kunya feature enabled */
+  enableKunya?: boolean;
 }
 
 const WorkspaceTreeContext = createContext<WorkspaceTreeContextValue | null>(null);
@@ -37,6 +39,7 @@ interface WorkspaceTreeProviderProps {
   pointers?: PointerMetadata[];
   enableUmmWalad?: boolean;
   enableRadaa?: boolean;
+  enableKunya?: boolean;
 }
 
 export function WorkspaceTreeProvider({
@@ -48,9 +51,10 @@ export function WorkspaceTreeProvider({
   pointers,
   enableUmmWalad,
   enableRadaa,
+  enableKunya,
 }: WorkspaceTreeProviderProps) {
   return (
-    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa }}>
+    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya }}>
       {children}
     </WorkspaceTreeContext.Provider>
   );

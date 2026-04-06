@@ -22,6 +22,7 @@ export const individualFieldsSchema = z.object({
   deathNotes: z.string().max(5000).nullable().optional(),
   birthHijriDate: z.string().max(50).nullable().optional(),
   deathHijriDate: z.string().max(50).nullable().optional(),
+  kunya: z.string().max(200).nullable().optional(),
   isDeceased: z.boolean().optional(),
   isPrivate: z.boolean().optional(),
   notes: z.string().max(5000).nullable().optional(),

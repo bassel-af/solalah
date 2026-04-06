@@ -24,6 +24,7 @@ interface Workspace {
   currentUserId: string;
   enableUmmWalad?: boolean;
   enableRadaa?: boolean;
+  enableKunya?: boolean;
 }
 
 interface Member {
@@ -269,7 +270,7 @@ export default function WorkspaceDetailPage() {
   }
 
   async function handleToggleFeature(
-    featureKey: 'enableUmmWalad' | 'enableRadaa',
+    featureKey: 'enableUmmWalad' | 'enableRadaa' | 'enableKunya',
     newVal: boolean,
   ) {
     if (!workspace) return;
@@ -427,6 +428,27 @@ export default function WorkspaceDetailPage() {
                 onChange={(val) => handleToggleFeature('enableRadaa', val)}
                 disabled={!isAdmin}
                 loading={togglingFeature === 'enableRadaa'}
+              />
+            </div>
+
+            {/* Kunya */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span className={styles.featureName}>الكنية</span>
+                  {(workspace.enableKunya ?? false) && (
+                    <span className={styles.featureBadge}>مفعّل</span>
+                  )}
+                </div>
+                <p className={styles.featureDescription}>
+                  تسجيل الكنية (مثل أبو أحمد أو أم خالد)
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={workspace.enableKunya ?? false}
+                onChange={(val) => handleToggleFeature('enableKunya', val)}
+                disabled={!isAdmin}
+                loading={togglingFeature === 'enableKunya'}
               />
             </div>
           </div>

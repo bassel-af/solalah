@@ -30,6 +30,7 @@ function makeIndividual(overrides: Partial<Individual> & { id: string }): Indivi
     deathDescription: '',
     deathNotes: '',
     deathHijriDate: '',
+    kunya: '',
     notes: '',
     isDeceased: false,
     isPrivate: false,
@@ -1661,5 +1662,67 @@ describe('gedcomDataToGedcom — version differences', () => {
 
     expect(text551).toContain('@#DHIJRI@')
     expect(text70).toContain('@#DHIJRI@')
+  })
+})
+
+// ============================================================================
+// Kunya (_KUNYA tag)
+// ============================================================================
+
+describe('gedcomDataToGedcom — kunya export', () => {
+  it('exports _KUNYA tag for individual with kunya', () => {
+    const data = makeData({
+      'I1': makeIndividual({ id: 'I1', name: 'Ahmad', givenName: 'Ahmad', kunya: 'أبو محمد' }),
+    })
+    const text = gedcomDataToGedcom(data, '5.5.1')
+
+    expect(hasLine(text, '1 _KUNYA أبو محمد')).toBe(true)
+  })
+
+  it('does not export _KUNYA tag when kunya is empty', () => {
+    const data = makeData({
+      'I1': makeIndividual({ id: 'I1', name: 'Ahmad', givenName: 'Ahmad', kunya: '' }),
+    })
+    const text = gedcomDataToGedcom(data, '5.5.1')
+
+    expect(hasLine(text, '1 _KUNYA')).toBe(false)
+    expect(text).not.toContain('_KUNYA')
+  })
+
+  it('sanitizes kunya value (strips newlines and @)', () => {
+    const data = makeData({
+      'I1': makeIndividual({ id: 'I1', name: 'Ahmad', givenName: 'Ahmad', kunya: 'أبو\nمحمد @test@' }),
+    })
+    const text = gedcomDataToGedcom(data, '5.5.1')
+
+    expect(hasLine(text, '1 _KUNYA أبو محمد test')).toBe(true)
+  })
+
+  it('includes _KUNYA in SCHMA for 7.0 format', () => {
+    const data = makeData({
+      'I1': makeIndividual({ id: 'I1', name: 'Ahmad', givenName: 'Ahmad', kunya: 'أبو محمد' }),
+    })
+    const text = gedcomDataToGedcom(data, '7.0')
+
+    expect(text).toContain('1 SCHMA')
+    expect(text).toContain('2 TAG _KUNYA')
+  })
+
+  it('does not include _KUNYA in SCHMA when no individual has a kunya', () => {
+    const data = makeData({
+      'I1': makeIndividual({ id: 'I1', name: 'Ahmad', givenName: 'Ahmad' }),
+    })
+    const text = gedcomDataToGedcom(data, '7.0')
+
+    expect(text).not.toContain('_KUNYA')
+  })
+
+  it('does not export _KUNYA for private individuals', () => {
+    const data = makeData({
+      'I1': makeIndividual({ id: 'I1', name: 'Ahmad', givenName: 'Ahmad', kunya: 'أبو محمد', isPrivate: true }),
+    })
+    const text = gedcomDataToGedcom(data, '5.5.1')
+
+    expect(text).not.toContain('_KUNYA')
   })
 })

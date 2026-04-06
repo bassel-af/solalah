@@ -25,6 +25,7 @@ export interface IndividualFormData {
   deathDescription: string;
   deathNotes: string;
   deathHijriDate: string;
+  kunya: string;
   isDeceased: boolean;
   isPrivate: boolean;
   notes: string;
@@ -53,6 +54,8 @@ interface IndividualFormProps {
   anchorName?: string;
   /** Whether the workspace has umm walad feature enabled */
   enableUmmWalad?: boolean;
+  /** Whether the workspace has kunya feature enabled */
+  enableKunya?: boolean;
   /** Whether this form is in addSpouse mode (shows umm walad checkbox) */
   isAddSpouse?: boolean;
   /** In edit mode: the family ID to update isUmmWalad on (signals checkbox should show) */
@@ -77,6 +80,7 @@ const EMPTY_FORM: IndividualFormData = {
   deathDescription: '',
   deathNotes: '',
   deathHijriDate: '',
+  kunya: '',
   isDeceased: false,
   isPrivate: false,
   notes: '',
@@ -97,6 +101,7 @@ export function IndividualForm({
   anchorSex,
   anchorName,
   enableUmmWalad = false,
+  enableKunya = false,
   isAddSpouse = false,
   ummWaladFamilyId,
   ummWaladInitialValue,
@@ -431,6 +436,17 @@ export function IndividualForm({
             placeholder="مثال: السعيد"
           />
         </div>
+
+        {/* Kunya */}
+        {enableKunya && (
+          <Input
+            id="kunya"
+            label="الكنية"
+            value={formData.kunya}
+            onChange={(e) => updateField('kunya', e.target.value)}
+            placeholder="مثال: أبو أحمد"
+          />
+        )}
 
         {/* Sex */}
         <div className={styles.fieldGroup}>

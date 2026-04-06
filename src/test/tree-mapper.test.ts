@@ -26,6 +26,7 @@ function makeIndividual(overrides: Partial<DbIndividual> & { id: string; treeId:
     deathNotes: null,
     deathDescription: null,
     deathHijriDate: null,
+    kunya: null,
     notes: null,
     isDeceased: false,
     isPrivate: false,
@@ -1202,5 +1203,107 @@ describe('dbTreeToGedcomData — family event mapping', () => {
       notes: '',
     })
     expect(fam.isDivorced).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Kunya mapping
+// ---------------------------------------------------------------------------
+
+describe('dbTreeToGedcomData — kunya mapping', () => {
+  const TREE_ID = 'tree-001'
+  const WORKSPACE_ID = 'ws-001'
+
+  it('maps kunya from DB field', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          kunya: 'أبو محمد',
+        }),
+      ],
+      families: [],
+    }
+
+    const result = dbTreeToGedcomData(dbTree)
+    const ind = result.individuals['ind-1']
+
+    expect(ind.kunya).toBe('أبو محمد')
+  })
+
+  it('defaults kunya to empty string when DB value is null', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          kunya: null,
+        }),
+      ],
+      families: [],
+    }
+
+    const result = dbTreeToGedcomData(dbTree)
+    const ind = result.individuals['ind-1']
+
+    expect(ind.kunya).toBe('')
+  })
+})
+
+describe('redactPrivateIndividuals — kunya', () => {
+  const TREE_ID = 'tree-001'
+  const WORKSPACE_ID = 'ws-001'
+
+  it('redacts kunya for private individuals', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          kunya: 'أبو محمد',
+          isPrivate: true,
+        }),
+      ],
+      families: [],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const result = redactPrivateIndividuals(gedcom)
+    const ind = result.individuals['ind-1']
+
+    expect(ind.kunya).toBe('')
+  })
+
+  it('does not redact kunya for non-private individuals', () => {
+    const dbTree: DbTree = {
+      id: TREE_ID,
+      workspaceId: WORKSPACE_ID,
+      individuals: [
+        makeIndividual({
+          id: 'ind-1',
+          treeId: TREE_ID,
+          givenName: 'Ahmad',
+          kunya: 'أبو محمد',
+          isPrivate: false,
+        }),
+      ],
+      families: [],
+    }
+
+    const gedcom = dbTreeToGedcomData(dbTree)
+    const result = redactPrivateIndividuals(gedcom)
+    const ind = result.individuals['ind-1']
+
+    expect(ind.kunya).toBe('أبو محمد')
   })
 })

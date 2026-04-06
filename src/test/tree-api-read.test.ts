@@ -14,6 +14,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 const mockMembershipFindUnique = vi.fn();
+const mockWorkspaceFindUnique = vi.fn();
 const mockFamilyTreeFindUnique = vi.fn();
 const mockFamilyTreeCreate = vi.fn();
 
@@ -21,6 +22,9 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     workspaceMembership: {
       findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+    },
+    workspace: {
+      findUnique: (...args: unknown[]) => mockWorkspaceFindUnique(...args),
     },
     familyTree: {
       findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
@@ -335,5 +339,109 @@ describe('GET /api/workspaces/[id]/tree', () => {
 
     // Family structure intact
     expect(body.data.families['fam-1'].wife).toBe('ind-private');
+  });
+
+  test('strips kunya from all individuals when enableKunya is false', async () => {
+    mockAuth();
+    mockMember();
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: false });
+
+    const now = new Date();
+    mockFamilyTreeFindUnique.mockResolvedValue({
+      id: 'tree-uuid-1',
+      workspaceId: wsId,
+      lastModifiedAt: now,
+      individuals: [
+        {
+          id: 'ind-1',
+          treeId: 'tree-uuid-1',
+          gedcomId: null,
+          givenName: 'محمد',
+          surname: null,
+          fullName: null,
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+          birthPlaceId: null,
+          birthDescription: null,
+          birthNotes: null,
+          birthHijriDate: null,
+          deathDate: null,
+          deathPlace: null,
+          deathPlaceId: null,
+          deathDescription: null,
+          deathNotes: null,
+          deathHijriDate: null,
+          kunya: 'أبو أحمد',
+          notes: null,
+          isDeceased: false,
+          isPrivate: false,
+          createdById: null,
+          updatedAt: now,
+          createdAt: now,
+        },
+      ],
+      families: [],
+    });
+
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree`);
+    const res = await GET(req, treeParams);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.individuals['ind-1'].kunya).toBe('');
+  });
+
+  test('preserves kunya in response when enableKunya is true', async () => {
+    mockAuth();
+    mockMember();
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: true });
+
+    const now = new Date();
+    mockFamilyTreeFindUnique.mockResolvedValue({
+      id: 'tree-uuid-1',
+      workspaceId: wsId,
+      lastModifiedAt: now,
+      individuals: [
+        {
+          id: 'ind-1',
+          treeId: 'tree-uuid-1',
+          gedcomId: null,
+          givenName: 'محمد',
+          surname: null,
+          fullName: null,
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+          birthPlaceId: null,
+          birthDescription: null,
+          birthNotes: null,
+          birthHijriDate: null,
+          deathDate: null,
+          deathPlace: null,
+          deathPlaceId: null,
+          deathDescription: null,
+          deathNotes: null,
+          deathHijriDate: null,
+          kunya: 'أبو أحمد',
+          notes: null,
+          isDeceased: false,
+          isPrivate: false,
+          createdById: null,
+          updatedAt: now,
+          createdAt: now,
+        },
+      ],
+      families: [],
+    });
+
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree`);
+    const res = await GET(req, treeParams);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.individuals['ind-1'].kunya).toBe('أبو أحمد');
   });
 });

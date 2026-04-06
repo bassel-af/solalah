@@ -18,6 +18,7 @@ const HIJRI_MONTHS: Record<string, string> = {
 // Extension tag URIs for GEDCOM 7.0 SCHMA declarations
 const EXT_URIS: Record<string, string> = {
   '_UMM_WALAD': 'https://solalah.com/gedcom/ext/_UMM_WALAD',
+  '_KUNYA': 'https://solalah.com/gedcom/ext/_KUNYA',
   '_RADA_FAM': 'https://solalah.com/gedcom/ext/_RADA_FAM',
   '_RADA_HUSB': 'https://solalah.com/gedcom/ext/_RADA_HUSB',
   '_RADA_WIFE': 'https://solalah.com/gedcom/ext/_RADA_WIFE',
@@ -182,6 +183,14 @@ function emitFamilyEvent(
 function collectCustomTags(data: GedcomData): Set<string> {
   const tags = new Set<string>()
 
+  for (const ind of Object.values(data.individuals)) {
+    if (ind._pointed || ind.isPrivate) continue
+    if (ind.kunya) {
+      tags.add('_KUNYA')
+      break
+    }
+  }
+
   for (const fam of Object.values(data.families)) {
     if (fam._pointed) continue
     if (fam.isUmmWalad) {
@@ -246,6 +255,11 @@ function emitIndividual(
     if (ind.surname) {
       lines.push(`2 SURN ${sanitizeLine(ind.surname)}`)
     }
+  }
+
+  // Kunya
+  if (ind.kunya) {
+    lines.push(`1 _KUNYA ${sanitizeLine(ind.kunya)}`)
   }
 
   // SEX

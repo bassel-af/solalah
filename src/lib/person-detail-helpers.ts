@@ -135,6 +135,7 @@ export function buildEditInitialData(person: Individual): Record<string, unknown
     deathDescription: person.deathDescription,
     deathNotes: person.deathNotes,
     deathHijriDate: person.deathHijriDate,
+    kunya: person.kunya ?? '',
     isDeceased: person.isDeceased,
     isPrivate: person.isPrivate,
     notes: person.notes,
@@ -176,6 +177,7 @@ export function serializeIndividualForm(formData: {
   givenName: string; surname: string; sex: string;
   birthDate: string; birthPlace: string; birthPlaceId?: string | null; birthDescription: string; birthNotes: string; birthHijriDate: string;
   deathDate: string; deathPlace: string; deathPlaceId?: string | null; deathDescription: string; deathNotes: string; deathHijriDate: string;
+  kunya?: string;
   isDeceased: boolean; isPrivate: boolean; notes: string;
 }): Record<string, unknown> {
   return {
@@ -194,6 +196,7 @@ export function serializeIndividualForm(formData: {
     deathDescription: formData.deathDescription || null,
     deathNotes: formData.deathNotes || null,
     deathHijriDate: formData.deathHijriDate || null,
+    kunya: formData.kunya || null,
     isDeceased: formData.isDeceased,
     isPrivate: formData.isPrivate,
     notes: formData.notes || null,

@@ -7,7 +7,7 @@ import { updateIndividualSchema } from '@/lib/tree/schemas';
 import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
-import { computeDeleteImpact, computeVersionHash, buildImpactResponse } from '@/lib/tree/cascade-delete';
+import { computeDeleteImpact, computeVersionHash } from '@/lib/tree/cascade-delete';
 
 type RouteParams = { params: Promise<{ id: string; individualId: string }> };
 
@@ -40,6 +40,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       { error: 'الشخص غير موجود في هذه الشجرة' },
       { status: 404 },
     );
+  }
+
+  // Strip kunya when feature is disabled
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { enableKunya: true },
+  });
+  if (!workspace?.enableKunya) {
+    delete parsed.data.kunya;
   }
 
   const individual = await prisma.individual.update({

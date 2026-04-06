@@ -61,6 +61,27 @@ describe('individualFieldsSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  test('accepts kunya as a string with max 200 chars', () => {
+    const result = individualFieldsSchema.safeParse({
+      kunya: 'أبو أحمد',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test('accepts kunya as null', () => {
+    const result = individualFieldsSchema.safeParse({
+      kunya: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test('enforces max length on kunya (200)', () => {
+    const result = individualFieldsSchema.safeParse({
+      kunya: 'a'.repeat(201),
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 // ============================================================================

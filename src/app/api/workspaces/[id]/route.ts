@@ -13,6 +13,7 @@ const updateWorkspaceSchema = z.object({
   logoUrl: z.string().url().nullable().optional(),
   enableUmmWalad: z.boolean().optional(),
   enableRadaa: z.boolean().optional(),
+  enableKunya: z.boolean().optional(),
 });
 
 // GET /api/workspaces/[id] — Get workspace details

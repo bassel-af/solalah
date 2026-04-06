@@ -22,6 +22,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (isParseError(parsed)) return parsed;
 
   const tree = await getOrCreateTree(workspaceId);
+
+  // Strip kunya when feature is disabled
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { enableKunya: true },
+  });
+  if (!workspace?.enableKunya) {
+    delete parsed.data.kunya;
+  }
+
   const { isPrivate, isDeceased, ...fields } = parsed.data;
 
   const individual = await prisma.individual.create({

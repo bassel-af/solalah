@@ -124,6 +124,7 @@ export async function seedTreeFromGedcomData(
           deathDescription: ind.deathDescription || null,
           deathNotes: ind.deathNotes || null,
           deathHijriDate: ind.deathHijriDate || null,
+          kunya: ind.kunya || null,
           notes: ind.notes || null,
           isDeceased: ind.isDeceased,
           isPrivate: ind.isPrivate,

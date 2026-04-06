@@ -22,6 +22,7 @@ function makeTestIndividual(overrides: Partial<Individual> & { id: string }): In
     deathDescription: '',
     deathNotes: '',
     deathHijriDate: '',
+    kunya: '',
     notes: '',
     isDeceased: false,
     isPrivate: false,
@@ -790,5 +791,48 @@ describe('seedTreeFromGedcomData', () => {
     expect(fam.marriageContractPlaceId).toBe('place-uuid-marc');
     expect(fam.marriagePlaceId).toBe('place-uuid-marr');
     expect(fam.divorcePlaceId).toBe('place-uuid-div');
+  });
+
+  test('includes kunya field in individual createMany data', async () => {
+    const gedcomData = makeGedcomData({
+      individuals: {
+        '@I1@': makeTestIndividual({
+          id: '@I1@',
+          givenName: 'Ahmad',
+          kunya: 'أبو محمد',
+        }),
+      },
+    });
+
+    mockFamilyTreeFindUnique.mockResolvedValue(null);
+    mockFamilyTreeCreate.mockResolvedValue({ id: treeId, workspaceId, individuals: [], families: [] });
+    mockIndividualCount.mockResolvedValue(0);
+    mockIndividualCreateMany.mockResolvedValue({ count: 1 });
+
+    await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
+
+    const indData = mockIndividualCreateMany.mock.calls[0][0].data;
+    expect(indData[0].kunya).toBe('أبو محمد');
+  });
+
+  test('sets kunya to null when individual has no kunya', async () => {
+    const gedcomData = makeGedcomData({
+      individuals: {
+        '@I1@': makeTestIndividual({
+          id: '@I1@',
+          givenName: 'Ahmad',
+        }),
+      },
+    });
+
+    mockFamilyTreeFindUnique.mockResolvedValue(null);
+    mockFamilyTreeCreate.mockResolvedValue({ id: treeId, workspaceId, individuals: [], families: [] });
+    mockIndividualCount.mockResolvedValue(0);
+    mockIndividualCreateMany.mockResolvedValue({ count: 1 });
+
+    await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
+
+    const indData = mockIndividualCreateMany.mock.calls[0][0].data;
+    expect(indData[0].kunya).toBeNull();
   });
 });

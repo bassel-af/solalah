@@ -118,6 +118,7 @@ export function parseGedcom(text: string): GedcomData {
           deathDescription: '',
           deathNotes: '',
           deathHijriDate: '',
+          kunya: '',
           notes: '',
           isDeceased: false,
           isPrivate: false,
@@ -204,6 +205,8 @@ export function parseGedcom(text: string): GedcomData {
             indi.familiesAsSpouse.push(value);
           } else if (tag === 'FAMC' && value) {
             indi.familyAsChild = value;
+          } else if (tag === '_KUNYA') {
+            indi.kunya = value || '';
           } else if (tag === '_RADA_FAMC' && value) {
             if (!indi.radaFamiliesAsChild) indi.radaFamiliesAsChild = [];
             indi.radaFamiliesAsChild.push(value);

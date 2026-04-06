@@ -14,6 +14,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 const mockMembershipFindUnique = vi.fn();
+const mockWorkspaceFindUnique = vi.fn();
 const mockFamilyTreeFindUnique = vi.fn();
 const mockFamilyTreeCreate = vi.fn();
 const mockFamilyTreeUpdate = vi.fn();
@@ -30,6 +31,9 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     workspaceMembership: {
       findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+    },
+    workspace: {
+      findUnique: (...args: unknown[]) => mockWorkspaceFindUnique(...args),
     },
     familyTree: {
       findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
@@ -448,6 +452,60 @@ describe('POST /api/workspaces/[id]/tree/individuals', () => {
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
   });
+
+  test('strips kunya from request when enableKunya is false', async () => {
+    mockAuth();
+    mockTreeEditor();
+    mockExistingTree();
+    mockTreeEditLogCreate.mockResolvedValue({});
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: false });
+
+    const createdIndividual = {
+      id: indId,
+      treeId,
+      givenName: 'محمد',
+      kunya: null,
+    };
+    mockIndividualCreate.mockResolvedValue(createdIndividual);
+
+    const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
+      method: 'POST',
+      body: { givenName: 'محمد', kunya: 'أبو أحمد' },
+    });
+    const res = await POST(req, individualsParams);
+    expect(res.status).toBe(201);
+
+    const createCall = mockIndividualCreate.mock.calls[0][0];
+    expect(createCall.data.kunya).toBeUndefined();
+  });
+
+  test('preserves kunya in request when enableKunya is true', async () => {
+    mockAuth();
+    mockTreeEditor();
+    mockExistingTree();
+    mockTreeEditLogCreate.mockResolvedValue({});
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: true });
+
+    const createdIndividual = {
+      id: indId,
+      treeId,
+      givenName: 'محمد',
+      kunya: 'أبو أحمد',
+    };
+    mockIndividualCreate.mockResolvedValue(createdIndividual);
+
+    const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
+      method: 'POST',
+      body: { givenName: 'محمد', kunya: 'أبو أحمد' },
+    });
+    const res = await POST(req, individualsParams);
+    expect(res.status).toBe(201);
+
+    const createCall = mockIndividualCreate.mock.calls[0][0];
+    expect(createCall.data.kunya).toBe('أبو أحمد');
+  });
 });
 
 // ============================================================================
@@ -588,6 +646,31 @@ describe('PATCH /api/workspaces/[id]/tree/individuals/[individualId]', () => {
     );
     const res = await PATCH(req, individualParams);
     expect(res.status).toBe(400);
+  });
+
+  test('strips kunya from update when enableKunya is false', async () => {
+    mockAuth();
+    mockTreeEditor();
+    mockExistingTree();
+    mockIndividualExists();
+    mockTreeEditLogCreate.mockResolvedValue({});
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: false });
+
+    const updatedIndividual = { id: indId, treeId, givenName: 'عبدالله' };
+    mockIndividualUpdate.mockResolvedValue(updatedIndividual);
+
+    const { PATCH } = await import(
+      '@/app/api/workspaces/[id]/tree/individuals/[individualId]/route'
+    );
+    const req = makeRequest(
+      `http://localhost:3000/api/workspaces/${wsId}/tree/individuals/${indId}`,
+      { method: 'PATCH', body: { givenName: 'عبدالله', kunya: 'أبو أحمد' } },
+    );
+    const res = await PATCH(req, individualParams);
+    expect(res.status).toBe(200);
+
+    const updateCall = mockIndividualUpdate.mock.calls[0][0];
+    expect(updateCall.data.kunya).toBeUndefined();
   });
 });
 

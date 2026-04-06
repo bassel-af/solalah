@@ -61,6 +61,7 @@ model Workspace {
   branchSharingPolicy  BranchSharingPolicy  @default(shareable) @map("branch_sharing_policy")
   enableUmmWalad       Boolean              @default(false) @map("enable_umm_walad")
   enableRadaa          Boolean              @default(false) @map("enable_radaa")
+  enableKunya          Boolean              @default(false) @map("enable_kunya")
   createdAt            DateTime             @default(now()) @map("created_at")
 
   // Relations
@@ -219,6 +220,7 @@ model Individual {
   deathDescription String? @map("death_description") @db.VarChar(500)
   deathNotes  String?  @map("death_notes") @db.Text
   birthHijriDate String? @map("birth_hijri_date")
+  kunya       String?  @db.VarChar(200)
   notes       String?  @db.Text
   deathHijriDate String? @map("death_hijri_date")
   isDeceased  Boolean  @default(false) @map("is_deceased")

@@ -429,3 +429,46 @@ describe('parseGedcom — round-trip parity for Islamic extensions', () => {
     expect(reparsed.individuals[childKey].radaFamiliesAsChild!.length).toBeGreaterThan(0)
   })
 })
+
+// ============================================================================
+// Kunya (_KUNYA tag)
+// ============================================================================
+
+describe('parseGedcom — _KUNYA tag', () => {
+  it('parses _KUNYA tag as kunya field', () => {
+    const gedcom = `0 @I1@ INDI
+1 NAME Ahmad /Saeed/
+2 GIVN Ahmad
+2 SURN Saeed
+1 _KUNYA أبو محمد
+1 SEX M`
+
+    const data = parseGedcom(gedcom)
+    expect(data.individuals['@I1@'].kunya).toBe('أبو محمد')
+  })
+
+  it('defaults kunya to empty string when not present', () => {
+    const gedcom = `0 @I1@ INDI
+1 NAME Ahmad
+1 SEX M`
+
+    const data = parseGedcom(gedcom)
+    expect(data.individuals['@I1@'].kunya).toBe('')
+  })
+
+  it('round-trips kunya through export and re-import', () => {
+    const gedcom = `0 @I1@ INDI
+1 NAME Ahmad
+1 _KUNYA أبو محمد
+1 SEX M`
+
+    const data = parseGedcom(gedcom)
+    expect(data.individuals['@I1@'].kunya).toBe('أبو محمد')
+
+    const exported = gedcomDataToGedcom(data, '5.5.1')
+    const reparsed = parseGedcom(exported)
+
+    const indKey = Object.keys(reparsed.individuals)[0]
+    expect(reparsed.individuals[indKey].kunya).toBe('أبو محمد')
+  })
+})

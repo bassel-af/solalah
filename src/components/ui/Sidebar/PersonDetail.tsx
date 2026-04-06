@@ -641,6 +641,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
 
       <div className={styles.hero}>
         <h2 className={styles.heroName}>{name}</h2>
+        {person.kunya && <span className={styles.heroKunya}>{person.kunya}</span>}
         <DateInfo person={person} className={styles.heroDates} calendarPreference={calendarPreference} />
         <div className={styles.heroActions}>
           {person.sex && (
@@ -1226,6 +1227,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
           anchorSex={person?.sex || ''}
           anchorName={person ? getDisplayName(person) : ''}
           enableUmmWalad={workspace?.enableUmmWalad}
+          enableKunya={workspace?.enableKunya}
           isAddSpouse={formMode.kind === 'addSpouse'}
           ummWaladFamilyId={formMode.kind === 'edit' ? formMode.ummWaladFamilyId : undefined}
           ummWaladInitialValue={formMode.kind === 'edit' ? formMode.ummWaladInitialValue : undefined}
