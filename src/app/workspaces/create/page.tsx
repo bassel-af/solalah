@@ -51,7 +51,7 @@ export default function CreateWorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nameAr: nameAr.trim(),
-          slug: slug.trim(),
+          slug: slug.trim().normalize('NFC'),
           description: description.trim() || undefined,
         }),
       });
@@ -109,8 +109,7 @@ export default function CreateWorkspacePage() {
             value={slug}
             onChange={(e) => setSlug(e.target.value.toLowerCase())}
             className={styles.input}
-            placeholder="al-saeed"
-            dir="ltr"
+            placeholder="السعيد"
             required
           />
           <span className={styles.hint}>

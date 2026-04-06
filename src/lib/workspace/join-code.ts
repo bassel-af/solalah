@@ -4,13 +4,13 @@ const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const RANDOM_LENGTH = 8;
 
 /**
- * Generate a join code with a slug-derived prefix and 8 cryptographically
+ * Generate a join code with the full slug as prefix and 8 cryptographically
  * random alphanumeric characters.
  *
- * Format: PREFIX-XXXXXXXX (e.g., SAEED-4X7KA3B2)
+ * Format: SLUG-XXXXXXXX (e.g., SAEED-FAMILY-4X7KA3B2, السعيد-4X7KA3B2)
  */
 export function generateJoinCode(slug: string): string {
-  const prefix = slug.split('-')[0].toUpperCase().slice(0, 8);
+  const prefix = slug.toUpperCase();
   const bytes = randomBytes(RANDOM_LENGTH);
   let random = '';
   for (let i = 0; i < RANDOM_LENGTH; i++) {

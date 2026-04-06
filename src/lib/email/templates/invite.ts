@@ -20,43 +20,130 @@ export function buildInviteEmail({ workspaceName, inviterName, inviteUrl }: Invi
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>دعوة للانضمام إلى ${safeWorkspaceName}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style type="text/css">
+    /* Reset */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; max-width: 100% !important; }
+      .fluid { max-width: 100% !important; height: auto !important; }
+      .stack-column { display: block !important; width: 100% !important; }
+      .center-on-narrow { text-align: center !important; display: block !important; margin-left: auto !important; margin-right: auto !important; }
+      .padding-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Segoe UI', Tahoma, Arial, sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+<body style="margin: 0; padding: 0; background-color: #1a1f36; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic', sans-serif;">
+  <!-- Background wrapper -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #1a1f36;">
     <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+      <td style="padding: 40px 16px;">
+        <!-- Main card -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="520" align="center" class="email-container" style="margin: auto; max-width: 520px; background-color: #252b48; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
+
+          <!-- Logo / Brand header -->
           <tr>
-            <td style="background-color: #1a5c3a; padding: 24px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">سلالة</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 32px 24px;">
-              <p style="font-size: 18px; color: #333; margin: 0 0 16px;">مرحبا،</p>
-              <p style="font-size: 16px; color: #555; line-height: 1.6; margin: 0 0 24px;">
-                قام <strong>${safeInviterName}</strong> بدعوتك للانضمام إلى عائلة <strong>${safeWorkspaceName}</strong> على منصة سلالة.
-              </p>
-              ${safeUrl ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+            <td style="padding: 40px 40px 24px 40px; text-align: center;" class="padding-mobile">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: auto;">
                 <tr>
-                  <td style="background-color: #1a5c3a; border-radius: 6px;">
-                    <a href="${safeUrl}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">قبول الدعوة</a>
+                  <td style="width: 48px; height: 48px; background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%); border-radius: 12px; text-align: center; vertical-align: middle;">
+                    <span style="font-size: 24px; color: #ffffff; font-weight: 700; line-height: 48px;">&#1587;</span>
                   </td>
                 </tr>
-              </table>` : ''}
-              <p style="font-size: 14px; color: #888; line-height: 1.6; margin: 0;">
-                إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا البريد الإلكتروني.
+              </table>
+              <p style="margin: 16px 0 0 0; font-size: 20px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px;">
+                &#1587;&#1604;&#1575;&#1604;&#1577;
               </p>
             </td>
           </tr>
+
+          <!-- Divider -->
           <tr>
-            <td style="background-color: #fafafa; padding: 16px 24px; text-align: center;">
-              <p style="font-size: 12px; color: #aaa; margin: 0;">سلالة - منصة العائلة</p>
+            <td style="padding: 0 40px;" class="padding-mobile">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="border-top: 1px solid rgba(255,255,255,0.06);"></td>
+                </tr>
+              </table>
             </td>
           </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px 40px;" class="padding-mobile" dir="rtl">
+              <h1 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: rgba(255,255,255,0.85); line-height: 1.5; text-align: right;">
+                دعوة للانضمام إلى ${safeWorkspaceName}
+              </h1>
+              <p style="margin: 0 0 28px 0; font-size: 14px; color: rgba(255,255,255,0.50); line-height: 1.8; text-align: right;">
+                قام <span style="color: rgba(255,255,255,0.70);">${safeInviterName}</span> بدعوتك للانضمام إلى عائلة <span style="color: rgba(255,255,255,0.70);">${safeWorkspaceName}</span> على منصة سلالة.
+              </p>
+
+              <!-- CTA Button -->
+              ${safeUrl ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center; padding: 0 0 28px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: auto;">
+                      <tr>
+                        <td style="border-radius: 8px; background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);">
+                          <a href="${safeUrl}" target="_blank" style="display: inline-block; padding: 14px 40px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic', sans-serif;">
+                            قبول الدعوة
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <p style="margin: 0 0 0 0; font-size: 12px; color: rgba(255,255,255,0.25); line-height: 1.8; text-align: right;">
+                إذا لم يعمل الزر، انسخ الرابط التالي وألصقه في المتصفح:
+              </p>
+              <p style="margin: 4px 0 0 0; font-size: 12px; word-break: break-all; text-align: left; direction: ltr;">
+                <a href="${safeUrl}" style="color: #63b3ed; text-decoration: underline;">${safeUrl}</a>
+              </p>` : ''}
+            </td>
+          </tr>
+
+          <!-- Footer divider -->
+          <tr>
+            <td style="padding: 0 40px;" class="padding-mobile">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="border-top: 1px solid rgba(255,255,255,0.06);"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 32px 40px; text-align: center;" class="padding-mobile">
+              <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.20); line-height: 1.6;">
+                إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذه الرسالة بأمان.
+              </p>
+            </td>
+          </tr>
+
         </table>
+        <!-- /Main card -->
       </td>
     </tr>
   </table>
@@ -70,7 +157,7 @@ ${safeUrl ? `
 لقبول الدعوة، افتح الرابط التالي:
 ${safeUrl}
 ` : ''}
-إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا البريد الإلكتروني.`;
+إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذه الرسالة بأمان.`;
 
   return { subject, html, text };
 }

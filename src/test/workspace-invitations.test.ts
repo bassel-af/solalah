@@ -137,8 +137,8 @@ describe('POST /api/workspaces/[id]/invitations/code', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.code).toBeDefined();
-    // Code format: SLUG_PREFIX-8_RANDOM_CHARS (e.g., SAEED-4X7KA3B2)
-    expect(capturedCode).toMatch(/^SAEED-[A-Z0-9]{8}$/);
+    // Code format: FULL_SLUG-8_RANDOM_CHARS (e.g., SAEED-FAMILY-4X7KA3B2)
+    expect(capturedCode).toMatch(/^SAEED-FAMILY-[A-Z0-9]{8}$/);
   });
 
   test('accepts optional expiresAt and maxUses', async () => {

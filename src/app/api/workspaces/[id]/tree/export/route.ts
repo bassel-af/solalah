@@ -88,13 +88,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     select: { slug: true },
   })
   const slug = workspace?.slug ?? 'family-tree'
-  const filename = `${slug}.ged`
 
   return new NextResponse(gedcomText, {
     status: 200,
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': `attachment; filename="${slug}.ged"`,
       'Cache-Control': 'private, no-store',
     },
   })

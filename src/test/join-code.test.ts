@@ -18,19 +18,19 @@ vi.mock('crypto', () => {
 // Test the extracted generateJoinCode function directly
 // It should use crypto, produce 8 random chars, and only use A-Z0-9
 describe('generateJoinCode', () => {
-  test('produces format PREFIX-XXXXXXXX with 8 random chars', async () => {
+  test('produces format SLUG-XXXXXXXX with full slug as prefix', async () => {
     const { generateJoinCode } = await import('@/lib/workspace/join-code');
     const code = generateJoinCode('saeed-family');
-    expect(code).toMatch(/^SAEED-[A-Z0-9]{8}$/);
+    expect(code).toMatch(/^SAEED-FAMILY-[A-Z0-9]{8}$/);
   });
 
   test('uses only uppercase alphanumeric characters in random part', async () => {
     const { generateJoinCode } = await import('@/lib/workspace/join-code');
-    // Generate multiple codes and check the random part
+    // Generate multiple codes and check the random part — random part is last 8 chars
     for (let i = 0; i < 20; i++) {
-      const code = generateJoinCode('test-workspace');
-      const randomPart = code.split('-').slice(1).join('-'); // everything after the first dash
-      expect(randomPart).toMatch(/^[A-Z0-9]+$/);
+      const code = generateJoinCode('test');
+      const randomPart = code.split('-').pop()!;
+      expect(randomPart).toMatch(/^[A-Z0-9]{8}$/);
     }
   });
 
@@ -38,30 +38,31 @@ describe('generateJoinCode', () => {
     const { generateJoinCode } = await import('@/lib/workspace/join-code');
     for (let i = 0; i < 20; i++) {
       const code = generateJoinCode('my-family');
-      const parts = code.split('-');
-      // prefix is parts[0], random is parts[1]
-      expect(parts[1]).toHaveLength(8);
+      // Random part is the last segment after the final dash
+      const lastDash = code.lastIndexOf('-');
+      const randomPart = code.slice(lastDash + 1);
+      expect(randomPart).toHaveLength(8);
     }
   });
 
-  test('prefix is derived from slug (first word, uppercased, max 8 chars)', async () => {
+  test('prefix is the full slug uppercased', async () => {
     const { generateJoinCode } = await import('@/lib/workspace/join-code');
 
     const code1 = generateJoinCode('saeed-family');
-    expect(code1).toMatch(/^SAEED-/);
+    expect(code1).toMatch(/^SAEED-FAMILY-/);
 
     const code2 = generateJoinCode('al-rashid-clan');
-    expect(code2).toMatch(/^AL-/);
+    expect(code2).toMatch(/^AL-RASHID-CLAN-/);
 
-    const code3 = generateJoinCode('verylongprefix-family');
-    expect(code3).toMatch(/^VERYLONG-/); // truncated to 8 chars
+    const code3 = generateJoinCode('السعيد');
+    expect(code3).toMatch(/^السعيد-/);
   });
 
   test('generates different codes on successive calls (not deterministic)', async () => {
     const { generateJoinCode } = await import('@/lib/workspace/join-code');
     const codes = new Set<string>();
     for (let i = 0; i < 10; i++) {
-      codes.add(generateJoinCode('test-family'));
+      codes.add(generateJoinCode('test'));
     }
     // With 36^8 possibilities, 10 codes should all be unique
     expect(codes.size).toBe(10);
