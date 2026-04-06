@@ -6,6 +6,8 @@ import { getOrCreateTree, getTreeIndividual, touchTreeTimestamp } from '@/lib/tr
 import { updateIndividualSchema } from '@/lib/tree/schemas';
 import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { dbTreeToGedcomData } from '@/lib/tree/mapper';
+import { computeDeleteImpact, computeVersionHash, buildImpactResponse } from '@/lib/tree/cascade-delete';
 
 type RouteParams = { params: Promise<{ id: string; individualId: string }> };
 
@@ -90,40 +92,162 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Clean up family references and delete in a single transaction
-  await prisma.$transaction(async (tx: {
-    familyChild: { deleteMany: typeof prisma.familyChild.deleteMany };
-    family: { updateMany: typeof prisma.family.updateMany };
-    individual: { delete: typeof prisma.individual.delete };
-  }) => {
-    await tx.familyChild.deleteMany({
-      where: { individualId },
+  // Parse optional body for versionHash + confirmationName (cascade confirmation)
+  let clientVersionHash: string | undefined;
+  let confirmationName: string | undefined;
+  try {
+    const body = await request.json();
+    clientVersionHash = body?.versionHash;
+    confirmationName = body?.confirmationName;
+  } catch {
+    // No body or invalid JSON — that's fine for simple deletes
+  }
+
+  // Compute cascade impact
+  const gedcomData = dbTreeToGedcomData(tree);
+  const impact = computeDeleteImpact(gedcomData, individualId);
+  const { affectedIds } = impact;
+  const currentVersionHash = computeVersionHash(tree.lastModifiedAt);
+
+  // If there are unreachable people, require version hash confirmation
+  if (affectedIds.size > 0) {
+    if (!clientVersionHash || clientVersionHash !== currentVersionHash) {
+      return NextResponse.json({
+        data: {
+          hasImpact: impact.hasImpact,
+          affectedCount: affectedIds.size,
+          affectedNames: impact.affectedNames,
+          truncated: impact.truncated,
+          versionHash: currentVersionHash,
+        },
+      }, { status: 409 });
+    }
+
+    // Require name confirmation for large cascades (5+ affected)
+    if (affectedIds.size >= 5) {
+      const { stripArabicDiacritics } = await import('@/lib/utils/search');
+      const targetName = existing.givenName?.trim() ?? '';
+      const typedName = confirmationName?.trim() ?? '';
+      if (!typedName || stripArabicDiacritics(typedName) !== stripArabicDiacritics(targetName)) {
+        return NextResponse.json(
+          { error: 'يجب كتابة اسم الشخص للتأكيد' },
+          { status: 400 },
+        );
+      }
+    }
+  }
+
+  // All IDs to delete: target + affected (target needs same FK cleanup)
+  const allDeleteIds = [individualId, ...affectedIds];
+
+  // Clean up FK references and delete in a single transaction.
+  // Order matters: clean all RESTRICT FKs before deleting individuals.
+  // FamilyChild and RadaFamilyChild auto-cascade via onDelete: Cascade.
+  try {
+    await prisma.$transaction(async (tx) => {
+    // 1. Break ALL branch pointers referencing deleted individuals (any status —
+    //    even revoked/broken pointers hold FK refs that block individual deletion)
+    await tx.branchPointer.updateMany({
+      where: {
+        OR: [
+          { rootIndividualId: { in: allDeleteIds } },
+          { selectedIndividualId: { in: allDeleteIds } },
+          { anchorIndividualId: { in: allDeleteIds } },
+        ],
+      },
+      data: { status: 'broken' },
     });
+
+    // 2. Revoke share tokens referencing deleted individuals
+    await tx.branchShareToken.updateMany({
+      where: {
+        rootIndividualId: { in: allDeleteIds },
+        isRevoked: false,
+      },
+      data: { isRevoked: true },
+    });
+
+    // 3. Null out rada family foster parent refs
+    await tx.radaFamily.updateMany({
+      where: { fosterFatherId: { in: allDeleteIds } },
+      data: { fosterFatherId: null },
+    });
+    await tx.radaFamily.updateMany({
+      where: { fosterMotherId: { in: allDeleteIds } },
+      data: { fosterMotherId: null },
+    });
+
+    // 4. Delete UserTreeLink records
+    await tx.userTreeLink.deleteMany({
+      where: { individualId: { in: allDeleteIds } },
+    });
+
+    // 5. Null out WorkspaceInvitation individual refs
+    await tx.workspaceInvitation.updateMany({
+      where: { individualId: { in: allDeleteIds } },
+      data: { individualId: null },
+    });
+
+    // 6. Null out family spouse refs
     await tx.family.updateMany({
-      where: { husbandId: individualId },
+      where: { husbandId: { in: allDeleteIds } },
       data: { husbandId: null },
     });
     await tx.family.updateMany({
-      where: { wifeId: individualId },
+      where: { wifeId: { in: allDeleteIds } },
       data: { wifeId: null },
     });
-    await tx.individual.delete({
-      where: { id: individualId },
-    });
-  });
 
-  await Promise.all([
-    prisma.treeEditLog.create({
+    // 7. Delete all individuals (FamilyChild + RadaFamilyChild auto-cascade)
+    await tx.individual.deleteMany({
+      where: { id: { in: allDeleteIds } },
+    });
+
+    // 8. Clean up empty families (no husband, no wife, no children)
+    await tx.family.deleteMany({
+      where: {
+        treeId: tree.id,
+        husbandId: null,
+        wifeId: null,
+        children: { none: {} },
+      },
+    });
+
+    // 9. Audit log
+    await tx.treeEditLog.create({
       data: {
         treeId: tree.id,
         userId: result.user.id,
-        action: 'delete',
+        action: affectedIds.size > 0 ? 'cascade_delete' : 'delete',
         entityType: 'individual',
         entityId: individualId,
+        payload: affectedIds.size > 0 ? {
+          targetIndividualId: individualId,
+          targetName: existing.givenName ?? '',
+          affectedIndividualIds: [...affectedIds],
+          totalAffectedCount: affectedIds.size,
+          confirmationMethod: affectedIds.size >= 5 ? 'name_typing' : 'simple_confirm',
+        } : undefined,
       },
-    }),
-    touchTreeTimestamp(tree.id),
-  ]);
+    });
+
+    // 10. Update tree timestamp
+    await tx.familyTree.update({
+      where: { id: tree.id },
+      data: { lastModifiedAt: new Date() },
+    });
+    }, { timeout: 30000 });
+  } catch (error: unknown) {
+    // Concurrent delete: another user deleted the same person between our
+    // version check and the transaction commit → Prisma P2025 (record not found)
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+      return NextResponse.json(
+        { error: 'الشخص غير موجود في هذه الشجرة' },
+        { status: 404 },
+      );
+    }
+    throw error;
+  }
 
   return new NextResponse(null, { status: 204 });
 }

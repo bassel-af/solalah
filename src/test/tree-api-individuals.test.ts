@@ -61,6 +61,19 @@ vi.mock('@/lib/tree/branch-pointer-queries', () => ({
   getActivePointersForWorkspace: vi.fn().mockResolvedValue([]),
 }));
 
+// Mock tree mapper — DELETE now uses dbTreeToGedcomData for cascade analysis
+vi.mock('@/lib/tree/mapper', () => ({
+  dbTreeToGedcomData: vi.fn(() => ({ individuals: {}, families: {} })),
+  redactPrivateIndividuals: vi.fn((data: unknown) => data),
+}));
+
+// Mock cascade-delete — DELETE uses computeDeleteImpact for cascade analysis
+vi.mock('@/lib/tree/cascade-delete', () => ({
+  computeDeleteImpact: vi.fn(() => ({ hasImpact: false, affectedIds: new Set() })),
+  computeVersionHash: vi.fn(() => 'mock-hash'),
+  buildImpactResponse: vi.fn(() => ({ hasImpact: false, affectedCount: 0, affectedNames: [], versionHash: 'mock-hash' })),
+}));
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -126,8 +139,10 @@ function mockExistingTree() {
   mockFamilyTreeFindUnique.mockResolvedValue({
     id: treeId,
     workspaceId: wsId,
+    lastModifiedAt: now,
     individuals: [],
     families: [],
+    radaFamilies: [],
   });
 }
 
@@ -136,8 +151,10 @@ function mockNoTree() {
   mockFamilyTreeCreate.mockResolvedValue({
     id: treeId,
     workspaceId: wsId,
+    lastModifiedAt: now,
     individuals: [],
     families: [],
+    radaFamilies: [],
   });
 }
 
@@ -168,8 +185,15 @@ function mockDefaultTransaction() {
   mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
     const txProxy = {
       familyChild: { deleteMany: mockFamilyChildDeleteMany },
-      family: { updateMany: mockFamilyUpdateMany },
-      individual: { delete: mockIndividualDelete },
+      family: { updateMany: mockFamilyUpdateMany, deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      individual: { delete: mockIndividualDelete, deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      branchPointer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      branchShareToken: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      radaFamily: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      userTreeLink: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      workspaceInvitation: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      treeEditLog: { create: mockTreeEditLogCreate, createMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      familyTree: { update: vi.fn().mockResolvedValue({}) },
     };
     return fn(txProxy);
   });
@@ -641,12 +665,11 @@ describe('DELETE /api/workspaces/[id]/tree/individuals/[individualId]', () => {
     expect(res.status).toBe(204);
   });
 
-  test('removes FamilyChild records referencing deleted individual', async () => {
+  test('FamilyChild records auto-cascade on individual delete (no explicit deleteMany)', async () => {
     mockAuth();
     mockTreeEditor();
     mockExistingTree();
     mockIndividualExists();
-    mockFamilyChildDeleteMany.mockResolvedValue({ count: 2 });
     mockFamilyUpdateMany.mockResolvedValue({ count: 0 });
     mockIndividualDelete.mockResolvedValue({});
     mockTreeEditLogCreate.mockResolvedValue({});
@@ -660,9 +683,8 @@ describe('DELETE /api/workspaces/[id]/tree/individuals/[individualId]', () => {
     );
     await DELETE(req, individualParams);
 
-    expect(mockFamilyChildDeleteMany).toHaveBeenCalledWith({
-      where: { individualId: indId },
-    });
+    // FamilyChild has onDelete: Cascade — no explicit deleteMany needed
+    expect(mockFamilyChildDeleteMany).not.toHaveBeenCalled();
   });
 
   test('nullifies husbandId/wifeId on families referencing deleted individual', async () => {
@@ -686,12 +708,12 @@ describe('DELETE /api/workspaces/[id]/tree/individuals/[individualId]', () => {
 
     // Should set husbandId to null where it matches
     expect(mockFamilyUpdateMany).toHaveBeenCalledWith({
-      where: { husbandId: indId },
+      where: { husbandId: { in: [indId] } },
       data: { husbandId: null },
     });
     // Should set wifeId to null where it matches
     expect(mockFamilyUpdateMany).toHaveBeenCalledWith({
-      where: { wifeId: indId },
+      where: { wifeId: { in: [indId] } },
       data: { wifeId: null },
     });
   });
@@ -734,8 +756,15 @@ describe('DELETE /api/workspaces/[id]/tree/individuals/[individualId]', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       return fn({
         familyChild: { deleteMany: mockFamilyChildDeleteMany },
-        family: { updateMany: mockFamilyUpdateMany },
-        individual: { delete: mockIndividualDelete },
+        family: { updateMany: mockFamilyUpdateMany, deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        individual: { delete: mockIndividualDelete, deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        branchPointer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        branchShareToken: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        radaFamily: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        userTreeLink: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        workspaceInvitation: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        treeEditLog: { create: mockTreeEditLogCreate, createMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        familyTree: { update: vi.fn().mockResolvedValue({}) },
       });
     });
     mockFamilyChildDeleteMany.mockResolvedValue({ count: 0 });

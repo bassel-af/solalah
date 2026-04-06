@@ -6,6 +6,24 @@ import { apiFetch } from '@/lib/api/client';
 import { serializeIndividualForm } from '@/lib/person-detail-helpers';
 
 // ---------------------------------------------------------------------------
+// Cascade delete impact data
+// ---------------------------------------------------------------------------
+
+export interface CascadeImpactData {
+  affectedCount: number;
+  affectedNames: string[];
+  truncated: boolean;
+  branchPointerCount: number;
+  versionHash: string;
+}
+
+export type DeleteState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'simpleConfirm' }
+  | { kind: 'cascadeWarning'; impact: CascadeImpactData };
+
+// ---------------------------------------------------------------------------
 // Types for the form modal state machine
 // ---------------------------------------------------------------------------
 
@@ -56,9 +74,8 @@ export interface UsePersonActionsReturn {
   setFormLoading: (loading: boolean) => void;
   formError: string;
   setFormError: (error: string) => void;
-  deleteConfirm: boolean;
-  setDeleteConfirm: (confirm: boolean) => void;
-  deleteLoading: boolean;
+  deleteState: DeleteState;
+  setDeleteState: (state: DeleteState) => void;
   handleEditSubmit: (formData: IndividualFormData) => Promise<void>;
   handleAddChildSubmit: (formData: IndividualFormData) => Promise<void>;
   handleAddSpouseSubmit: (formData: IndividualFormData) => Promise<void>;
@@ -68,7 +85,8 @@ export interface UsePersonActionsReturn {
   handleLinkExistingSpouse: (existingPersonId: string) => Promise<void>;
   handleRadaaSubmit: (data: RadaaFormData) => Promise<void>;
   handleRadaaDelete: (radaFamilyId: string) => Promise<void>;
-  handleDelete: () => Promise<void>;
+  handleDeleteClick: () => Promise<void>;
+  handleCascadeConfirm: (confirmationName?: string) => Promise<void>;
   unlinkSpouse: (familyId: string) => Promise<void>;
   moveSubtree: (targetFamilyId: string) => Promise<void>;
 }
@@ -92,9 +110,8 @@ export function usePersonActions({
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Delete confirmation state
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  // Delete state machine
+  const [deleteState, setDeleteState] = useState<DeleteState>({ kind: 'idle' });
 
   // Guarded setFormMode — no-op when person is pointed
   const formMode = formModeRaw;
@@ -499,26 +516,73 @@ export function usePersonActions({
   // Delete handler
   // -------------------------------------------------------------------------
 
-  const handleDelete = useCallback(async () => {
+  // Fetch delete impact, then decide: simple confirm or cascade warning modal
+  const handleDeleteClick = useCallback(async () => {
     if (!workspace || isPointed) return;
-    setDeleteLoading(true);
+    setDeleteState({ kind: 'loading' });
     try {
-      const res = await apiFetch(`/api/workspaces/${workspace.workspaceId}/tree/individuals/${personId}`, {
-        method: 'DELETE',
-      });
+      const res = await apiFetch(
+        `/api/workspaces/${workspace.workspaceId}/tree/individuals/${personId}/delete-impact`,
+      );
+      if (!res.ok) {
+        throw new Error('حدث خطأ');
+      }
+      const { data } = await res.json();
+      if (data.hasImpact) {
+        setDeleteState({ kind: 'cascadeWarning', impact: data });
+      } else {
+        setDeleteState({ kind: 'simpleConfirm' });
+      }
+    } catch {
+      setDeleteState({ kind: 'idle' });
+    }
+  }, [workspace, personId, isPointed]);
+
+  // Execute the delete (simple or cascade)
+  const handleCascadeConfirm = useCallback(async (confirmationName?: string) => {
+    if (!workspace || isPointed) return;
+    const currentState = deleteState;
+    setDeleteState({ kind: 'loading' });
+    try {
+      const body: Record<string, string> = {};
+      if (currentState.kind === 'cascadeWarning') {
+        body.versionHash = currentState.impact.versionHash;
+        if (confirmationName) body.confirmationName = confirmationName;
+      }
+
+      const res = await apiFetch(
+        `/api/workspaces/${workspace.workspaceId}/tree/individuals/${personId}`,
+        {
+          method: 'DELETE',
+          ...(Object.keys(body).length > 0 ? { body: JSON.stringify(body) } : {}),
+          headers: Object.keys(body).length > 0 ? { 'Content-Type': 'application/json' } : undefined,
+        },
+      );
+
+      if (res.status === 409) {
+        // Stale data — update impact with fresh data from response
+        const { data } = await res.json();
+        setDeleteState({ kind: 'cascadeWarning', impact: data });
+        return;
+      }
+
       if (!res.ok && res.status !== 204) {
         const json = await res.json();
         throw new Error(json.error ?? 'حدث خطأ');
       }
+
+      setDeleteState({ kind: 'idle' });
       setSelectedPersonId(null);
       await workspace.refreshTree();
     } catch {
-      // Reset confirm state on error so the user can try again
-      setDeleteConfirm(false);
-    } finally {
-      setDeleteLoading(false);
+      // Reset to previous state on error so user can retry
+      if (currentState.kind === 'cascadeWarning') {
+        setDeleteState(currentState);
+      } else {
+        setDeleteState({ kind: 'idle' });
+      }
     }
-  }, [workspace, personId, setSelectedPersonId, isPointed]);
+  }, [workspace, personId, setSelectedPersonId, isPointed, deleteState]);
 
   return {
     formMode,
@@ -527,9 +591,8 @@ export function usePersonActions({
     setFormLoading,
     formError,
     setFormError,
-    deleteConfirm,
-    setDeleteConfirm,
-    deleteLoading,
+    deleteState,
+    setDeleteState,
     handleEditSubmit,
     handleAddChildSubmit,
     handleAddSpouseSubmit,
@@ -539,7 +602,8 @@ export function usePersonActions({
     handleFamilyEventSubmit,
     handleRadaaSubmit,
     handleRadaaDelete,
-    handleDelete,
+    handleDeleteClick,
+    handleCascadeConfirm,
     unlinkSpouse,
     moveSubtree,
   };

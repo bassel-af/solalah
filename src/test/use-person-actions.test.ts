@@ -146,8 +146,7 @@ describe('usePersonActions', () => {
     expect(result.current.formMode).toBeNull();
     expect(result.current.formLoading).toBe(false);
     expect(result.current.formError).toBe('');
-    expect(result.current.deleteConfirm).toBe(false);
-    expect(result.current.deleteLoading).toBe(false);
+    expect(result.current.deleteState).toEqual({ kind: 'idle' });
   });
 
   // -----------------------------------------------------------------------
@@ -488,14 +487,17 @@ describe('usePersonActions', () => {
   });
 
   // -----------------------------------------------------------------------
-  // handleDelete
+  // handleDeleteClick + handleCascadeConfirm
   // -----------------------------------------------------------------------
 
-  it('handleDelete deletes individual and clears selection', async () => {
+  it('handleDeleteClick fetches impact and sets simpleConfirm when no cascade', async () => {
     const person = makeIndividual();
     const data = makeGedcomData({ [person.id]: person });
 
-    mockApiFetch.mockResolvedValueOnce({ ok: true, status: 204 } as Response);
+    mockApiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: { hasImpact: false } }),
+    } as unknown as Response);
 
     const { result } = renderHook(() =>
       usePersonActions({
@@ -508,18 +510,95 @@ describe('usePersonActions', () => {
     );
 
     await act(async () => {
-      await result.current.handleDelete();
+      await result.current.handleDeleteClick();
     });
 
     expect(mockApiFetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws-123/tree/individuals/@I1@/delete-impact',
+    );
+    expect(result.current.deleteState).toEqual({ kind: 'simpleConfirm' });
+  });
+
+  it('handleDeleteClick sets cascadeWarning when impact exists', async () => {
+    const person = makeIndividual();
+    const data = makeGedcomData({ [person.id]: person });
+
+    const impactData = {
+      hasImpact: true,
+      affectedCount: 3,
+      affectedNames: ['أحمد', 'فاطمة', 'خالد'],
+      truncated: false,
+      branchPointerCount: 0,
+      versionHash: 'abc123',
+    };
+    mockApiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: impactData }),
+    } as unknown as Response);
+
+    const { result } = renderHook(() =>
+      usePersonActions({
+        personId: person.id,
+        workspace: mockWorkspace,
+        person,
+        data,
+        setSelectedPersonId: mockSetSelectedPersonId,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleDeleteClick();
+    });
+
+    expect(result.current.deleteState).toEqual({
+      kind: 'cascadeWarning',
+      impact: impactData,
+    });
+  });
+
+  it('handleCascadeConfirm from simpleConfirm deletes and clears selection', async () => {
+    const person = makeIndividual();
+    const data = makeGedcomData({ [person.id]: person });
+
+    // First call: impact check (no cascade)
+    mockApiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: { hasImpact: false } }),
+    } as unknown as Response);
+
+    const { result } = renderHook(() =>
+      usePersonActions({
+        personId: person.id,
+        workspace: mockWorkspace,
+        person,
+        data,
+        setSelectedPersonId: mockSetSelectedPersonId,
+      }),
+    );
+
+    // Move to simpleConfirm state
+    await act(async () => {
+      await result.current.handleDeleteClick();
+    });
+    expect(result.current.deleteState.kind).toBe('simpleConfirm');
+
+    // Second call: actual DELETE
+    mockApiFetch.mockResolvedValueOnce({ ok: true, status: 204 } as Response);
+
+    await act(async () => {
+      await result.current.handleCascadeConfirm();
+    });
+
+    expect(mockApiFetch).toHaveBeenLastCalledWith(
       '/api/workspaces/ws-123/tree/individuals/@I1@',
       expect.objectContaining({ method: 'DELETE' }),
     );
     expect(mockSetSelectedPersonId).toHaveBeenCalledWith(null);
     expect(mockWorkspace.refreshTree).toHaveBeenCalled();
+    expect(result.current.deleteState).toEqual({ kind: 'idle' });
   });
 
-  it('handleDelete resets deleteConfirm on error', async () => {
+  it('handleDeleteClick resets to idle on error', async () => {
     const person = makeIndividual();
     const data = makeGedcomData({ [person.id]: person });
 
@@ -535,18 +614,11 @@ describe('usePersonActions', () => {
       }),
     );
 
-    // Set deleteConfirm to true first
-    act(() => {
-      result.current.setDeleteConfirm(true);
-    });
-    expect(result.current.deleteConfirm).toBe(true);
-
     await act(async () => {
-      await result.current.handleDelete();
+      await result.current.handleDeleteClick();
     });
 
-    expect(result.current.deleteConfirm).toBe(false);
-    expect(result.current.deleteLoading).toBe(false);
+    expect(result.current.deleteState).toEqual({ kind: 'idle' });
   });
 
   // -----------------------------------------------------------------------
@@ -839,7 +911,7 @@ describe('usePersonActions', () => {
     expect(mockApiFetch).not.toHaveBeenCalled();
   });
 
-  it('handleDelete is a no-op when person._pointed is true', async () => {
+  it('handleDeleteClick is a no-op when person._pointed is true', async () => {
     const person = makeIndividual({ _pointed: true });
     const data = makeGedcomData({ [person.id]: person });
 
@@ -854,7 +926,7 @@ describe('usePersonActions', () => {
     );
 
     await act(async () => {
-      await result.current.handleDelete();
+      await result.current.handleDeleteClick();
     });
 
     expect(mockApiFetch).not.toHaveBeenCalled();
