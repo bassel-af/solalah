@@ -26,6 +26,8 @@ interface WorkspaceTreeContextValue {
   enableRadaa?: boolean;
   /** Whether the workspace has kunya feature enabled */
   enableKunya?: boolean;
+  /** Workspace description (shown in sidebar "about" panel) */
+  description?: string;
 }
 
 const WorkspaceTreeContext = createContext<WorkspaceTreeContextValue | null>(null);
@@ -40,6 +42,7 @@ interface WorkspaceTreeProviderProps {
   enableUmmWalad?: boolean;
   enableRadaa?: boolean;
   enableKunya?: boolean;
+  description?: string;
 }
 
 export function WorkspaceTreeProvider({
@@ -52,9 +55,10 @@ export function WorkspaceTreeProvider({
   enableUmmWalad,
   enableRadaa,
   enableKunya,
+  description,
 }: WorkspaceTreeProviderProps) {
   return (
-    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya }}>
+    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, description }}>
       {children}
     </WorkspaceTreeContext.Provider>
   );

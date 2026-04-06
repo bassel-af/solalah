@@ -619,13 +619,13 @@ export default function WorkspaceDetailPage() {
                 />
               </div>
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>الوصف (اختياري)</label>
+                <label className={styles.fieldLabel}>وصف العائلة (اختياري)</label>
                 <textarea
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   className={styles.modalTextarea}
                   rows={3}
-                  placeholder="وصف مختصر للمساحة"
+                  placeholder="وصف العائلة"
                 />
               </div>
               <div className={styles.modalActions}>

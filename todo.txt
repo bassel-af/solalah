@@ -2,9 +2,7 @@
 - Thanks message to Raghad and mother, khaled and father and my family and the rest. Good to be in the
 landing page and login page.
 
-Think of app name
-Next phases:
-
+Think of app name ربما "نسلي
 
 
 Think about business model.
@@ -29,23 +27,15 @@ API / Platform integrations:
 Make people close together. Do not make them this much far away.
 
 
-وصف مساحة العائلة
-وصف العائلة
-التفكير باسم جديد للمنتج، ربما "نسلي"
 - Create multiple test trees for each phase that run only for specific users.
 إعدادات الخصوصية:
-إخفاء النساء
 إخفاء تواريخ الميلاد للرجال
 إخفاء تواريخ الميلاد للنساء
 إخفاء الملاحطات
-الزوجات الأخريات هل هن أمهات في الرضاعة؟ والمطلقات؟
-
-التنسيق:
-تغيير ألوان النساء والرجال.
-توحيد الألوان
+وصف للشخص
 
 
-all person serach picker shall contain person birth date.
+all person search picker shall contain person birth date.
 
 Test with non admin role (edit etc)
 

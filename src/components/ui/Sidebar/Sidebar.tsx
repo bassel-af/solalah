@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useTree } from '@/context/TreeContext';
+import { useWorkspaceTree } from '@/context/WorkspaceTreeContext';
 import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH, findTopmostAncestor } from '@/lib/gedcom';
 import { PersonDetail } from './PersonDetail';
 import { matchesSearch, searchRelevance } from '@/lib/utils/search';
@@ -34,10 +35,13 @@ export function Sidebar() {
     setMobileSidebarOpen,
   } = useTree();
 
+  const { description } = useWorkspaceTree();
+
   const [searchFilter, setSearchFilter] = useState('');
   const [rootDropdownOpen, setRootDropdownOpen] = useState(false);
   const [rootFilter, setRootFilter] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
 
   // Prevent body scroll when sidebar is open on mobile
@@ -183,16 +187,40 @@ export function Sidebar() {
 
       <aside className={clsx(styles.sidebar, { [styles.isOpen]: isMobileSidebarOpen })}>
         <div className={styles.header}>
-          <h2>شجرة العائلة</h2>
-          <button
-            className={styles.close}
-            onClick={() => setMobileSidebarOpen(false)}
-            aria-label="إغلاق القائمة"
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <div className={styles.headerTop}>
+            <div className={styles.headerTitleRow}>
+              <h2>شجرة العائلة</h2>
+              {description && (
+                <button
+                  className={clsx(styles.aboutChip, { [styles.isOpen]: isAboutOpen })}
+                  onClick={() => setIsAboutOpen(!isAboutOpen)}
+                  aria-expanded={isAboutOpen}
+                  aria-label="عن العائلة"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5"/>
+                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            <button
+              className={styles.close}
+              onClick={() => setMobileSidebarOpen(false)}
+              aria-label="إغلاق القائمة"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+          {description && isAboutOpen && (
+            <div className={styles.aboutPanel}>
+              <p className={styles.aboutPanelText}>
+                {description}
+              </p>
+            </div>
+          )}
         </div>
 
         {selectedPersonId ? (

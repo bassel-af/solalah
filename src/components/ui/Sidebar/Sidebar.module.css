@@ -84,8 +84,21 @@
 
 /* Header */
 .header {
-  padding: var(--space-11) var(--space-9) var(--space-7);
+  padding-top: var(--space-11);
   border-bottom: 1px solid var(--alpha-white-08);
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-9) var(--space-7);
+}
+
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .header h2 {
@@ -351,6 +364,56 @@
 .person.deceased.female::before {
   background: rgba(237, 100, 166, 0.25);
   box-shadow: none;
+}
+
+/* About — info chip next to title + expandable panel */
+.aboutChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--alpha-white-10);
+  border-radius: 50%;
+  background: var(--alpha-white-04);
+  color: var(--alpha-white-30);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.aboutChip:hover {
+  background: var(--alpha-white-08);
+  border-color: var(--alpha-white-15);
+  color: var(--alpha-white-60);
+}
+
+.aboutChip.isOpen {
+  background: rgba(99, 179, 237, 0.12);
+  border-color: rgba(99, 179, 237, 0.25);
+  color: var(--color-primary-light);
+}
+
+.aboutChip:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-primary);
+}
+
+.aboutPanel {
+  margin: 0 var(--space-6) var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  background: var(--alpha-white-04);
+  border: 1px solid var(--alpha-white-06);
+  border-radius: var(--radius-lg);
+  animation: slideDown var(--transition-base);
+}
+
+.aboutPanelText {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-45);
+  line-height: 1.75;
 }
 
 /* Settings Section */

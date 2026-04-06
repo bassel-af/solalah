@@ -121,13 +121,13 @@ export default function CreateWorkspacePage() {
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="description" className={styles.label}>الوصف</label>
+          <label htmlFor="description" className={styles.label}>وصف العائلة</label>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className={styles.textarea}
-            placeholder="وصف اختياري لمساحة العائلة"
+            placeholder="وصف العائلة"
           />
         </div>
 
