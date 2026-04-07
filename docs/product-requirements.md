@@ -860,9 +860,24 @@ Notification
 - Data flow: workspace by-slug API → `WorkspaceTreeContext` → Sidebar
 - Label renamed from "وصف مختصر للمساحة" to "وصف العائلة" on create/edit forms
 
-### Phase 9 — Audit & Content
+### Phase 9 — Audit Log ✅ COMPLETE
 
-- Audit log for all tree edits (TreeEditLog)
+**✅ Snapshot-based audit logging:**
+- `enableAuditLog` workspace toggle (admin-only) — when disabled, audit UI hidden and API returns 403; snapshots still captured silently in the background regardless of setting
+- `enableVersionControl` workspace toggle — depends on `enableAuditLog` (auto-disabled when audit is disabled); UI placeholder for future restore/undo capability
+- Enhanced `TreeEditLog` with `snapshotBefore` (Json), `snapshotAfter` (Json), `description` (Arabic human-readable) fields
+- All 19 tree mutation routes capture before/after snapshots: individuals (create/update/delete/cascade), families (create/update/delete), family children (add/remove/move), rada'a families (create/update/delete), rada'a children (add/remove), branch pointers (redeem/break/copy), share tokens (revoke), import
+- `GET /api/workspaces/[id]/tree/audit-log` — admin-only, paginated (max 50/page, default 20), filterable by action/entityType/entityId/userId, rate-limited (60 req/min)
+- Audit helper module: `snapshotIndividual()`, `snapshotFamily()`, `snapshotRadaFamily()`, `snapshotBranchPointer()` extraction functions, `buildAuditDescription()` Arabic description builder
+- Audit log page at `/workspaces/[slug]/tree/audit/` with filtering, pagination, expandable before/after diff viewer
+- `AuditLogEntry` component with color-coded action badges (green=create, blue=update, red=delete, amber=move), entity type badges, user avatar, relative timestamps
+- `AuditLogDiff` component with Arabic field labels, color-coded added/removed/changed values, internal ID fields hidden
+- CanvasToolbar "السجل" link (admin-only, visible when audit enabled)
+- Sidebar per-person audit history (collapsible, last 5 entries, admin-only)
+- Workspace settings page: two new toggle cards for سجل التعديلات and التحكم بالإصدارات with cascade logic
+- New Prisma index on `[treeId, entityType, entityId]` for per-entity history queries
+- Legacy entries (pre-Phase 9) gracefully handled with "لا تتوفر تفاصيل التغييرات" message
+- 5 test files with ~96 tests covering: snapshot extraction, API auth/pagination/filtering, workspace toggle dependencies, mutation route snapshot capture
 
 ### Phase 10 — Content
 
