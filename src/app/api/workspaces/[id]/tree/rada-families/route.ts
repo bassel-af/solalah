@@ -6,6 +6,7 @@ import { getOrCreateTree, getTreeIndividual, touchTreeTimestamp } from '@/lib/tr
 import { createRadaFamilySchema } from '@/lib/tree/schemas';
 import { detectCircularRadaRef, detectDuplicateChildren } from '@/lib/tree/rada-validators';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { snapshotRadaFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -120,6 +121,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'create',
         entityType: 'rada_family',
         entityId: radaFamily.id,
+        snapshotBefore: JSON_NULL,
+        snapshotAfter: snapshotRadaFamily(radaFamily),
+        description: buildAuditDescription('create', 'rada_family'),
       },
     }),
     touchTreeTimestamp(tree.id),

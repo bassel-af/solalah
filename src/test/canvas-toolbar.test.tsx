@@ -17,6 +17,18 @@ vi.mock('@/context/ToastContext', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
 
+// Mock WorkspaceTreeContext — CanvasToolbar uses useWorkspaceTree for audit log link
+vi.mock('@/context/WorkspaceTreeContext', () => ({
+  useWorkspaceTree: () => ({
+    workspaceId: 'ws-123',
+    canEdit: false,
+    isAdmin: false,
+    enableAuditLog: false,
+    refreshTree: vi.fn(),
+    pointers: [],
+  }),
+}));
+
 // Mock apiFetch
 vi.mock('@/lib/api/client', () => ({
   apiFetch: vi.fn(),

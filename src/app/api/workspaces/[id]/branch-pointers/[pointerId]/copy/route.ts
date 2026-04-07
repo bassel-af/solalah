@@ -5,6 +5,7 @@ import { getTreeByWorkspaceId, getOrCreateTree } from '@/lib/tree/queries';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
 import { extractPointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import { prepareDeepCopy, persistDeepCopy } from '@/lib/tree/branch-pointer-deep-copy';
+import { snapshotBranchPointer, buildAuditDescription } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; pointerId: string }> };
 
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'deep_copy',
         entityType: 'branch_pointer',
         entityId: pointerId,
+        snapshotBefore: snapshotBranchPointer(pointer),
+        snapshotAfter: snapshotBranchPointer({ ...pointer, status: 'broken' }),
+        description: buildAuditDescription('deep_copy', 'branch_pointer'),
       },
     });
   });

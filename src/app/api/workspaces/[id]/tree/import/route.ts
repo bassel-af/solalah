@@ -5,6 +5,7 @@ import { touchTreeTimestamp } from '@/lib/tree/queries'
 import { seedTreeFromGedcomData } from '@/lib/tree/seed-helpers'
 import { parseGedcom } from '@/lib/gedcom/parser'
 import { prisma } from '@/lib/db'
+import { buildAuditDescription } from '@/lib/tree/audit'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           familyCount: seedResult.familyCount,
           radaFamilyCount: seedResult.radaFamilyCount,
         },
+        description: buildAuditDescription('import', 'tree'),
       },
     }),
   ])

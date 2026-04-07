@@ -7,6 +7,7 @@ import { extractPointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import { prepareDeepCopy, persistDeepCopy } from '@/lib/tree/branch-pointer-deep-copy';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { snapshotBranchPointer, buildAuditDescription } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; tokenId: string }> };
 
@@ -126,6 +127,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                 action: 'deep_copy',
                 entityType: 'branch_pointer',
                 entityId: pointer.id,
+                snapshotBefore: snapshotBranchPointer(pointer),
+                snapshotAfter: snapshotBranchPointer({ ...pointer, status: 'revoked' }),
+                description: buildAuditDescription('deep_copy', 'branch_pointer'),
               },
             });
           });
@@ -176,6 +180,29 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         })),
       });
     }
+  }
+
+  // Log the token revocation itself (best effort — don't fail the revoke if logging fails)
+  try {
+    const revokeTree = await prisma.familyTree.findUnique({
+      where: { workspaceId },
+      select: { id: true },
+    });
+    if (revokeTree) {
+      await prisma.treeEditLog.create({
+        data: {
+          treeId: revokeTree.id,
+          userId: result.user.id,
+          action: 'revoke_token',
+          entityType: 'share_token',
+          entityId: tokenId,
+          payload: { disconnectedPointers, copiedPointers },
+          description: buildAuditDescription('revoke_token', 'share_token'),
+        },
+      });
+    }
+  } catch {
+    // Audit logging failure should not block token revocation
   }
 
   return NextResponse.json({ success: true, disconnectedPointers, copiedPointers });

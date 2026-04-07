@@ -5,6 +5,7 @@ import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, touchTreeTimestamp } from '@/lib/tree/queries';
 import { createIndividualSchema } from '@/lib/tree/schemas';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { snapshotIndividual, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'create',
         entityType: 'individual',
         entityId: individual.id,
+        snapshotBefore: JSON_NULL,
+        snapshotAfter: snapshotIndividual(individual),
+        description: buildAuditDescription('create', 'individual', individual.givenName ?? undefined),
       },
     }),
     touchTreeTimestamp(tree.id),

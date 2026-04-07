@@ -5,6 +5,7 @@ import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeIndividual, getTreeRadaFamily, touchTreeTimestamp } from '@/lib/tree/queries';
 import { updateRadaFamilySchema } from '@/lib/tree/schemas';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { snapshotRadaFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; radaFamilyId: string }> };
 
@@ -91,6 +92,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         entityType: 'rada_family',
         entityId: radaFamilyId,
         payload: parsed.data,
+        snapshotBefore: snapshotRadaFamily(existing),
+        snapshotAfter: snapshotRadaFamily(radaFamily),
+        description: buildAuditDescription('update', 'rada_family'),
       },
     }),
     touchTreeTimestamp(tree.id),
@@ -143,6 +147,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: 'delete',
         entityType: 'rada_family',
         entityId: radaFamilyId,
+        snapshotBefore: snapshotRadaFamily(existing),
+        snapshotAfter: JSON_NULL,
+        description: buildAuditDescription('delete', 'rada_family'),
       },
     }),
     touchTreeTimestamp(tree.id),

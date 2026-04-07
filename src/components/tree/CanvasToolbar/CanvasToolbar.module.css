@@ -226,6 +226,42 @@
   color: var(--alpha-white-40);
 }
 
+/* ---- Audit log link ---- */
+
+.auditLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.auditLink:hover {
+  background: var(--alpha-white-08);
+}
+
+.auditLink:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-primary);
+}
+
+.auditIcon {
+  flex-shrink: 0;
+  color: var(--color-primary-light);
+}
+
+.auditLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- Mobile ---- */
 
 @media (max-width: 768px) {
@@ -238,6 +274,10 @@
   }
 
   .exportLabel {
+    display: none;
+  }
+
+  .auditLabel {
     display: none;
   }
 }

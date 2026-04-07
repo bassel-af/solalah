@@ -260,6 +260,140 @@ function MarriageEventDisplay({
 }
 
 // ---------------------------------------------------------------------------
+// PersonAuditHistory — collapsible per-person edit history (last 5 entries)
+// ---------------------------------------------------------------------------
+
+interface AuditHistoryEntry {
+  id: string;
+  action: string;
+  description: string | null;
+  timestamp: string;
+  user: { displayName: string | null };
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  create: 'إضافة',
+  update: 'تعديل',
+  delete: 'حذف',
+  cascade_delete: 'حذف متسلسل',
+  MOVE_SUBTREE: 'نقل فرع',
+};
+
+function formatShortTime(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'الآن';
+  if (diffMins < 60) return `${diffMins}د`;
+  if (diffHours < 24) return `${diffHours}س`;
+  if (diffDays < 30) return `${diffDays}ي`;
+  return date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
+}
+
+function PersonAuditHistory({
+  workspaceId,
+  personId,
+}: {
+  workspaceId: string;
+  personId: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [entries, setEntries] = useState<AuditHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || fetched) return;
+    setLoading(true);
+    const params = new URLSearchParams({
+      page: '1',
+      limit: '5',
+      entityId: personId,
+      entityType: 'individual',
+    });
+    apiFetch(`/api/workspaces/${workspaceId}/tree/audit-log?${params.toString()}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const body = await res.json();
+          setEntries(body.data);
+        }
+      })
+      .catch(() => {
+        // silently fail
+      })
+      .finally(() => {
+        setLoading(false);
+        setFetched(true);
+      });
+  }, [isOpen, fetched, workspaceId, personId]);
+
+  // Reset when person changes
+  useEffect(() => {
+    setFetched(false);
+    setEntries([]);
+    setIsOpen(false);
+  }, [personId]);
+
+  return (
+    <div>
+      <button
+        className={styles.auditToggle}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="2" />
+          <path d="M9 12h6M9 16h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        <span className={styles.sectionTitle} style={{ margin: 0 }}>سجل التعديلات</span>
+        <svg
+          className={clsx(styles.auditChevron, { [styles.isOpen]: isOpen })}
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className={styles.auditContent}>
+          {loading ? (
+            <span className={styles.auditLoading}>جاري التحميل...</span>
+          ) : entries.length === 0 ? (
+            <span className={styles.auditEmpty}>لا توجد تعديلات مسجلة</span>
+          ) : (
+            <>
+              {entries.map((entry) => (
+                <div key={entry.id} className={styles.auditEntry}>
+                  <div className={styles.auditEntryRow}>
+                    <span className={styles.auditAction}>
+                      {AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
+                    </span>
+                    <span className={styles.auditTime}>
+                      {formatShortTime(entry.timestamp)}
+                    </span>
+                  </div>
+                  <span className={styles.auditUser}>
+                    {entry.user.displayName ?? 'مستخدم'}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // PersonDetail
 // ---------------------------------------------------------------------------
 
@@ -1150,6 +1284,13 @@ export function PersonDetail({ personId }: PersonDetailProps) {
             <h3 className={styles.sectionTitle}>ملاحظات</h3>
             <div className={styles.notesContent}>{person.notes}</div>
           </div>
+        )}
+
+        {workspace?.enableAuditLog && workspace?.isAdmin && (
+          <PersonAuditHistory
+            workspaceId={workspace.workspaceId}
+            personId={personId}
+          />
         )}
       </div>
 

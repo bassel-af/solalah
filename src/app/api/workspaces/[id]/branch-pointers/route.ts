@@ -5,6 +5,8 @@ import { redeemTokenSchema } from '@/lib/tree/branch-pointer-schemas';
 import { hashToken } from '@/lib/tree/branch-share-token';
 import { validateSpouseGender } from '@/lib/tree/family-validators';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { snapshotBranchPointer, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { touchTreeTimestamp } from '@/lib/tree/queries';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -281,6 +283,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
     throw err;
+  }
+
+  // Audit log (best effort)
+  try {
+    const tree = await prisma.familyTree.findUnique({
+      where: { workspaceId },
+      select: { id: true },
+    });
+    if (tree) {
+      await Promise.all([
+        prisma.treeEditLog.create({
+          data: {
+            treeId: tree.id,
+            userId: result.user.id,
+            action: 'redeem_pointer',
+            entityType: 'branch_pointer',
+            entityId: pointer.id,
+            snapshotBefore: JSON_NULL,
+            snapshotAfter: snapshotBranchPointer(pointer),
+            description: buildAuditDescription('redeem_pointer', 'branch_pointer'),
+          },
+        }),
+        touchTreeTimestamp(tree.id),
+      ]);
+    }
+  } catch {
+    // Audit logging failure should not block pointer creation
   }
 
   return NextResponse.json({ data: pointer }, { status: 201 });

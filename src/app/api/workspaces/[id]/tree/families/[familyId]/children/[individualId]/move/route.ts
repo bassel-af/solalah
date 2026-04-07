@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
 import { isSyntheticFamilyId } from '@/lib/tree/branch-pointer-guards';
 import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
+import { buildAuditDescription } from '@/lib/tree/audit';
 
 type RouteParams = {
   params: Promise<{ id: string; familyId: string; individualId: string }>;
@@ -219,6 +220,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             individualId,
             descendantCount: descendants.size,
           },
+          snapshotBefore: { familyId, individualId },
+          snapshotAfter: { familyId: targetFamilyId, individualId },
+          description: buildAuditDescription('MOVE_SUBTREE', 'family_child'),
         },
       });
     });

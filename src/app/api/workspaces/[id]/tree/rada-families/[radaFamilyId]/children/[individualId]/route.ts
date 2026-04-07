@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeRadaFamily, touchTreeTimestamp } from '@/lib/tree/queries';
+import { buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; radaFamilyId: string; individualId: string }> };
 
@@ -81,6 +82,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: 'delete',
         entityType: 'rada_family_child',
         entityId: radaFamilyId,
+        snapshotBefore: { radaFamilyId, individualId },
+        snapshotAfter: JSON_NULL,
+        description: buildAuditDescription('delete', 'rada_family_child'),
       },
     }),
     touchTreeTimestamp(tree.id),

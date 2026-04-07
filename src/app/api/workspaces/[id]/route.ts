@@ -14,6 +14,8 @@ const updateWorkspaceSchema = z.object({
   enableUmmWalad: z.boolean().optional(),
   enableRadaa: z.boolean().optional(),
   enableKunya: z.boolean().optional(),
+  enableAuditLog: z.boolean().optional(),
+  enableVersionControl: z.boolean().optional(),
 });
 
 // GET /api/workspaces/[id] — Get workspace details
@@ -43,6 +45,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const parsed = await parseValidatedBody(request, updateWorkspaceSchema);
   if (isParseError(parsed)) return parsed;
+
+  // Dependency: enableVersionControl requires enableAuditLog
+  if (parsed.data.enableAuditLog === false) {
+    parsed.data.enableVersionControl = false;
+  }
+  if (parsed.data.enableVersionControl === true) {
+    const currentWorkspace = await prisma.workspace.findUnique({
+      where: { id },
+      select: { enableAuditLog: true },
+    });
+    const effectiveAuditLog = parsed.data.enableAuditLog ?? currentWorkspace?.enableAuditLog ?? false;
+    if (!effectiveAuditLog) {
+      return NextResponse.json(
+        { error: 'يجب تفعيل سجل التعديلات أولاً قبل تفعيل التحكم بالإصدارات' },
+        { status: 400 },
+      );
+    }
+  }
 
   const workspace = await prisma.workspace.update({
     where: { id },

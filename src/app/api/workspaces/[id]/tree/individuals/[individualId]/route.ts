@@ -8,6 +8,7 @@ import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-querie
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
 import { computeDeleteImpact, computeVersionHash } from '@/lib/tree/cascade-delete';
+import { snapshotIndividual, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; individualId: string }> };
 
@@ -65,6 +66,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         entityType: 'individual',
         entityId: individualId,
         payload: parsed.data,
+        snapshotBefore: snapshotIndividual(existing),
+        snapshotAfter: snapshotIndividual(individual),
+        description: buildAuditDescription('update', 'individual', existing.givenName ?? undefined),
       },
     }),
     touchTreeTimestamp(tree.id),
@@ -223,11 +227,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
     // 9. Audit log
+    const deleteAction = affectedIds.size > 0 ? 'cascade_delete' : 'delete';
     await tx.treeEditLog.create({
       data: {
         treeId: tree.id,
         userId: result.user.id,
-        action: affectedIds.size > 0 ? 'cascade_delete' : 'delete',
+        action: deleteAction,
         entityType: 'individual',
         entityId: individualId,
         payload: affectedIds.size > 0 ? {
@@ -237,6 +242,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           totalAffectedCount: affectedIds.size,
           confirmationMethod: affectedIds.size >= 5 ? 'name_typing' : 'simple_confirm',
         } : undefined,
+        snapshotBefore: snapshotIndividual(existing),
+        snapshotAfter: JSON_NULL,
+        description: buildAuditDescription(deleteAction, 'individual', existing.givenName ?? undefined),
       },
     });
 

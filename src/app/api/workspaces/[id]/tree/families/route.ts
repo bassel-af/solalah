@@ -7,6 +7,7 @@ import { createFamilySchema } from '@/lib/tree/schemas';
 import { validateFamilyGender } from '@/lib/tree/family-validators';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
 import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
+import { snapshotFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -145,6 +146,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'create',
         entityType: 'family',
         entityId: family.id,
+        snapshotBefore: JSON_NULL,
+        snapshotAfter: snapshotFamily(family),
+        description: buildAuditDescription('create', 'family'),
       },
     }),
     touchTreeTimestamp(tree.id),

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { UserNav } from '@/components/ui/UserNav/UserNav';
 import { RootBackChip } from '@/components/tree/RootBackChip/RootBackChip';
+import { useWorkspaceTree } from '@/context/WorkspaceTreeContext';
 import { useToast } from '@/context/ToastContext';
 import { apiFetch } from '@/lib/api/client';
 import styles from './CanvasToolbar.module.css';
@@ -18,6 +19,7 @@ export function CanvasToolbar({ workspaceSlug, workspaceId }: CanvasToolbarProps
   const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
+  const { enableAuditLog, isAdmin } = useWorkspaceTree();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -163,6 +165,23 @@ export function CanvasToolbar({ workspaceSlug, workspaceId }: CanvasToolbarProps
             </ul>
           )}
         </div>
+        {enableAuditLog && isAdmin && (
+          <>
+            <span className={styles.separator} />
+            <Link
+              href={`/workspaces/${workspaceSlug}/tree/audit`}
+              className={styles.auditLink}
+              aria-label="سجل التعديلات"
+            >
+              <svg className={styles.auditIcon} width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="2" />
+                <path d="M9 12h6M9 16h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <span className={styles.auditLabel}>السجل</span>
+            </Link>
+          </>
+        )}
       </div>
       <RootBackChip />
     </div>

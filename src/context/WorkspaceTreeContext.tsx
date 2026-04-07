@@ -26,6 +26,8 @@ interface WorkspaceTreeContextValue {
   enableRadaa?: boolean;
   /** Whether the workspace has kunya feature enabled */
   enableKunya?: boolean;
+  /** Whether the workspace has audit log feature enabled */
+  enableAuditLog?: boolean;
   /** Workspace description (shown in sidebar "about" panel) */
   description?: string;
 }
@@ -42,6 +44,7 @@ interface WorkspaceTreeProviderProps {
   enableUmmWalad?: boolean;
   enableRadaa?: boolean;
   enableKunya?: boolean;
+  enableAuditLog?: boolean;
   description?: string;
 }
 
@@ -55,10 +58,11 @@ export function WorkspaceTreeProvider({
   enableUmmWalad,
   enableRadaa,
   enableKunya,
+  enableAuditLog,
   description,
 }: WorkspaceTreeProviderProps) {
   return (
-    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, description }}>
+    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, enableAuditLog, description }}>
       {children}
     </WorkspaceTreeContext.Provider>
   );

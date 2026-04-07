@@ -196,6 +196,7 @@ describe('PersonDetail Phase 3 – edit form pre-fill', () => {
       deathPlace: 'المدينة المنورة',
       deathDescription: 'سبب وفاة',
       deathHijriDate: '15 محرم 1442',
+      kunya: '',
       isDeceased: true,
       isPrivate: false,
       notes: 'ملاحظة',

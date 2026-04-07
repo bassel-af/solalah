@@ -5,6 +5,7 @@ import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeFamily, getTreeIndividual, touchTreeTimestamp } from '@/lib/tree/queries';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string }> };
 
@@ -73,6 +74,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'create',
         entityType: 'family_child',
         entityId: familyId,
+        snapshotBefore: JSON_NULL,
+        snapshotAfter: { familyId, individualId: parsed.data.individualId },
+        description: buildAuditDescription('create', 'family_child', individual.givenName ?? undefined),
       },
     }),
     touchTreeTimestamp(tree.id),

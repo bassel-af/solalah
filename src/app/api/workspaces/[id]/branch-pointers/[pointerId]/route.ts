@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
+import { snapshotBranchPointer, buildAuditDescription } from '@/lib/tree/audit';
+import { touchTreeTimestamp } from '@/lib/tree/queries';
 
 type RouteParams = { params: Promise<{ id: string; pointerId: string }> };
 
@@ -35,6 +37,33 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     where: { id: pointerId },
     data: { status: 'broken' },
   });
+
+  // Audit log (best effort)
+  try {
+    const tree = await prisma.familyTree.findUnique({
+      where: { workspaceId },
+      select: { id: true },
+    });
+    if (tree) {
+      await Promise.all([
+        prisma.treeEditLog.create({
+          data: {
+            treeId: tree.id,
+            userId: result.user.id,
+            action: 'disconnect',
+            entityType: 'branch_pointer',
+            entityId: pointerId,
+            snapshotBefore: snapshotBranchPointer(pointer),
+            snapshotAfter: snapshotBranchPointer({ ...pointer, status: 'broken' }),
+            description: buildAuditDescription('disconnect', 'branch_pointer'),
+          },
+        }),
+        touchTreeTimestamp(tree.id),
+      ]);
+    }
+  } catch {
+    // Audit logging failure should not block pointer disconnect
+  }
 
   // Create notification
   await prisma.notification.create({

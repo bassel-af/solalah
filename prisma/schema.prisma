@@ -62,6 +62,8 @@ model Workspace {
   enableUmmWalad       Boolean              @default(false) @map("enable_umm_walad")
   enableRadaa          Boolean              @default(false) @map("enable_radaa")
   enableKunya          Boolean              @default(false) @map("enable_kunya")
+  enableAuditLog       Boolean              @default(false) @map("enable_audit_log")
+  enableVersionControl Boolean              @default(false) @map("enable_version_control")
   createdAt            DateTime             @default(now()) @map("created_at")
 
   // Relations
@@ -345,20 +347,24 @@ model RadaFamilyChild {
 // =============================================================================
 
 model TreeEditLog {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  treeId     String   @map("tree_id") @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  action     String   // create, update, delete
-  entityType String   @map("entity_type") // individual, family, family_child
-  entityId   String   @map("entity_id") @db.Uuid
-  payload    Json?    // diff or snapshot
-  timestamp  DateTime @default(now())
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  treeId          String   @map("tree_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  action          String   // create, update, delete, cascade_delete, MOVE_SUBTREE, etc.
+  entityType      String   @map("entity_type") // individual, family, family_child, rada_family, etc.
+  entityId        String   @map("entity_id") @db.Uuid
+  payload         Json?    // action-specific metadata (backward compat)
+  snapshotBefore  Json?    @map("snapshot_before")  // full entity state before mutation
+  snapshotAfter   Json?    @map("snapshot_after")   // full entity state after mutation
+  description     String?  @db.VarChar(500)         // human-readable Arabic description
+  timestamp       DateTime @default(now())
 
   // Relations
   tree FamilyTree @relation(fields: [treeId], references: [id], onDelete: Cascade)
   user User       @relation(fields: [userId], references: [id])
 
   @@index([treeId, timestamp])
+  @@index([treeId, entityType, entityId])
   @@map("tree_edit_logs")
 }
 

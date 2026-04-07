@@ -24,6 +24,7 @@ interface WorkspaceInfo {
   enableUmmWalad?: boolean;
   enableRadaa?: boolean;
   enableKunya?: boolean;
+  enableAuditLog?: boolean;
 }
 
 interface WorkspaceTreeClientProps {
@@ -124,6 +125,7 @@ function TreeContent({
         enableUmmWalad={workspace.enableUmmWalad}
         enableRadaa={workspace.enableRadaa}
         enableKunya={workspace.enableKunya}
+        enableAuditLog={workspace.enableAuditLog}
         description={workspace.description}
       >
         <EmptyTreeWithForm canEdit={canEdit} />
@@ -141,6 +143,7 @@ function TreeContent({
       enableUmmWalad={workspace.enableUmmWalad}
       enableRadaa={workspace.enableRadaa}
       enableKunya={workspace.enableKunya}
+      enableAuditLog={workspace.enableAuditLog}
       description={workspace.description}
     >
       <div className="app-layout">

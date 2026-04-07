@@ -5,6 +5,7 @@ import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeIndividual, getTreeRadaFamily, touchTreeTimestamp } from '@/lib/tree/queries';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; radaFamilyId: string }> };
 
@@ -85,6 +86,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'create',
         entityType: 'rada_family_child',
         entityId: radaFamilyId,
+        snapshotBefore: JSON_NULL,
+        snapshotAfter: { radaFamilyId, individualId: parsed.data.individualId },
+        description: buildAuditDescription('create', 'rada_family_child'),
       },
     }),
     touchTreeTimestamp(tree.id),

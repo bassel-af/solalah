@@ -7,6 +7,7 @@ import { updateFamilySchema } from '@/lib/tree/schemas';
 import { validateFamilyGender } from '@/lib/tree/family-validators';
 import { isSyntheticFamilyId } from '@/lib/tree/branch-pointer-guards';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { snapshotFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string }> };
 
@@ -147,6 +148,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         entityType: 'family',
         entityId: familyId,
         payload: parsed.data,
+        snapshotBefore: snapshotFamily(existing),
+        snapshotAfter: snapshotFamily(family),
+        description: buildAuditDescription('update', 'family'),
       },
     }),
     touchTreeTimestamp(tree.id),
@@ -198,6 +202,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: 'delete',
         entityType: 'family',
         entityId: familyId,
+        snapshotBefore: snapshotFamily(existing),
+        snapshotAfter: JSON_NULL,
+        description: buildAuditDescription('delete', 'family'),
       },
     });
   });

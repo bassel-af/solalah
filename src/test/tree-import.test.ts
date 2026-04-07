@@ -419,7 +419,7 @@ describe('POST /api/workspaces/[id]/tree/import', () => {
       vi.useRealTimers()
     })
 
-    test('returns 429 on 4th request within an hour', async () => {
+    test('returns 429 after exceeding max requests within an hour', async () => {
       mockAuth()
       mockAdmin()
       mockEmptyTree()
@@ -427,8 +427,8 @@ describe('POST /api/workspaces/[id]/tree/import', () => {
 
       const { POST } = await import('@/app/api/workspaces/[id]/tree/import/route')
 
-      // Make 3 requests (should all succeed or at least not be rate-limited)
-      for (let i = 0; i < 3; i++) {
+      // treeImportLimiter allows 10 requests per hour
+      for (let i = 0; i < 10; i++) {
         const req = makeFormDataRequest(validGedcom)
         const res = await POST(req, importParams)
         // Reset mocks for next call to simulate fresh empty tree
@@ -438,7 +438,7 @@ describe('POST /api/workspaces/[id]/tree/import', () => {
         expect(res.status).not.toBe(429)
       }
 
-      // 4th request should be rate-limited
+      // 11th request should be rate-limited
       const req = makeFormDataRequest(validGedcom)
       const res = await POST(req, importParams)
       expect(res.status).toBe(429)

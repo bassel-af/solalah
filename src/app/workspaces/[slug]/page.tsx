@@ -25,6 +25,8 @@ interface Workspace {
   enableUmmWalad?: boolean;
   enableRadaa?: boolean;
   enableKunya?: boolean;
+  enableAuditLog?: boolean;
+  enableVersionControl?: boolean;
 }
 
 interface Member {
@@ -270,21 +272,32 @@ export default function WorkspaceDetailPage() {
   }
 
   async function handleToggleFeature(
-    featureKey: 'enableUmmWalad' | 'enableRadaa' | 'enableKunya',
+    featureKey: 'enableUmmWalad' | 'enableRadaa' | 'enableKunya' | 'enableAuditLog' | 'enableVersionControl',
     newVal: boolean,
   ) {
     if (!workspace) return;
     setTogglingFeature(featureKey);
     try {
+      // When disabling audit log, also disable version control in the same request
+      const body = featureKey === 'enableAuditLog' && !newVal
+        ? { enableAuditLog: false, enableVersionControl: false }
+        : { [featureKey]: newVal };
+
       const res = await apiFetch(`/api/workspaces/${workspace.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [featureKey]: newVal }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
-        setWorkspace((prev) =>
-          prev ? { ...prev, [featureKey]: newVal } : prev,
-        );
+        if (featureKey === 'enableAuditLog' && !newVal) {
+          setWorkspace((prev) =>
+            prev ? { ...prev, enableAuditLog: false, enableVersionControl: false } : prev,
+          );
+        } else {
+          setWorkspace((prev) =>
+            prev ? { ...prev, [featureKey]: newVal } : prev,
+          );
+        }
       }
     } catch {
       // silently fail
@@ -449,6 +462,50 @@ export default function WorkspaceDetailPage() {
                 onChange={(val) => handleToggleFeature('enableKunya', val)}
                 disabled={!isAdmin}
                 loading={togglingFeature === 'enableKunya'}
+              />
+            </div>
+
+            {/* Audit Log */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span className={styles.featureName}>سجل التعديلات</span>
+                  {(workspace.enableAuditLog ?? false) && (
+                    <span className={styles.featureBadge}>مفعّل</span>
+                  )}
+                </div>
+                <p className={styles.featureDescription}>
+                  عرض سجل كامل لجميع التعديلات على شجرة العائلة مع تفاصيل
+                  التغييرات قبل وبعد
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={workspace.enableAuditLog ?? false}
+                onChange={(val) => handleToggleFeature('enableAuditLog', val)}
+                disabled={!isAdmin}
+                loading={togglingFeature === 'enableAuditLog'}
+              />
+            </div>
+
+            {/* Version Control */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span className={styles.featureName}>التحكم بالإصدارات</span>
+                  {(workspace.enableVersionControl ?? false) && (
+                    <span className={styles.featureBadge}>مفعّل</span>
+                  )}
+                </div>
+                <p className={styles.featureDescription}>
+                  إمكانية استعادة البيانات المحذوفة أو التراجع عن التعديلات
+                  (قريبا)
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={workspace.enableVersionControl ?? false}
+                onChange={(val) => handleToggleFeature('enableVersionControl', val)}
+                disabled={!isAdmin || !(workspace.enableAuditLog ?? false)}
+                loading={togglingFeature === 'enableVersionControl'}
               />
             </div>
           </div>

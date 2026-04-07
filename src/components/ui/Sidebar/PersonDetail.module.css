@@ -1245,3 +1245,107 @@
 .linkSpouseModalContent {
   overflow: visible;
 }
+
+/* ============================================
+   AUDIT HISTORY — collapsible per-person section
+   ============================================ */
+
+.auditToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4) 0;
+  background: transparent;
+  border: none;
+  color: var(--alpha-white-50);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.auditToggle:hover {
+  color: var(--alpha-white-70);
+}
+
+.auditToggle svg:first-child {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.auditChevron {
+  margin-right: auto;
+  opacity: 0.5;
+  transition: transform var(--transition-medium);
+}
+
+.auditChevron.isOpen {
+  transform: rotate(180deg);
+}
+
+.auditContent {
+  padding: var(--space-2) 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  animation: auditSlideDown var(--transition-base);
+}
+
+@keyframes auditSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auditEntry {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--alpha-white-04);
+  border: 1px solid var(--alpha-white-06);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auditEntryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.auditAction {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-light);
+}
+
+.auditTime {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-30);
+}
+
+.auditUser {
+  font-size: var(--font-size-xs);
+  color: var(--alpha-white-35);
+}
+
+.auditLoading {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-35);
+  padding: var(--space-2) 0;
+}
+
+.auditEmpty {
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-30);
+  font-style: italic;
+  padding: var(--space-2) 0;
+}

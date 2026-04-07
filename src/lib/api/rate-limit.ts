@@ -64,3 +64,4 @@ export const profileUpdateLimiter = new RateLimiter({ maxRequests: 30, windowMs:
 export const treeExportLimiter = new RateLimiter({ maxRequests: 20, windowMs: 15 * 60 * 1000 });
 export const treeImportLimiter = new RateLimiter({ maxRequests: 10, windowMs: 60 * 60 * 1000 });
 export const cascadePreviewLimiter = new RateLimiter({ maxRequests: 10, windowMs: 60 * 1000 });
+export const auditLogLimiter = new RateLimiter({ maxRequests: 60, windowMs: 60 * 1000 });
