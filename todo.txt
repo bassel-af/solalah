@@ -1,6 +1,11 @@
 - Test mobile.
 - Thanks message to Raghad and mother, khaled and father and my family and the rest. Good to be in the
 landing page and login page.
+- Data backup.
+- .env file.
+
+- Fix branch نسخ
+
 
 Think of app name ربما "نسلي
 Test with non admin role (edit etc)
@@ -17,6 +22,7 @@ Check other inputs in MacFamilyTree.
 Version control
 إصدار نعوة
 UI latest touches.
+
 
 MCP (Model Context Protocol):
 - Consider exposing solalah as an MCP server so AI assistants can query/navigate the family tree
@@ -35,7 +41,17 @@ Make people close together. Do not make them this much far away.
 إعدادات الخصوصية:
 إخفاء تواريخ الميلاد للرجال
 إخفاء تواريخ الميلاد للنساء
-إخفاء الملاحطات
+إخفاء الملاحظات
+
+
+افتراح تعديلات
+
+
+
+
+
+
+
 وصف للشخص
 
 

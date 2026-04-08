@@ -879,25 +879,99 @@ Notification
 - Legacy entries (pre-Phase 9) gracefully handled with "لا تتوفر تفاصيل التغييرات" message
 - 5 test files with ~96 tests covering: snapshot extraction, API auth/pagination/filtering, workspace toggle dependencies, mutation route snapshot capture
 
-### Phase 10 — Content
+### Phase 10 — Data Encryption (Defense in Depth)
+
+**Goal**: Strengthen privacy by encrypting family data at rest using two complementary layers that protect against stolen backups, leaked disk snapshots, physical server theft, and cross-workspace data leakage from application bugs. Disk encryption also protects the `.env` file that stores the master key used to unwrap workspace keys — closing the gap that would otherwise weaken application-level encryption alone.
+
+**Trust model**: This is NOT end-to-end encryption. Platform administrators with live server access can still read data. E2EE was evaluated and rejected because:
+- It does not actually prevent admin access (the server controls the workspace member list and could silently add itself as a hidden member)
+- It breaks branch pointers (Phase 5), magic links, server-side search, GEDCOM export, and audit logs
+- The UX cost is high (passphrase prompts, lost-key scenarios, new-device bootstrap) and the practical security gain is minimal for a centralized web app
+- Honest transparency + layered encryption + self-hosting option is a more defensible story than E2EE theater
+
+**Deployment order note**: production deployment of the new app is intentionally delayed until Phase 10b ships, so the very first production write lands already encrypted. No data migration is required on the production server.
+
+#### Phase 10a — Layer 1 Stage 1: LUKS-encrypted Hetzner Volume ✅ COMPLETE
+
+Protects against: stolen disks, leaked backup files, orphaned volume reassignment, physical server theft.
+Does NOT protect against: anyone with live SSH or running-application access (keyfile sits on root FS during this stage).
+
+- ✅ 20 GB Hetzner Volume (`jeenat-encrypted`) attached to `general-server`
+- ✅ LUKS2 format on `/dev/sdb` with Argon2id KDF
+- ✅ Random 512-byte keyfile at `/root/.jeenat-luks.key` (mode 600)
+- ✅ ext4 filesystem, label `jeenat`, mounted at `/mnt/encrypted`
+- ✅ Directory skeleton: `/mnt/encrypted/jeenat/{app,pm2,postgres,backups}`
+- ✅ `/etc/crypttab` entry keyed by LUKS UUID for stable device identification
+- ✅ `/etc/fstab` entry with `nofail` so boot continues if the volume is unavailable
+- ✅ Auto-unlock + auto-mount verified with a full server reboot
+- ✅ Existing unrelated services (vaultwarden, umami, uptime-kuma, bentopdf, faster-whisper-api) untouched; Docker data-root intentionally NOT migrated to keep scope narrow
+- ✅ See `docs/deployment/layer-1-encryption.md` for exact procedure and recovery notes
+
+#### Phase 10b — Layer 2: Per-workspace application encryption
+- Each `Workspace` gets a unique AES-256-GCM symmetric data key, stored in a new `encryptedKey` column
+- Workspace keys are wrapped (encrypted) with a master key loaded from `.env` (`WORKSPACE_MASTER_KEY`)
+- Sensitive fields are encrypted on write and decrypted on read:
+  - `Individual`: given/family/full name, birth/death dates and places, notes, description, kunya
+  - `Family`: marriage contract / marriage / divorce event fields (dates, places, notes, descriptions)
+  - `RadaFamily`: notes
+  - `Place` custom workspace-scoped entries (global seed places remain plaintext)
+  - `TreeEditLog.snapshotBefore`, `snapshotAfter`, `description`
+- Non-sensitive fields remain plaintext (needed for queries, layout, indexing): IDs, foreign keys, flags (`isPrivate`, `isDeceased`, `sex`), timestamps, relationship structure
+- New module `src/lib/crypto/workspace-encryption.ts`: key generation, wrap/unwrap, field-level encrypt/decrypt helpers
+- Tree query/mapping helpers (`src/lib/tree/queries.ts`, `src/lib/tree/mapper.ts`) extended to decrypt on read
+- All mutation routes extended to encrypt on write before hitting the database
+- One-time migration script encrypts all existing plaintext data per workspace
+- Search (`matchesSearch()`) continues to work client-side — it runs against already-decrypted tree data returned by `GET /tree`
+- Branch pointers continue to work — the server holds both source and target workspace keys and decrypts each side during merge
+- Production migration script is effectively a no-op on a fresh deployment (delivered for completeness and for local dev environments with pre-existing plaintext test data)
+
+#### Phase 10c — Layer 1 Stage 2: Tang-bound unlock (future)
+
+- Run Tang (Network-Bound Disk Encryption) on a separate host — second cheap VPS, or a home Raspberry Pi
+- Use Clevis on the production server to add a new LUKS key slot bound to Tang, verify unlock works, then remove the keyfile-based slot from LUKS
+- Live migration via LUKS key slots: zero downtime, no data migration, no reboot
+- Only after Phase 10c completes may Layer 1 claims appear in public privacy policy copy
+
+**Key management**:
+- `WORKSPACE_MASTER_KEY` in `.env` (generated via `openssl rand -base64 32`)
+- Required for server startup — app fails fast if missing
+- Lost master key = all data unrecoverable; backup procedure documented in `docs/encryption.md`
+- Key rotation procedure documented (manual re-wrap of all `Workspace.encryptedKey` values with new master key)
+
+**Privacy policy updates**:
+- Update `/policy` page with explicit encryption statement in Arabic + English
+- Add FAQ entries: what the platform can and cannot see, what happens if keys are lost, self-hosting option for families requiring absolute independence
+- Clearly disclose that platform administrators with live server access can technically read workspace data, and that such access is logged
+
+**Operational safeguards**:
+- New `AdminAccessLog` model capturing any server-side access to workspace data outside normal authenticated member requests
+- Production server SSH access restricted, MFA required for admin accounts
+- Documented incident-response procedure for suspected key or server compromise
+
+**Out of scope for this phase**:
+- End-to-end encryption (see rationale above)
+- Hardware Security Module (HSM) or external KMS integration — deferred until scaling beyond self-hosted
+- Searchable encryption (deterministic / ORE) — not needed since search runs client-side on decrypted data
+
+### Phase 11 — Content
 
 - News posts (workspace-scoped): rich text, media attachments, reactions, comments, pinning
 - Events (workspace-scoped): calendar entries with RSVP, auto-generated birthdays/anniversaries from tree data
 
-### Phase 11 — Polish & Growth
+### Phase 12 — Polish & Growth
 
 - ✅ Magic link sign-in (passwordless email login): two-mode login page (password/magic link) with text link toggle, shared email field, 30s resend cooldown, Arabic RTL email template, GoTrue OTP rate limiting (60/hr), 1-hour token expiry, auto-account creation for unknown emails (prevents enumeration), PKCE flow via Supabase SDK
 - Mobile app (Expo / React Native) — tracked separately
 - Phone OTP sign-in activated (SMS gateway configured)
 - Public sharing links for specific content (opt-in)
 
-### Phase 12 — Albums & Notifications
+### Phase 13 — Albums & Notifications
 
 - Albums (workspace-scoped): photo/video collections, tagging to individuals in the tree
 - Storage tracking and quota enforcement
 - Notifications (in-app + email)
 
-### Phase 13 — User-Tree Linking & Cross-Workspace Identity
+### Phase 14 — User-Tree Linking & Cross-Workspace Identity
 
 - User-tree linking: Flow A (invite-with-link), Flow B (member requests link with admin approval), link status on member profiles
 - Cross-workspace identity linking: a lightweight link recognizing the same real person across workspaces — each workspace retains its own copy of the individual (no shared data, no sync). The link is informational only.
@@ -906,7 +980,7 @@ Notification
 
 ## 8. Out of Scope (for now)
 
-- **User-tree linking + cross-workspace identity**: deferred to Phase 12. The `UserTreeLink` table exists in the schema but is not active. Full linking UI is deferred. The data model must not prevent it.
+- **User-tree linking + cross-workspace identity**: deferred to Phase 14. The `UserTreeLink` table exists in the schema but is not active. Full linking UI is deferred. The data model must not prevent it.
 - **Public workspace discovery**: workspaces are private and not discoverable
 - **Real-time collaboration** (e.g., live cursors in tree editing)
 - **Native mobile app**: tracked in a separate document
