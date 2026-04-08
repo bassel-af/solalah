@@ -168,3 +168,54 @@
 .googleIcon {
   flex-shrink: 0;
 }
+
+/* Success message */
+.successMessage {
+  padding: var(--space-4) var(--space-5);
+  border-radius: 8px;
+  background: rgba(72, 187, 120, 0.1);
+  border: 1px solid rgba(72, 187, 120, 0.25);
+  color: #68d391;
+  font-size: var(--font-size-sm);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Mode switch link */
+.modeSwitch {
+  display: block;
+  margin-top: var(--space-4);
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--font-size-sm);
+  color: var(--alpha-white-35);
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.modeSwitch:hover {
+  color: var(--color-primary-light);
+}
+
+/* Resend link */
+.resendLink {
+  display: block;
+  margin-top: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-light);
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.resendLink:hover {
+  color: var(--color-primary);
+}
+
+.resendLink[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

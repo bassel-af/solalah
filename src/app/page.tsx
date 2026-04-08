@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { AcknowledgmentModal } from '@/components/AcknowledgmentModal/AcknowledgmentModal';
 import styles from './page.module.css';
 
 // Capture the hash IMMEDIATELY at module load, before Supabase's
@@ -52,6 +53,7 @@ export default function Home() {
 
   return (
     <main className={styles.container}>
+      <AcknowledgmentModal />
       <div className={styles.card}>
         <div className={styles.icon}>
           <iconify-icon icon="material-symbols:family-restroom" width="48" height="48" />

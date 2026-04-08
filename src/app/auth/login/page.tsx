@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { validateRedirectPath } from '@/lib/auth/validate-redirect';
@@ -22,6 +22,15 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginMode, setLoginMode] = useState<'password' | 'magiclink'>('password');
+  const [magicLinkStatus, setMagicLinkStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   async function handleGoogleLogin() {
     const supabase = createClient();
@@ -58,55 +67,149 @@ function LoginForm() {
     window.location.href = next;
   }
 
+  // NOTE: signInWithOtp creates a new GoTrue account if the email doesn't exist.
+  // The account is passwordless and only activates after the user clicks the link.
+  // This is a deliberate trade-off — it prevents email enumeration at the cost of
+  // potential ghost accounts. Users can later set a password via forgot-password.
+  async function sendMagicLink() {
+    setError('');
+    setMagicLinkStatus('sending');
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setMagicLinkStatus('idle');
+      return;
+    }
+
+    setMagicLinkStatus('sent');
+    setResendCooldown(30);
+  }
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    await sendMagicLink();
+  }
+
   return (
     <CenteredCardLayout>
       <div className={styles.icon}>
         <iconify-icon icon="material-symbols:account-tree" width="48" height="48" />
       </div>
       <h1 className={styles.title}>تسجيل الدخول</h1>
-      <p className={styles.subtitle}>أدخل بياناتك للوصول إلى منصة سلالة</p>
+      <p className={styles.subtitle}>
+        {loginMode === 'password'
+          ? 'أدخل بياناتك للوصول إلى منصة سلالة'
+          : 'أدخل بريدك الإلكتروني للوصول إلى منصة سلالة'}
+      </p>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <div className={styles.error}>{error}</div>}
+      {loginMode === 'password' ? (
+        <form onSubmit={handleSubmit} className={styles.form}>
+          {error && <div className={styles.error}>{error}</div>}
 
-        <div className={styles.field}>
-          <label htmlFor="email" className={styles.label}>البريد الإلكتروني</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={styles.input}
-            placeholder="name@example.com"
-            dir="ltr"
-            required
-          />
-        </div>
+          <div className={styles.field}>
+            <label htmlFor="email" className={styles.label}>البريد الإلكتروني</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={styles.input}
+              placeholder="name@example.com"
+              dir="ltr"
+              required
+            />
+          </div>
 
-        <div className={styles.field}>
-          <label htmlFor="password" className={styles.label}>كلمة المرور</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={styles.input}
-            placeholder="••••••••"
-            dir="ltr"
-            required
-          />
-          <a
-            href="/auth/forgot-password"
-            className={styles.forgotLink}
+          <div className={styles.field}>
+            <label htmlFor="password" className={styles.label}>كلمة المرور</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={styles.input}
+              placeholder="••••••••"
+              dir="ltr"
+              required
+            />
+            <a
+              href="/auth/forgot-password"
+              className={styles.forgotLink}
+            >
+              نسيت كلمة المرور؟
+            </a>
+          </div>
+
+          <button type="submit" className={styles.button} disabled={loading}>
+            {loading ? 'جاري الدخول...' : 'دخول'}
+          </button>
+        </form>
+      ) : magicLinkStatus === 'sent' ? (
+        <div>
+          <div className={styles.successMessage}>
+            تم إرسال رابط الدخول إلى بريدك الإلكتروني. تحقق من صندوق الوارد.
+          </div>
+          <button
+            type="button"
+            className={styles.resendLink}
+            aria-disabled={resendCooldown > 0 ? 'true' : undefined}
+            onClick={() => {
+              if (resendCooldown > 0) return;
+              sendMagicLink();
+            }}
           >
-            نسيت كلمة المرور؟
-          </a>
+            أرسل مرة أخرى
+          </button>
         </div>
+      ) : (
+        <form onSubmit={handleMagicLink} className={styles.form}>
+          {error && <div className={styles.error}>{error}</div>}
 
-        <button type="submit" className={styles.button} disabled={loading}>
-          {loading ? 'جاري الدخول...' : 'دخول'}
-        </button>
-      </form>
+          <div className={styles.field}>
+            <label htmlFor="email" className={styles.label}>البريد الإلكتروني</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={styles.input}
+              placeholder="name@example.com"
+              dir="ltr"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className={styles.button}
+            disabled={magicLinkStatus === 'sending'}
+          >
+            {magicLinkStatus === 'sending' ? 'جاري الإرسال...' : 'إرسال رابط الدخول'}
+          </button>
+        </form>
+      )}
+
+      <button
+        type="button"
+        className={styles.modeSwitch}
+        onClick={() => {
+          setLoginMode(loginMode === 'password' ? 'magiclink' : 'password');
+          setError('');
+          setMagicLinkStatus('idle');
+        }}
+      >
+        {loginMode === 'password'
+          ? 'الدخول برابط سريع بدون كلمة مرور'
+          : 'الدخول بكلمة المرور'}
+      </button>
 
       <div className={styles.divider}>
         <span className={styles.dividerText}>أو</span>

@@ -1,0 +1,413 @@
+/* ============================================
+   ACKNOWLEDGMENT MODAL — Celebration Style
+   ============================================ */
+
+/* ---------- Overlay ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: overlayIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.overlayClosing {
+  animation: overlayOut 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ---------- Confetti ---------- */
+.confettiContainer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2001;
+}
+
+.confetti {
+  position: absolute;
+  top: -10px;
+  left: var(--x-start);
+  width: var(--size);
+  height: var(--size);
+  background: var(--color);
+  border-radius: 1px;
+  opacity: 0;
+  animation: confettiFall var(--duration) ease-in var(--delay) both;
+}
+
+.confetti:nth-child(odd) {
+  border-radius: 50%;
+}
+
+/* ---------- Modal panel ---------- */
+.modal {
+  position: relative;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--alpha-white-15) transparent;
+  padding: var(--space-13) var(--space-14);
+  background:
+    radial-gradient(ellipse at top center, rgba(246, 173, 85, 0.06) 0%, transparent 60%),
+    linear-gradient(
+      160deg,
+      rgba(37, 43, 72, 0.95) 0%,
+      rgba(26, 31, 54, 0.98) 100%
+    );
+  border: 1px solid rgba(246, 173, 85, 0.18);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 0 80px rgba(245, 166, 35, 0.08),
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  text-align: center;
+  direction: rtl;
+  z-index: 2002;
+  animation: modalIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.modalClosing {
+  animation: modalOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ---------- Golden glow behind top ---------- */
+.glow {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(245, 166, 35, 0.15) 0%,
+    rgba(245, 166, 35, 0.05) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* ---------- Star burst ---------- */
+.starBurst {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-5);
+  animation: starIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.star {
+  font-size: 32px;
+  color: var(--color-accent);
+  opacity: 0.7;
+  filter: drop-shadow(0 0 8px rgba(245, 166, 35, 0.4));
+  animation: starGlow 2.5s ease-in-out infinite;
+}
+
+/* ---------- Ornament (decorative divider) ---------- */
+.ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin: var(--space-7) auto;
+  animation: ornamentIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+.ornamentLine {
+  display: block;
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(246, 173, 85, 0.35) 50%,
+    transparent 100%
+  );
+}
+
+.ornamentDiamond {
+  display: block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  opacity: 0.5;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+/* ---------- Title ---------- */
+.title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: var(--line-height-snug);
+  text-shadow: 0 0 30px rgba(245, 166, 35, 0.2);
+  animation: textIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+/* ---------- Body text ---------- */
+.body {
+  animation: textIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+.paragraph {
+  margin: 0 0 var(--space-7);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-normal);
+  color: var(--alpha-white-70);
+  line-height: 1.85;
+  text-align: right;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Highlighted names ---------- */
+.name {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.family {
+  color: var(--color-primary-light);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ---------- Signature ---------- */
+.signature {
+  margin: var(--space-5) 0 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent);
+  opacity: 0.6;
+  text-align: left;
+  animation: textIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+/* ---------- Dismiss button ---------- */
+.dismissButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-13);
+  font-family: inherit;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark-900);
+  background: linear-gradient(
+    135deg,
+    var(--color-accent) 0%,
+    var(--color-accent-dark) 100%
+  );
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow:
+    0 2px 16px rgba(245, 166, 35, 0.35),
+    0 0 0 0 rgba(245, 166, 35, 0);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    filter var(--transition-base);
+  animation: buttonIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+
+.dismissButton:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 24px rgba(245, 166, 35, 0.45),
+    0 0 0 3px rgba(245, 166, 35, 0.12);
+  filter: brightness(1.08);
+}
+
+.dismissButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(245, 166, 35, 0.25);
+}
+
+.dismissButton:focus-visible {
+  outline: none;
+  box-shadow:
+    0 2px 16px rgba(245, 166, 35, 0.35),
+    0 0 0 3px rgba(245, 166, 35, 0.25);
+}
+
+/* ---------- Animations ---------- */
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlayOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@keyframes textIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ornamentIn {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes buttonIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes starIn {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-30deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes starGlow {
+  0%, 100% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 8px rgba(245, 166, 35, 0.4));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(245, 166, 35, 0.6));
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) translateX(var(--x-drift)) rotate(var(--rotation));
+  }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .modal {
+    padding: var(--space-11) var(--space-9);
+  }
+
+  .title {
+    font-size: var(--font-size-4xl);
+  }
+
+  .paragraph {
+    font-size: var(--font-size-lg);
+    line-height: 1.8;
+  }
+
+  .star {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: var(--space-5);
+  }
+
+  .modal {
+    padding: var(--space-9) var(--space-7);
+  }
+
+  .title {
+    font-size: var(--font-size-3xl);
+  }
+
+  .paragraph {
+    font-size: var(--font-size-base);
+    line-height: 1.75;
+  }
+
+  .ornamentLine {
+    width: 28px;
+  }
+
+  .dismissButton {
+    padding: var(--space-3) var(--space-11);
+    font-size: var(--font-size-lg);
+    min-width: 120px;
+  }
+
+  .star {
+    font-size: 22px;
+  }
+}
