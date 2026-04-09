@@ -4,6 +4,7 @@ import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { cascadePreviewLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeIndividual } from '@/lib/tree/queries';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { computeDeleteImpact, computeVersionHash } from '@/lib/tree/cascade-delete';
 
 type RouteParams = { params: Promise<{ id: string; individualId: string }> };
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const gedcomData = dbTreeToGedcomData(tree);
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const gedcomData = dbTreeToGedcomData(tree, workspaceKey);
   const impact = computeDeleteImpact(gedcomData, individualId);
   const versionHash = computeVersionHash(tree.lastModifiedAt);
 

@@ -2,6 +2,22 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { GedcomData, Individual, Family, FamilyEvent } from '@/lib/gedcom/types';
 import type { PrismaLike } from '@/lib/tree/seed-helpers';
 import { seedTreeFromGedcomData } from '@/lib/tree/seed-helpers';
+import { generateWorkspaceKey, wrapKey, decryptFieldNullable } from '@/lib/crypto/workspace-encryption';
+import { getMasterKey } from '@/lib/crypto/master-key';
+
+// Phase 10b: keep both the plaintext and wrapped forms so the mocked prisma
+// returns the wrapped one (what the DB stores) and the test can decrypt
+// captured ciphertext using the plaintext to verify roundtrip.
+const TEST_PLAINTEXT_KEY = generateWorkspaceKey();
+const TEST_WRAPPED_KEY = wrapKey(TEST_PLAINTEXT_KEY, getMasterKey());
+
+function dec(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  if (Buffer.isBuffer(value)) return decryptFieldNullable(value, TEST_PLAINTEXT_KEY);
+  if (value instanceof Uint8Array) return decryptFieldNullable(Buffer.from(value), TEST_PLAINTEXT_KEY);
+  throw new Error(`dec(): unexpected value type: ${typeof value}`);
+}
 
 const emptyEvent: FamilyEvent = { date: '', hijriDate: '', place: '', description: '', notes: '' };
 
@@ -57,6 +73,11 @@ const mockFamilyCreateMany = vi.fn();
 const mockFamilyChildCreateMany = vi.fn();
 const mockIndividualCount = vi.fn();
 const mockTransaction = vi.fn();
+// Phase 10b: seed helper now looks up Workspace.encryptedKey to encrypt
+// sensitive fields on the way in. Tests pre-seed a wrapped key so the
+// helper can unwrap it cleanly and proceed.
+const mockWorkspaceFindUnique = vi.fn();
+const mockWorkspaceUpdate = vi.fn();
 
 function createMockPrisma(): PrismaLike {
   return {
@@ -89,6 +110,11 @@ describe('seedTreeFromGedcomData', () => {
     vi.clearAllMocks();
     mockPrisma = createMockPrisma();
 
+    // Phase 10b: default workspace mock returns a valid wrapped key so
+    // the seed helper's internal `getWorkspaceKey()` lookup succeeds.
+    mockWorkspaceFindUnique.mockResolvedValue({ encryptedKey: TEST_WRAPPED_KEY });
+    mockWorkspaceUpdate.mockResolvedValue({});
+
     // Default: $transaction executes the callback immediately
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       return fn({
@@ -105,6 +131,10 @@ describe('seedTreeFromGedcomData', () => {
         },
         familyChild: {
           createMany: mockFamilyChildCreateMany,
+        },
+        workspace: {
+          findUnique: mockWorkspaceFindUnique,
+          update: mockWorkspaceUpdate,
         },
       });
     });
@@ -304,11 +334,12 @@ describe('seedTreeFromGedcomData', () => {
 
     const ind = individualData[0];
     expect(ind.gedcomId).toBe('@I1@');
-    expect(ind.givenName).toBe('Unknown Person');
-    expect(ind.surname).toBeNull();
+    // Phase 10b: encrypted fields come out as Buffers; decrypt to compare.
+    expect(dec(ind.givenName)).toBe('Unknown Person');
+    expect(dec(ind.surname)).toBeNull();
     expect(ind.sex).toBeNull();
-    expect(ind.birthDate).toBeNull();
-    expect(ind.deathDate).toBeNull();
+    expect(dec(ind.birthDate)).toBeNull();
+    expect(dec(ind.deathDate)).toBeNull();
     expect(ind.treeId).toBe(treeId);
   });
 
@@ -486,8 +517,8 @@ describe('seedTreeFromGedcomData', () => {
     const individualData = mockIndividualCreateMany.mock.calls[0][0].data;
     expect(individualData).toHaveLength(1);
     const ind = individualData[0];
-    expect(ind.birthDescription).toBe('Natural birth');
-    expect(ind.deathDescription).toBe('Heart attack');
+    expect(dec(ind.birthDescription)).toBe('Natural birth');
+    expect(dec(ind.deathDescription)).toBe('Heart attack');
   });
 
   test('sets birthDescription and deathDescription to null when empty', async () => {
@@ -512,8 +543,8 @@ describe('seedTreeFromGedcomData', () => {
 
     const individualData = mockIndividualCreateMany.mock.calls[0][0].data;
     const ind = individualData[0];
-    expect(ind.birthDescription).toBeNull();
-    expect(ind.deathDescription).toBeNull();
+    expect(dec(ind.birthDescription)).toBeNull();
+    expect(dec(ind.deathDescription)).toBeNull();
   });
 
   test('seeds individual with Hijri dates', async () => {
@@ -539,8 +570,8 @@ describe('seedTreeFromGedcomData', () => {
 
     const individualData = mockIndividualCreateMany.mock.calls[0][0].data;
     const ind = individualData[0];
-    expect(ind.birthHijriDate).toBe('1369/03/16');
-    expect(ind.deathHijriDate).toBe('1441/10/09');
+    expect(dec(ind.birthHijriDate)).toBe('1369/03/16');
+    expect(dec(ind.deathHijriDate)).toBe('1441/10/09');
   });
 
   test('sets birthHijriDate and deathHijriDate to null when empty', async () => {
@@ -565,8 +596,8 @@ describe('seedTreeFromGedcomData', () => {
 
     const individualData = mockIndividualCreateMany.mock.calls[0][0].data;
     const ind = individualData[0];
-    expect(ind.birthHijriDate).toBeNull();
-    expect(ind.deathHijriDate).toBeNull();
+    expect(dec(ind.birthHijriDate)).toBeNull();
+    expect(dec(ind.deathHijriDate)).toBeNull();
   });
 
   test('seeds family with marriage event data', async () => {
@@ -630,27 +661,29 @@ describe('seedTreeFromGedcomData', () => {
     const familyData = mockFamilyCreateMany.mock.calls[0][0].data;
     const fam = familyData[0];
 
+    // Phase 10b: event fields are encrypted on write; dec() unwraps them.
+
     // Marriage contract
-    expect(fam.marriageContractDate).toBe('2020-01-01');
-    expect(fam.marriageContractHijriDate).toBe('1441/05/06');
-    expect(fam.marriageContractPlace).toBe('Riyadh');
-    expect(fam.marriageContractDescription).toBe('Official contract');
-    expect(fam.marriageContractNotes).toBe('Witnessed by family');
+    expect(dec(fam.marriageContractDate)).toBe('2020-01-01');
+    expect(dec(fam.marriageContractHijriDate)).toBe('1441/05/06');
+    expect(dec(fam.marriageContractPlace)).toBe('Riyadh');
+    expect(dec(fam.marriageContractDescription)).toBe('Official contract');
+    expect(dec(fam.marriageContractNotes)).toBe('Witnessed by family');
 
     // Marriage
-    expect(fam.marriageDate).toBe('2020-03-15');
-    expect(fam.marriageHijriDate).toBe('1441/07/20');
-    expect(fam.marriagePlace).toBe('Jeddah');
-    expect(fam.marriageDescription).toBe('Wedding ceremony');
-    expect(fam.marriageNotes).toBe('Large gathering');
+    expect(dec(fam.marriageDate)).toBe('2020-03-15');
+    expect(dec(fam.marriageHijriDate)).toBe('1441/07/20');
+    expect(dec(fam.marriagePlace)).toBe('Jeddah');
+    expect(dec(fam.marriageDescription)).toBe('Wedding ceremony');
+    expect(dec(fam.marriageNotes)).toBe('Large gathering');
 
     // Divorce
     expect(fam.isDivorced).toBe(true);
-    expect(fam.divorceDate).toBe('2023-06-01');
-    expect(fam.divorceHijriDate).toBe('1444/11/12');
-    expect(fam.divorcePlace).toBe('Mecca');
-    expect(fam.divorceDescription).toBe('Mutual agreement');
-    expect(fam.divorceNotes).toBe('Amicable');
+    expect(dec(fam.divorceDate)).toBe('2023-06-01');
+    expect(dec(fam.divorceHijriDate)).toBe('1444/11/12');
+    expect(dec(fam.divorcePlace)).toBe('Mecca');
+    expect(dec(fam.divorceDescription)).toBe('Mutual agreement');
+    expect(dec(fam.divorceNotes)).toBe('Amicable');
   });
 
   test('sets family event fields to null when empty', async () => {
@@ -812,7 +845,7 @@ describe('seedTreeFromGedcomData', () => {
     await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
 
     const indData = mockIndividualCreateMany.mock.calls[0][0].data;
-    expect(indData[0].kunya).toBe('أبو محمد');
+    expect(dec(indData[0].kunya)).toBe('أبو محمد');
   });
 
   test('sets kunya to null when individual has no kunya', async () => {
@@ -833,6 +866,6 @@ describe('seedTreeFromGedcomData', () => {
     await seedTreeFromGedcomData(workspaceId, gedcomData, mockPrisma);
 
     const indData = mockIndividualCreateMany.mock.calls[0][0].data;
-    expect(indData[0].kunya).toBeNull();
+    expect(dec(indData[0].kunya)).toBeNull();
   });
 });

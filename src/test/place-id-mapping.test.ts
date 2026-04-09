@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper'
 import type { DbTree, DbIndividual, DbFamily } from '@/lib/tree/mapper'
+import { generateWorkspaceKey } from '@/lib/crypto/workspace-encryption'
+
+const TEST_WORKSPACE_KEY: Buffer = generateWorkspaceKey()
 
 // ---------------------------------------------------------------------------
 // Helpers — build minimal DB-shaped objects
@@ -91,7 +94,7 @@ describe('dbTreeToGedcomData — placeId fields', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthPlaceId).toBe('place-uuid-1')
@@ -117,7 +120,7 @@ describe('dbTreeToGedcomData — placeId fields', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthPlaceId).toBeUndefined()
@@ -142,7 +145,7 @@ describe('dbTreeToGedcomData — placeId fields', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthPlaceId).toBe('place-uuid-1')
@@ -181,7 +184,7 @@ describe('dbTreeToGedcomData — family placeId fields', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     expect(fam.marriageContract.placeId).toBe('place-marc-1')
@@ -208,7 +211,7 @@ describe('dbTreeToGedcomData — family placeId fields', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     expect(fam.marriageContract.placeId).toBeUndefined()
@@ -239,7 +242,7 @@ describe('redactPrivateIndividuals — placeId fields', () => {
         }),
       ],
       families: [],
-    })
+    }, TEST_WORKSPACE_KEY)
 
     const redacted = redactPrivateIndividuals(data)
     const ind = redacted.individuals['ind-1']
@@ -265,7 +268,7 @@ describe('redactPrivateIndividuals — placeId fields', () => {
         }),
       ],
       families: [],
-    })
+    }, TEST_WORKSPACE_KEY)
 
     const redacted = redactPrivateIndividuals(data)
     const ind = redacted.individuals['ind-1']

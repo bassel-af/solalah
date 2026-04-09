@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
-import { getOrCreateTree, getTreeFamily, getTreeIndividual, touchTreeTimestamp } from '@/lib/tree/queries';
+import { getOrCreateTree, getTreeFamily, getTreeIndividualDecrypted, touchTreeTimestamp } from '@/lib/tree/queries';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { encryptAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string }> };
 
@@ -27,6 +28,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (isParseError(parsed)) return parsed;
 
   const tree = await getOrCreateTree(workspaceId);
+  // Phase 10b follow-up: fetch workspace key for audit description encryption.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
   const family = await getTreeFamily(tree.id, familyId);
   if (!family) {
     return NextResponse.json(
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const individual = await getTreeIndividual(tree.id, parsed.data.individualId);
+  const individual = await getTreeIndividualDecrypted(workspaceId, tree.id, parsed.data.individualId);
   if (!individual) {
     return NextResponse.json(
       { error: 'الشخص غير موجود في هذه الشجرة' },
@@ -76,8 +79,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         entityId: familyId,
         snapshotBefore: JSON_NULL,
         snapshotAfter: { familyId, individualId: parsed.data.individualId },
-        description: buildAuditDescription('create', 'family_child', individual.givenName ?? undefined),
-      },
+        description: encryptAuditDescription('create', 'family_child', individual.givenName, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);

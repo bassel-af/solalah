@@ -3,9 +3,10 @@ import { prisma } from '@/lib/db';
 import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
 import { getTreeByWorkspaceId, getOrCreateTree } from '@/lib/tree/queries';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { extractPointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import { prepareDeepCopy, persistDeepCopy } from '@/lib/tree/branch-pointer-deep-copy';
-import { snapshotBranchPointer, buildAuditDescription } from '@/lib/tree/audit';
+import { snapshotBranchPointer, encryptAuditDescription } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; pointerId: string }> };
 
@@ -34,8 +35,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Fetch source tree
-  const sourceTree = await getTreeByWorkspaceId(pointer.sourceWorkspaceId);
+  // Phase 10b: fetch source tree + source key (to decrypt) AND target key
+  // (to re-encrypt before the write). Keys are workspace-scoped so we MUST
+  // use the target's when persisting.
+  const [sourceTree, sourceKey, targetKey] = await Promise.all([
+    getTreeByWorkspaceId(pointer.sourceWorkspaceId),
+    getWorkspaceKey(pointer.sourceWorkspaceId),
+    getWorkspaceKey(workspaceId),
+  ]);
   if (!sourceTree) {
     return NextResponse.json(
       { error: 'شجرة المصدر غير متوفرة' },
@@ -43,7 +50,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const sourceData = dbTreeToGedcomData(sourceTree);
+  const sourceData = dbTreeToGedcomData(sourceTree, sourceKey);
   const pointedSubtree = extractPointedSubtree(sourceData, {
     rootIndividualId: pointer.rootIndividualId,
     depthLimit: pointer.depthLimit,
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   await prisma.$transaction(async (tx) => {
     const txPrisma = tx as typeof prisma;
 
-    await persistDeepCopy(txPrisma, targetTree.id, copyResult);
+    await persistDeepCopy(txPrisma, targetTree.id, copyResult, targetKey);
 
     // Mark pointer as broken (deep copy replaces the live link)
     await txPrisma.branchPointer.update({
@@ -69,7 +76,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       data: { status: 'broken' },
     });
 
-    // Log the action
+    // Log the action. Cast via unknown — Prisma Bytes column type is
+    // Uint8Array<ArrayBuffer> while Node Buffer has ArrayBufferLike; the
+    // runtime shape is correct for Bytes columns.
     await txPrisma.treeEditLog.create({
       data: {
         treeId: targetTree.id,
@@ -79,8 +88,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         entityId: pointerId,
         snapshotBefore: snapshotBranchPointer(pointer),
         snapshotAfter: snapshotBranchPointer({ ...pointer, status: 'broken' }),
-        description: buildAuditDescription('deep_copy', 'branch_pointer'),
-      },
+        description: encryptAuditDescription('deep_copy', 'branch_pointer', null, targetKey),
+      } as unknown as Parameters<typeof txPrisma.treeEditLog.create>[0]['data'],
     });
   });
 

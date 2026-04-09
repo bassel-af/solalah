@@ -87,6 +87,18 @@ vi.mock('@/lib/tree/branch-pointer-queries', () => ({
   getActivePointersForWorkspace: vi.fn().mockResolvedValue([]),
 }));
 
+// Phase 10b: stub getWorkspaceKey so routes that call it resolve to a
+// deterministic 32-byte buffer without needing a prisma.workspace.findUnique
+// mock. Other encryption exports pass through to the real implementation.
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
+
 // Mock the tree mapper
 const mockDbTreeToGedcomData = vi.fn();
 vi.mock('@/lib/tree/mapper', () => ({

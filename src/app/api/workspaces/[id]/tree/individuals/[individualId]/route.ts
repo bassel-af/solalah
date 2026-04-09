@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
-import { getOrCreateTree, getTreeIndividual, touchTreeTimestamp } from '@/lib/tree/queries';
+import {
+  getOrCreateTree,
+  getTreeIndividualDecrypted,
+  touchTreeTimestamp,
+} from '@/lib/tree/queries';
 import { updateIndividualSchema } from '@/lib/tree/schemas';
 import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
+import { getWorkspaceKey, encryptIndividualInput, encryptSnapshot } from '@/lib/tree/encryption';
 import { computeDeleteImpact, computeVersionHash } from '@/lib/tree/cascade-delete';
-import { snapshotIndividual, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import {
+  snapshotIndividual,
+  encryptAuditDescription,
+  encryptAuditPayload,
+  JSON_NULL,
+} from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; individualId: string }> };
 
@@ -35,7 +45,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const tree = await getOrCreateTree(workspaceId);
-  const existing = await getTreeIndividual(tree.id, individualId);
+  // Decrypted read — needed so we can feed plaintext into the audit snapshot
+  // and read `givenName` for the human-readable description. Task #13 will
+  // wrap the stored snapshot in an encrypted envelope.
+  const existing = await getTreeIndividualDecrypted(workspaceId, tree.id, individualId);
   if (!existing) {
     return NextResponse.json(
       { error: 'الشخص غير موجود في هذه الشجرة' },
@@ -52,10 +65,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     delete parsed.data.kunya;
   }
 
+  // Phase 10b: encrypt sensitive fields before update. `parsed.data` still
+  // holds plaintext for the audit snapshot further down.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
   const individual = await prisma.individual.update({
     where: { id: individualId },
-    data: parsed.data,
+    // Cast via unknown — see note in families/[familyId]/route.ts.
+    data: encryptIndividualInput(parsed.data, workspaceKey) as unknown as Parameters<typeof prisma.individual.update>[0]['data'],
   });
+
+  // Build an after-snapshot by merging the plaintext `existing` with the
+  // plaintext `parsed.data` (what the client sent in). We cannot use
+  // `individual` directly because its encrypted fields are now Bytes-typed
+  // by Prisma. Task #13 will wrap the stored snapshot in an encrypted
+  // envelope.
+  const afterPlaintext = { ...existing, ...parsed.data, id: individualId };
 
   await Promise.all([
     prisma.treeEditLog.create({
@@ -65,11 +89,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         action: 'update',
         entityType: 'individual',
         entityId: individualId,
-        payload: parsed.data,
-        snapshotBefore: snapshotIndividual(existing),
-        snapshotAfter: snapshotIndividual(individual),
-        description: buildAuditDescription('update', 'individual', existing.givenName ?? undefined),
-      },
+        payload: encryptAuditPayload(parsed.data, workspaceKey),
+        // Phase 10b: wrap plaintext snapshots in encrypted envelopes.
+        snapshotBefore: encryptSnapshot(snapshotIndividual(existing), workspaceKey),
+        snapshotAfter: encryptSnapshot(snapshotIndividual(afterPlaintext), workspaceKey),
+        description: encryptAuditDescription('update', 'individual', existing.givenName, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);
@@ -97,7 +122,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   const tree = await getOrCreateTree(workspaceId);
-  const existing = await getTreeIndividual(tree.id, individualId);
+  // Decrypted read — the confirmation flow needs plaintext `givenName` to
+  // compare against the user's typed name, and `dbTreeToGedcomData` below
+  // needs the workspace key to decrypt the tree.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const existing = await getTreeIndividualDecrypted(workspaceId, tree.id, individualId);
   if (!existing) {
     return NextResponse.json(
       { error: 'الشخص غير موجود في هذه الشجرة' },
@@ -117,7 +146,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   // Compute cascade impact
-  const gedcomData = dbTreeToGedcomData(tree);
+  const gedcomData = dbTreeToGedcomData(tree, workspaceKey);
   const impact = computeDeleteImpact(gedcomData, individualId);
   const { affectedIds } = impact;
   const currentVersionHash = computeVersionHash(tree.lastModifiedAt);
@@ -235,17 +264,26 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: deleteAction,
         entityType: 'individual',
         entityId: individualId,
-        payload: affectedIds.size > 0 ? {
-          targetIndividualId: individualId,
-          targetName: existing.givenName ?? '',
-          affectedIndividualIds: [...affectedIds],
-          totalAffectedCount: affectedIds.size,
-          confirmationMethod: affectedIds.size >= 5 ? 'name_typing' : 'simple_confirm',
-        } : undefined,
-        snapshotBefore: snapshotIndividual(existing),
+        // Phase 10b follow-up (task #22): wrap the cascade_delete payload
+        // in an AES-256-GCM envelope. This closes the `targetName` PII leak
+        // that Phase 10b proper (task #13) intentionally left open.
+        payload: encryptAuditPayload(
+          affectedIds.size > 0
+            ? {
+                targetIndividualId: individualId,
+                targetName: existing.givenName ?? '',
+                affectedIndividualIds: [...affectedIds],
+                totalAffectedCount: affectedIds.size,
+                confirmationMethod: affectedIds.size >= 5 ? 'name_typing' : 'simple_confirm',
+              }
+            : null,
+          workspaceKey,
+        ),
+        // Phase 10b: encrypt the plaintext snapshot envelope.
+        snapshotBefore: encryptSnapshot(snapshotIndividual(existing), workspaceKey),
         snapshotAfter: JSON_NULL,
-        description: buildAuditDescription(deleteAction, 'individual', existing.givenName ?? undefined),
-      },
+        description: encryptAuditDescription(deleteAction, 'individual', existing.givenName, workspaceKey),
+      } as unknown as Parameters<typeof tx.treeEditLog.create>[0]['data'],
     });
 
     // 10. Update tree timestamp

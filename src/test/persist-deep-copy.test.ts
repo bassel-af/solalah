@@ -1,6 +1,23 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { Individual, Family, FamilyEvent } from '@/lib/gedcom/types';
 import type { DeepCopyResult } from '@/lib/tree/branch-pointer-deep-copy';
+import {
+  generateWorkspaceKey,
+  decryptFieldNullable,
+} from '@/lib/crypto/workspace-encryption';
+
+// Phase 10b: persistDeepCopy now encrypts every sensitive field with the
+// TARGET workspace key before the DB write. Tests capture `createMany`
+// args and decrypt with this key to inspect plaintext.
+const TEST_TARGET_KEY = generateWorkspaceKey();
+
+function dec(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  if (Buffer.isBuffer(value)) return decryptFieldNullable(value, TEST_TARGET_KEY);
+  if (value instanceof Uint8Array) return decryptFieldNullable(Buffer.from(value), TEST_TARGET_KEY);
+  throw new Error(`dec(): unexpected value type: ${typeof value}`);
+}
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -134,33 +151,32 @@ describe('persistDeepCopy', () => {
     const { tx, mocks } = makeMockTx();
     const copyResult = makeCopyResult();
 
-    await persistDeepCopy(tx, treeId, copyResult);
+    await persistDeepCopy(tx, treeId, copyResult, TEST_TARGET_KEY);
 
     expect(mocks.individualCreateMany).toHaveBeenCalledOnce();
     const { data } = mocks.individualCreateMany.mock.calls[0][0];
     expect(data).toHaveLength(2);
 
     const rootData = data.find((d: { id: string }) => d.id === 'new-root');
-    expect(rootData).toMatchObject({
-      id: 'new-root',
-      treeId,
-      givenName: 'فدوى',
-      surname: 'شربك',
-      sex: 'F',
-      birthDate: '1980-01-01',
-      birthHijriDate: '1400/02/13',
-      birthPlace: 'مكة المكرمة',
-      deathDate: '2020-06-15',
-      deathHijriDate: '1441/10/23',
-      deathPlace: 'المدينة المنورة',
-      birthDescription: 'ولدت في مكة',
-      birthNotes: 'ملاحظة ولادة',
-      deathDescription: 'توفيت في المدينة',
-      deathNotes: 'ملاحظة وفاة',
-      notes: 'ملاحظات عامة',
-      isDeceased: true,
-      isPrivate: false,
-    });
+    // Phase 10b: encrypted-at-rest fields must be decrypted before compare.
+    expect(rootData.id).toBe('new-root');
+    expect(rootData.treeId).toBe(treeId);
+    expect(rootData.sex).toBe('F');
+    expect(rootData.isDeceased).toBe(true);
+    expect(rootData.isPrivate).toBe(false);
+    expect(dec(rootData.givenName)).toBe('فدوى');
+    expect(dec(rootData.surname)).toBe('شربك');
+    expect(dec(rootData.birthDate)).toBe('1980-01-01');
+    expect(dec(rootData.birthHijriDate)).toBe('1400/02/13');
+    expect(dec(rootData.birthPlace)).toBe('مكة المكرمة');
+    expect(dec(rootData.deathDate)).toBe('2020-06-15');
+    expect(dec(rootData.deathHijriDate)).toBe('1441/10/23');
+    expect(dec(rootData.deathPlace)).toBe('المدينة المنورة');
+    expect(dec(rootData.birthDescription)).toBe('ولدت في مكة');
+    expect(dec(rootData.birthNotes)).toBe('ملاحظة ولادة');
+    expect(dec(rootData.deathDescription)).toBe('توفيت في المدينة');
+    expect(dec(rootData.deathNotes)).toBe('ملاحظة وفاة');
+    expect(dec(rootData.notes)).toBe('ملاحظات عامة');
   });
 
   test('creates families with correct Prisma field mapping', async () => {
@@ -168,34 +184,34 @@ describe('persistDeepCopy', () => {
     const { tx, mocks } = makeMockTx();
     const copyResult = makeCopyResult();
 
-    await persistDeepCopy(tx, treeId, copyResult);
+    await persistDeepCopy(tx, treeId, copyResult, TEST_TARGET_KEY);
 
     expect(mocks.familyCreateMany).toHaveBeenCalledOnce();
     const { data } = mocks.familyCreateMany.mock.calls[0][0];
     expect(data).toHaveLength(1);
 
-    expect(data[0]).toMatchObject({
-      id: 'new-fam',
-      treeId,
-      husbandId: 'anchor-id',
-      wifeId: 'new-root',
-      marriageContractDate: '2000-01-01',
-      marriageContractHijriDate: '1420/09/24',
-      marriageContractPlace: 'مكة',
-      marriageContractDescription: 'عقد',
-      marriageContractNotes: null,
-      marriageDate: '2000-06-01',
-      marriageHijriDate: '1421/02/27',
-      marriagePlace: 'جدة',
-      marriageDescription: 'زفاف',
-      marriageNotes: 'ملاحظة',
-      divorceDate: null,
-      divorceHijriDate: null,
-      divorcePlace: null,
-      divorceDescription: null,
-      divorceNotes: null,
-      isDivorced: false,
-    });
+    const fam = data[0];
+    expect(fam.id).toBe('new-fam');
+    expect(fam.treeId).toBe(treeId);
+    expect(fam.husbandId).toBe('anchor-id');
+    expect(fam.wifeId).toBe('new-root');
+    expect(fam.isDivorced).toBe(false);
+    // Phase 10b: event fields encrypted with the target workspace key.
+    expect(dec(fam.marriageContractDate)).toBe('2000-01-01');
+    expect(dec(fam.marriageContractHijriDate)).toBe('1420/09/24');
+    expect(dec(fam.marriageContractPlace)).toBe('مكة');
+    expect(dec(fam.marriageContractDescription)).toBe('عقد');
+    expect(dec(fam.marriageContractNotes)).toBeNull();
+    expect(dec(fam.marriageDate)).toBe('2000-06-01');
+    expect(dec(fam.marriageHijriDate)).toBe('1421/02/27');
+    expect(dec(fam.marriagePlace)).toBe('جدة');
+    expect(dec(fam.marriageDescription)).toBe('زفاف');
+    expect(dec(fam.marriageNotes)).toBe('ملاحظة');
+    expect(dec(fam.divorceDate)).toBeNull();
+    expect(dec(fam.divorceHijriDate)).toBeNull();
+    expect(dec(fam.divorcePlace)).toBeNull();
+    expect(dec(fam.divorceDescription)).toBeNull();
+    expect(dec(fam.divorceNotes)).toBeNull();
   });
 
   test('creates familyChild records for copied families', async () => {
@@ -203,7 +219,7 @@ describe('persistDeepCopy', () => {
     const { tx, mocks } = makeMockTx();
     const copyResult = makeCopyResult();
 
-    await persistDeepCopy(tx, treeId, copyResult);
+    await persistDeepCopy(tx, treeId, copyResult, TEST_TARGET_KEY);
 
     // One child in new-fam
     expect(mocks.familyChildCreate).toHaveBeenCalledWith({
@@ -222,7 +238,7 @@ describe('persistDeepCopy', () => {
       children: ['new-child'],
     });
 
-    await persistDeepCopy(tx, treeId, copyResult);
+    await persistDeepCopy(tx, treeId, copyResult, TEST_TARGET_KEY);
 
     // Stitch family created via family.create
     expect(mocks.familyCreate).toHaveBeenCalledWith({
@@ -254,7 +270,7 @@ describe('persistDeepCopy', () => {
       stitchFamily: null,
     };
 
-    await persistDeepCopy(tx, treeId, copyResult);
+    await persistDeepCopy(tx, treeId, copyResult, TEST_TARGET_KEY);
 
     expect(mocks.individualCreateMany).not.toHaveBeenCalled();
     expect(mocks.familyCreateMany).not.toHaveBeenCalled();
@@ -269,10 +285,10 @@ describe('persistDeepCopy', () => {
     // Set a specific name
     copyResult.individuals['new-root'].name = 'فدوى شربك';
 
-    await persistDeepCopy(tx, treeId, copyResult);
+    await persistDeepCopy(tx, treeId, copyResult, TEST_TARGET_KEY);
 
     const { data } = mocks.individualCreateMany.mock.calls[0][0];
     const rootData = data.find((d: { id: string }) => d.id === 'new-root');
-    expect(rootData.fullName).toBe('فدوى شربك');
+    expect(dec(rootData.fullName)).toBe('فدوى شربك');
   });
 });

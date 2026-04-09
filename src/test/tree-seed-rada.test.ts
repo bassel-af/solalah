@@ -2,6 +2,21 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import type { GedcomData, Individual, Family, FamilyEvent, RadaFamily } from '@/lib/gedcom/types'
 import type { PrismaLike } from '@/lib/tree/seed-helpers'
 import { seedTreeFromGedcomData } from '@/lib/tree/seed-helpers'
+import { generateWorkspaceKey, wrapKey, decryptFieldNullable } from '@/lib/crypto/workspace-encryption'
+import { getMasterKey } from '@/lib/crypto/master-key'
+
+// Phase 10b: keep both plaintext and wrapped keys so we can decrypt
+// captured ciphertext in assertions.
+const TEST_PLAINTEXT_KEY = generateWorkspaceKey()
+const TEST_WRAPPED_KEY = wrapKey(TEST_PLAINTEXT_KEY, getMasterKey())
+
+function dec(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (Buffer.isBuffer(value)) return decryptFieldNullable(value, TEST_PLAINTEXT_KEY)
+  if (value instanceof Uint8Array) return decryptFieldNullable(Buffer.from(value), TEST_PLAINTEXT_KEY)
+  throw new Error(`dec(): unexpected value type: ${typeof value}`)
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -81,6 +96,8 @@ const mockIndividualCount = vi.fn()
 const mockRadaFamilyCreateMany = vi.fn()
 const mockRadaFamilyChildCreateMany = vi.fn()
 const mockTransaction = vi.fn()
+const mockWorkspaceFindUnique = vi.fn()
+const mockWorkspaceUpdate = vi.fn()
 
 function createMockPrisma(): PrismaLike {
   return {
@@ -100,6 +117,10 @@ describe('seedTreeFromGedcomData — rada\'a seeding', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockPrisma = createMockPrisma()
+
+    // Phase 10b: default workspace mock returns a valid wrapped key.
+    mockWorkspaceFindUnique.mockResolvedValue({ encryptedKey: TEST_WRAPPED_KEY })
+    mockWorkspaceUpdate.mockResolvedValue({})
 
     // Default: $transaction executes the callback immediately
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
@@ -123,6 +144,10 @@ describe('seedTreeFromGedcomData — rada\'a seeding', () => {
         },
         radaFamilyChild: {
           createMany: mockRadaFamilyChildCreateMany,
+        },
+        workspace: {
+          findUnique: mockWorkspaceFindUnique,
+          update: mockWorkspaceUpdate,
         },
       })
     })
@@ -161,7 +186,7 @@ describe('seedTreeFromGedcomData — rada\'a seeding', () => {
     expect(radaFamilyData).toHaveLength(1)
     expect(radaFamilyData[0].treeId).toBe(treeId)
     expect(radaFamilyData[0].gedcomId).toBe('@RF1@')
-    expect(radaFamilyData[0].notes).toBe('Rada note')
+    expect(dec(radaFamilyData[0].notes)).toBe('Rada note')
 
     // Foster parent IDs should be mapped through gedcomToDbId
     expect(radaFamilyData[0].fosterFatherId).toBe(result.gedcomToDbId['@I1@'])

@@ -1,4 +1,10 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { encryptAuditDescription, encryptAuditPayload } from '@/lib/tree/audit';
+
+// Phase 10b follow-up (task #23): audit log read route now decrypts
+// description + payload. Fixtures use this key (matches the mocked
+// `getWorkspaceKey` below).
+const TEST_KEY = Buffer.alloc(32, 7);
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before any imports that use them
@@ -42,6 +48,18 @@ vi.mock('@/lib/tree/branch-pointer-queries', () => ({
   isPointedIndividualInWorkspace: vi.fn().mockResolvedValue(false),
   getActivePointersForWorkspace: vi.fn().mockResolvedValue([]),
 }));
+
+// Phase 10b: stub getWorkspaceKey so the audit log route's decrypt pass
+// gets a fixed buffer. Snapshots in these tests are plain JS objects —
+// `decryptSnapshot` passes them through the legacy-sentinel check unchanged.
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
 
 import { NextRequest } from 'next/server';
 
@@ -155,7 +173,9 @@ function mockAuditLogEntries(count: number) {
     entityId: `ind-${i + 1}`,
     snapshotBefore: { givenName: `Old Name ${i}` },
     snapshotAfter: { givenName: `New Name ${i}` },
-    description: `تعديل شخص "Name ${i}"`,
+    // Phase 10b follow-up (task #23): description + payload are stored
+    // as encrypted Bytes; the read route decrypts before returning.
+    description: encryptAuditDescription('update', 'individual', `Name ${i}`, TEST_KEY),
     payload: null,
     timestamp: new Date(Date.now() - i * 60_000),
     user: { displayName: 'Admin', avatarUrl: null },
@@ -569,5 +589,91 @@ describe('GET /api/workspaces/[id]/tree/audit-log — Response shape', () => {
     const entry = body.data[0];
     // Should be a valid ISO date string
     expect(new Date(entry.timestamp).toISOString()).toBe(entry.timestamp);
+  });
+
+  // Phase 10b follow-up (task #23): description + payload on stored rows
+  // are encrypted Bytes. The read route must decrypt them before returning
+  // them to the admin UI, so the response body must contain plaintext.
+  test('decrypts stored description Bytes into plaintext Arabic string', async () => {
+    mockAuditLogEntries(1);
+    const { GET } = await import(
+      '@/app/api/workspaces/[id]/tree/audit-log/route'
+    );
+    const req = makeRequest(
+      `http://localhost:4000/api/workspaces/${wsId}/tree/audit-log`,
+    );
+    const res = await GET(req, routeParams);
+    const body = await res.json();
+
+    const entry = body.data[0];
+    // Plaintext built by `buildAuditDescription('update', 'individual', 'Name 0')`
+    expect(entry.description).toBe('تعديل شخص "Name 0"');
+    // Must NOT leak the raw encrypted Buffer shape
+    expect(typeof entry.description).toBe('string');
+  });
+
+  test('decrypts stored payload Bytes into plaintext JSON object', async () => {
+    // Seed one entry with an encrypted payload containing PII-shaped fields
+    const sensitivePayload = {
+      targetName: 'فاطمة',
+      targetIndividualId: 'ind-to-delete',
+      totalAffectedCount: 3,
+    };
+    const entry = {
+      id: 'log-payload-1',
+      treeId,
+      userId: fakeAdminUser.id,
+      action: 'cascade_delete',
+      entityType: 'individual',
+      entityId: 'ind-to-delete',
+      snapshotBefore: { id: 'ind-to-delete' },
+      snapshotAfter: null,
+      description: encryptAuditDescription(
+        'cascade_delete',
+        'individual',
+        'فاطمة',
+        TEST_KEY,
+      ),
+      payload: encryptAuditPayload(sensitivePayload, TEST_KEY),
+      timestamp: new Date(),
+      user: { displayName: 'Admin', avatarUrl: null },
+    };
+    mockTreeEditLogFindMany.mockResolvedValue([entry]);
+    mockTreeEditLogCount.mockResolvedValue(1);
+
+    const { GET } = await import(
+      '@/app/api/workspaces/[id]/tree/audit-log/route'
+    );
+    const req = makeRequest(
+      `http://localhost:4000/api/workspaces/${wsId}/tree/audit-log`,
+    );
+    const res = await GET(req, routeParams);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    const row = body.data[0];
+    // description decrypts and contains the Arabic target name
+    expect(row.description).toContain('فاطمة');
+    // payload decrypts into a plain JS object
+    expect(row.payload).toEqual(sensitivePayload);
+    // And the Buffer never leaks through
+    expect(row.payload).not.toHaveProperty('type', 'Buffer');
+    expect(Buffer.isBuffer(row.payload)).toBe(false);
+  });
+
+  test('null payload on a row passes through as null (not decrypted)', async () => {
+    mockAuditLogEntries(1);
+    const { GET } = await import(
+      '@/app/api/workspaces/[id]/tree/audit-log/route'
+    );
+    const req = makeRequest(
+      `http://localhost:4000/api/workspaces/${wsId}/tree/audit-log`,
+    );
+    const res = await GET(req, routeParams);
+    const body = await res.json();
+
+    const entry = body.data[0];
+    // Existing fixture seeds payload: null
+    expect(entry.payload).toBeNull();
   });
 });

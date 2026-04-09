@@ -5,7 +5,8 @@ import { touchTreeTimestamp } from '@/lib/tree/queries'
 import { seedTreeFromGedcomData } from '@/lib/tree/seed-helpers'
 import { parseGedcom } from '@/lib/gedcom/parser'
 import { prisma } from '@/lib/db'
-import { buildAuditDescription } from '@/lib/tree/audit'
+import { encryptAuditDescription, encryptAuditPayload } from '@/lib/tree/audit'
+import { getWorkspaceKey } from '@/lib/tree/encryption'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -89,7 +90,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     )
   }
 
-  // 9. Update tree timestamp + audit log
+  // 9. Update tree timestamp + audit log. Phase 10b follow-up: encrypt
+  // both description and payload before the write.
+  const workspaceKey = await getWorkspaceKey(workspaceId)
   await Promise.all([
     touchTreeTimestamp(seedResult.treeId),
     prisma.treeEditLog.create({
@@ -99,13 +102,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         action: 'import',
         entityType: 'tree',
         entityId: seedResult.treeId,
-        payload: {
-          individualCount: seedResult.individualCount,
-          familyCount: seedResult.familyCount,
-          radaFamilyCount: seedResult.radaFamilyCount,
-        },
-        description: buildAuditDescription('import', 'tree'),
-      },
+        payload: encryptAuditPayload(
+          {
+            individualCount: seedResult.individualCount,
+            familyCount: seedResult.familyCount,
+            radaFamilyCount: seedResult.radaFamilyCount,
+          },
+          workspaceKey,
+        ),
+        description: encryptAuditDescription('import', 'tree', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
   ])
 

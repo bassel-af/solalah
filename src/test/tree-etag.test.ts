@@ -18,21 +18,29 @@ const mockFamilyTreeFindUnique = vi.fn();
 const mockFamilyTreeCreate = vi.fn();
 const mockFamilyTreeUpdate = vi.fn();
 
-vi.mock('@/lib/db', () => ({
-  prisma: {
-    workspaceMembership: {
-      findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+vi.mock('@/lib/db', async () => {
+  // Phase 10b: generate a wrapped key inside the factory so
+  // getWorkspaceKey() → prisma.workspace.findUnique() can return a valid
+  // encryptedKey that unwraps successfully.
+  const { generateWorkspaceKey, wrapKey } = await import('@/lib/crypto/workspace-encryption');
+  const { getMasterKey } = await import('@/lib/crypto/master-key');
+  const wrappedKey = wrapKey(generateWorkspaceKey(), getMasterKey());
+  return {
+    prisma: {
+      workspaceMembership: {
+        findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+      },
+      workspace: {
+        findUnique: vi.fn().mockResolvedValue({ enableKunya: true, encryptedKey: wrappedKey }),
+      },
+      familyTree: {
+        findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
+        create: (...args: unknown[]) => mockFamilyTreeCreate(...args),
+        update: (...args: unknown[]) => mockFamilyTreeUpdate(...args),
+      },
     },
-    workspace: {
-      findUnique: vi.fn().mockResolvedValue({ enableKunya: true }),
-    },
-    familyTree: {
-      findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
-      create: (...args: unknown[]) => mockFamilyTreeCreate(...args),
-      update: (...args: unknown[]) => mockFamilyTreeUpdate(...args),
-    },
-  },
-}));
+  };
+});
 
 // Mock branch pointer queries — no active pointers in these tests
 vi.mock('@/lib/tree/branch-pointer-queries', () => ({

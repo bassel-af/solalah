@@ -3,6 +3,7 @@ import { requireWorkspaceMember, isErrorResponse } from '@/lib/api/workspace-aut
 import { treeExportLimiter, rateLimitResponse } from '@/lib/api/rate-limit'
 import { getOrCreateTree, getTreeByWorkspaceId } from '@/lib/tree/queries'
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper'
+import { getWorkspaceKey } from '@/lib/tree/encryption'
 import { getActivePointersForWorkspace } from '@/lib/tree/branch-pointer-queries'
 import { extractPointedSubtree, mergePointedSubtree } from '@/lib/tree/branch-pointer-merge'
 import { gedcomDataToGedcom } from '@/lib/gedcom/exporter'
@@ -38,7 +39,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   // Fetch tree data
   const tree = await getOrCreateTree(workspaceId)
-  let gedcomData: GedcomData = dbTreeToGedcomData(tree)
+  // Phase 10b: unwrap this workspace's data key once and reuse it for the
+  // tree and every downstream decrypt call below.
+  const workspaceKey = await getWorkspaceKey(workspaceId)
+  let gedcomData: GedcomData = dbTreeToGedcomData(tree, workspaceKey)
 
   // Merge pointed subtrees (so cross-references in native data are consistent)
   const pointers = await getActivePointersForWorkspace(workspaceId)
@@ -47,9 +51,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const sourceTreeMap = new Map<string, GedcomData>()
   const sourceTreeEntries = await Promise.all(
     uniqueSourceIds.map(async (wsId) => {
-      const srcTree = await getTreeByWorkspaceId(wsId)
+      const [srcTree, sourceKey] = await Promise.all([
+        getTreeByWorkspaceId(wsId),
+        getWorkspaceKey(wsId),
+      ])
       if (!srcTree) return null
-      return [wsId, dbTreeToGedcomData(srcTree)] as const
+      return [wsId, dbTreeToGedcomData(srcTree, sourceKey)] as const
     }),
   )
   for (const entry of sourceTreeEntries) {

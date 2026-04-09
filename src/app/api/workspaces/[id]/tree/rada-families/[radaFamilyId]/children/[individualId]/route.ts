@@ -3,7 +3,8 @@ import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeRadaFamily, touchTreeTimestamp } from '@/lib/tree/queries';
-import { buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
+import { encryptAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; radaFamilyId: string; individualId: string }> };
 
@@ -30,6 +31,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   const tree = await getOrCreateTree(workspaceId);
+  const workspaceKey = await getWorkspaceKey(workspaceId);
   const radaFamily = await getTreeRadaFamily(tree.id, radaFamilyId);
   if (!radaFamily) {
     return NextResponse.json(
@@ -84,8 +86,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         entityId: radaFamilyId,
         snapshotBefore: { radaFamilyId, individualId },
         snapshotAfter: JSON_NULL,
-        description: buildAuditDescription('delete', 'rada_family_child'),
-      },
+        description: encryptAuditDescription('delete', 'rada_family_child', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);

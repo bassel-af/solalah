@@ -1,4 +1,9 @@
 import type { Individual, Family, GedcomData, RadaFamily } from '@/lib/gedcom/types'
+import {
+  decryptIndividualRow,
+  decryptFamilyRow,
+  decryptRadaFamilyRow,
+} from '@/lib/tree/encryption'
 
 // ---------------------------------------------------------------------------
 // DB record shapes (as returned by Prisma queries with includes)
@@ -30,7 +35,52 @@ function placeDisplayName(ref: DbPlaceRef | null | undefined): string {
   return city
 }
 
+/**
+ * Phase 10b: sensitive Individual fields are stored as AES-GCM ciphertext
+ * in the database. Prisma's driver adapter returns them as `Uint8Array`,
+ * application code may pass `Buffer` — both are accepted here and normalized
+ * by `decryptIndividualRow` in the encryption adapter.
+ */
+type Enc = Uint8Array | Buffer | null
+
 export interface DbIndividual {
+  id: string
+  treeId: string
+  gedcomId: string | null
+  givenName: Enc
+  surname: Enc
+  fullName: Enc
+  sex: string | null
+  birthDate: Enc
+  birthPlace: Enc
+  birthPlaceId: string | null
+  birthPlaceRef?: DbPlaceRef | null
+  birthDescription: Enc
+  birthNotes: Enc
+  birthHijriDate: Enc
+  deathDate: Enc
+  deathPlace: Enc
+  deathPlaceId: string | null
+  deathPlaceRef?: DbPlaceRef | null
+  deathDescription: Enc
+  deathNotes: Enc
+  deathHijriDate: Enc
+  kunya: Enc
+  notes: Enc
+  isDeceased: boolean
+  isPrivate: boolean
+  createdById: string | null
+  updatedAt: Date
+  createdAt: Date
+}
+
+/**
+ * Plaintext shape used after `decryptIndividualRow` runs.
+ * Same shape as the pre-Phase-10b `DbIndividual` (string | null for every
+ * field). Exported so callers (and tests) that build plaintext fixtures can
+ * type them explicitly.
+ */
+export interface DecryptedIndividual {
   id: string
   treeId: string
   gedcomId: string | null
@@ -69,6 +119,42 @@ export interface DbFamily {
   wifeId: string | null
   children: DbFamilyChild[]
   // Marriage contract
+  marriageContractDate: Enc
+  marriageContractHijriDate: Enc
+  marriageContractPlace: Enc
+  marriageContractPlaceId: string | null
+  marriageContractPlaceRef?: DbPlaceRef | null
+  marriageContractDescription: Enc
+  marriageContractNotes: Enc
+  // Marriage
+  marriageDate: Enc
+  marriageHijriDate: Enc
+  marriagePlace: Enc
+  marriagePlaceId: string | null
+  marriagePlaceRef?: DbPlaceRef | null
+  marriageDescription: Enc
+  marriageNotes: Enc
+  // Umm walad
+  isUmmWalad: boolean
+  // Divorce
+  isDivorced: boolean
+  divorceDate: Enc
+  divorceHijriDate: Enc
+  divorcePlace: Enc
+  divorcePlaceId: string | null
+  divorcePlaceRef?: DbPlaceRef | null
+  divorceDescription: Enc
+  divorceNotes: Enc
+}
+
+/** Plaintext family shape after decryption. Exported for test fixtures. */
+export interface DecryptedFamily {
+  id: string
+  treeId: string
+  gedcomId: string | null
+  husbandId: string | null
+  wifeId: string | null
+  children: DbFamilyChild[]
   marriageContractDate: string | null
   marriageContractHijriDate: string | null
   marriageContractPlace: string | null
@@ -76,7 +162,6 @@ export interface DbFamily {
   marriageContractPlaceRef?: DbPlaceRef | null
   marriageContractDescription: string | null
   marriageContractNotes: string | null
-  // Marriage
   marriageDate: string | null
   marriageHijriDate: string | null
   marriagePlace: string | null
@@ -84,9 +169,7 @@ export interface DbFamily {
   marriagePlaceRef?: DbPlaceRef | null
   marriageDescription: string | null
   marriageNotes: string | null
-  // Umm walad
   isUmmWalad: boolean
-  // Divorce
   isDivorced: boolean
   divorceDate: string | null
   divorceHijriDate: string | null
@@ -103,6 +186,18 @@ export interface DbRadaFamilyChild {
 }
 
 export interface DbRadaFamily {
+  id: string
+  treeId: string
+  gedcomId: string | null
+  fosterFatherId: string | null
+  fosterMotherId: string | null
+  notes: Enc
+  createdAt: Date
+  children: DbRadaFamilyChild[]
+}
+
+/** Plaintext rada family shape after decryption. Exported for test fixtures. */
+export interface DecryptedRadaFamily {
   id: string
   treeId: string
   gedcomId: string | null
@@ -125,7 +220,7 @@ export interface DbTree {
 // Rada family mapping
 // ---------------------------------------------------------------------------
 
-export function mapRadaFamily(dbRada: DbRadaFamily): RadaFamily {
+export function mapRadaFamily(dbRada: DecryptedRadaFamily): RadaFamily {
   return {
     id: dbRada.id,
     type: '_RADA_FAM',
@@ -143,8 +238,15 @@ export function mapRadaFamily(dbRada: DbRadaFamily): RadaFamily {
 /**
  * Converts a DB tree (as returned by Prisma with includes) into the
  * `GedcomData` shape consumed by all existing tree visualization components.
+ *
+ * Phase 10b: sensitive Individual/Family/RadaFamily fields are stored as
+ * AES-GCM ciphertext in the database. Pass the workspace's unwrapped data
+ * key via `workspaceKey` so each row can be decrypted before mapping.
  */
-export function dbTreeToGedcomData(dbTree: DbTree): GedcomData {
+export function dbTreeToGedcomData(
+  dbTree: DbTree,
+  workspaceKey: Buffer,
+): GedcomData {
   // Pre-compute lookup: individualId -> list of family IDs where they are a spouse
   const spouseFamilies = new Map<string, string[]>()
   // Pre-compute lookup: individualId -> first family ID where they are a child
@@ -169,16 +271,18 @@ export function dbTreeToGedcomData(dbTree: DbTree): GedcomData {
     }
   }
 
-  // Map individuals
+  // Map individuals — decrypt each row first
   const individuals: Record<string, Individual> = {}
   for (const dbInd of dbTree.individuals) {
-    individuals[dbInd.id] = mapIndividual(dbInd, spouseFamilies, childOfFamily)
+    const decrypted = decryptIndividualRow(dbInd, workspaceKey) as unknown as DecryptedIndividual
+    individuals[dbInd.id] = mapIndividual(decrypted, spouseFamilies, childOfFamily)
   }
 
-  // Map families
+  // Map families — decrypt each row first
   const families: Record<string, Family> = {}
   for (const dbFam of dbTree.families) {
-    families[dbFam.id] = mapFamily(dbFam)
+    const decrypted = decryptFamilyRow(dbFam, workspaceKey) as unknown as DecryptedFamily
+    families[dbFam.id] = mapFamily(decrypted)
   }
 
   // Map rada families (optional)
@@ -188,7 +292,8 @@ export function dbTreeToGedcomData(dbTree: DbTree): GedcomData {
     const radaChildOf = new Map<string, string[]>()
 
     for (const dbRada of dbTree.radaFamilies) {
-      radaFamilies[dbRada.id] = mapRadaFamily(dbRada)
+      const decryptedRada = decryptRadaFamilyRow(dbRada, workspaceKey) as unknown as DecryptedRadaFamily
+      radaFamilies[dbRada.id] = mapRadaFamily(decryptedRada)
       for (const rc of dbRada.children) {
         const list = radaChildOf.get(rc.individualId) ?? []
         list.push(dbRada.id)
@@ -214,7 +319,7 @@ export function dbTreeToGedcomData(dbTree: DbTree): GedcomData {
 // ---------------------------------------------------------------------------
 
 function mapIndividual(
-  dbInd: DbIndividual,
+  dbInd: DecryptedIndividual,
   spouseFamilies: Map<string, string[]>,
   childOfFamily: Map<string, string>,
 ): Individual {
@@ -256,7 +361,7 @@ function mapIndividual(
   return result
 }
 
-function formatName(dbInd: DbIndividual): { name: string; givenName: string; surname: string } {
+function formatName(dbInd: DecryptedIndividual): { name: string; givenName: string; surname: string } {
   if (dbInd.givenName) {
     const surname = dbInd.surname ?? ''
     // Match the GEDCOM parser: name is the display name WITHOUT slashes
@@ -329,7 +434,7 @@ export function redactPrivateIndividuals(data: GedcomData): GedcomData {
 // Family mapping
 // ---------------------------------------------------------------------------
 
-function mapFamily(dbFam: DbFamily): Family {
+function mapFamily(dbFam: DecryptedFamily): Family {
   const marriageContract: Family['marriageContract'] = {
     date: dbFam.marriageContractDate ?? '',
     hijriDate: dbFam.marriageContractHijriDate ?? '',

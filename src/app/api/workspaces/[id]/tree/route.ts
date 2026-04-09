@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireWorkspaceMember, isErrorResponse } from '@/lib/api/workspace-auth';
 import { getOrCreateTree, getTreeByWorkspaceId } from '@/lib/tree/queries';
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { getActivePointersForWorkspace } from '@/lib/tree/branch-pointer-queries';
 import { extractPointedSubtree, mergePointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import type { GedcomData } from '@/lib/gedcom/types';
@@ -37,19 +38,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   }
 
-  let gedcomData: GedcomData = dbTreeToGedcomData(tree);
+  // Phase 10b: fetch this workspace's data key once and reuse it.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  let gedcomData: GedcomData = dbTreeToGedcomData(tree, workspaceKey);
 
   // Merge pointed subtrees from active branch pointers
   const pointers = await getActivePointersForWorkspace(workspaceId);
 
-  // Deduplicate source workspace IDs and fetch all unique trees in parallel
+  // Deduplicate source workspace IDs and fetch all unique trees + keys in
+  // parallel. Each source workspace has its own encryption key; we have to
+  // unwrap it on the server to decrypt the pointed subtree for display.
   const uniqueSourceIds = [...new Set(pointers.map((p) => p.sourceWorkspaceId))];
   const sourceTreeMap = new Map<string, GedcomData>();
   const sourceTreeEntries = await Promise.all(
     uniqueSourceIds.map(async (wsId) => {
-      const tree = await getTreeByWorkspaceId(wsId);
+      const [tree, sourceKey] = await Promise.all([
+        getTreeByWorkspaceId(wsId),
+        getWorkspaceKey(wsId),
+      ]);
       if (!tree) return null;
-      return [wsId, dbTreeToGedcomData(tree)] as const;
+      return [wsId, dbTreeToGedcomData(tree, sourceKey)] as const;
     }),
   );
   for (const entry of sourceTreeEntries) {

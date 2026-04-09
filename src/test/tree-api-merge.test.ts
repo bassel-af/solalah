@@ -45,6 +45,16 @@ vi.mock('@/lib/tree/branch-pointer-queries', () => ({
   getActivePointersForWorkspace: (...args: unknown[]) => mockGetActivePointers(...args),
 }));
 
+// Phase 10b: stub workspace-key helpers.
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------

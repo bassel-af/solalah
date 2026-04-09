@@ -79,7 +79,29 @@ vi.mock('@/lib/tree/cascade-delete', () => ({
   buildImpactResponse: vi.fn(() => ({ hasImpact: false, affectedCount: 0, affectedNames: [], versionHash: 'mock-hash' })),
 }));
 
+// Phase 10b: stub workspace-key helpers so routes skip the DB lookup.
+const TEST_KEY = Buffer.alloc(32, 7);
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
+
 import { NextRequest } from 'next/server';
+import { decryptSnapshot } from '@/lib/tree/encryption';
+
+/**
+ * Phase 10b: mutation routes now wrap snapshots in an encrypted envelope.
+ * Tests that inspect captured `treeEditLog.create` args must decrypt the
+ * envelope before asserting on field values. `decryptSnapshot` is itself
+ * passed through from the real module via `importActual` above.
+ */
+function unwrapSnapshot(value: unknown): unknown {
+  return decryptSnapshot(value, TEST_KEY);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -196,22 +218,25 @@ describe('Snapshot capture — individual CREATE', () => {
     const res = await POST(req, { params: Promise.resolve({ id: wsId }) });
     expect(res.status).toBe(201);
 
-    // Verify TreeEditLog was created with snapshotAfter but snapshotBefore is null
-    expect(mockTreeEditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        treeId,
-        userId: fakeUser.id,
-        action: 'create',
-        entityType: 'individual',
-        entityId: indId,
-        snapshotAfter: expect.objectContaining({
-          id: indId,
-          givenName: 'محمد',
-          surname: 'السعيد',
-        }),
-        snapshotBefore: null,
-      }),
-    });
+    // Phase 10b: snapshots are now stored as encrypted envelopes. Decrypt
+    // the captured call arg before asserting on plaintext fields.
+    expect(mockTreeEditLogCreate).toHaveBeenCalled();
+    const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
+    expect(callData.treeId).toBe(treeId);
+    expect(callData.userId).toBe(fakeUser.id);
+    expect(callData.action).toBe('create');
+    expect(callData.entityType).toBe('individual');
+    expect(callData.entityId).toBe(indId);
+    expect(callData.snapshotBefore).toBeNull();
+
+    const after = unwrapSnapshot(callData.snapshotAfter) as {
+      id: string;
+      givenName: string;
+      surname: string;
+    };
+    expect(after.id).toBe(indId);
+    expect(after.givenName).toBe('محمد');
+    expect(after.surname).toBe('السعيد');
   });
 
   test('create individual includes description in audit log entry', async () => {
@@ -249,15 +274,15 @@ describe('Snapshot capture — individual CREATE', () => {
     );
     await POST(req, { params: Promise.resolve({ id: wsId }) });
 
-    expect(mockTreeEditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        description: expect.any(String),
-      }),
-    });
-    // Description should be non-empty Arabic text
+    // Phase 10b follow-up: description is now an encrypted Buffer. The
+    // captured value should be a Buffer >= 28 bytes (IV + authTag minimum);
+    // decrypting with the test key should yield a non-empty Arabic string.
     const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
-    expect(callData.description).toBeTruthy();
-    expect(callData.description.length).toBeGreaterThan(0);
+    expect(Buffer.isBuffer(callData.description) || callData.description instanceof Uint8Array).toBe(true);
+    const { decryptAuditDescription } = await import('@/lib/tree/audit');
+    const plaintext = decryptAuditDescription(callData.description, TEST_KEY);
+    expect(plaintext).toBeTruthy();
+    expect(plaintext!.length).toBeGreaterThan(0);
   });
 });
 
@@ -323,26 +348,31 @@ describe('Snapshot capture — individual UPDATE', () => {
     const res = await PATCH(req, { params: Promise.resolve({ id: wsId, individualId: indId }) });
     expect(res.status).toBe(200);
 
-    // Verify TreeEditLog was created with both snapshots
-    expect(mockTreeEditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        treeId,
-        userId: fakeUser.id,
-        action: 'update',
-        entityType: 'individual',
-        entityId: indId,
-        snapshotBefore: expect.objectContaining({
-          id: indId,
-          givenName: 'محمد',
-          birthDate: '1990-01-01',
-        }),
-        snapshotAfter: expect.objectContaining({
-          id: indId,
-          givenName: 'أحمد',
-          birthDate: '1991-03-15',
-        }),
-      }),
-    });
+    // Phase 10b: snapshots are encrypted envelopes — capture + decrypt.
+    expect(mockTreeEditLogCreate).toHaveBeenCalled();
+    const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
+    expect(callData.treeId).toBe(treeId);
+    expect(callData.userId).toBe(fakeUser.id);
+    expect(callData.action).toBe('update');
+    expect(callData.entityType).toBe('individual');
+    expect(callData.entityId).toBe(indId);
+
+    const before = unwrapSnapshot(callData.snapshotBefore) as {
+      id: string;
+      givenName: string;
+      birthDate: string;
+    };
+    const after = unwrapSnapshot(callData.snapshotAfter) as {
+      id: string;
+      givenName: string;
+      birthDate: string;
+    };
+    expect(before.id).toBe(indId);
+    expect(before.givenName).toBe('محمد');
+    expect(before.birthDate).toBe('1990-01-01');
+    expect(after.id).toBe(indId);
+    expect(after.givenName).toBe('أحمد');
+    expect(after.birthDate).toBe('1991-03-15');
   });
 
   test('update individual includes description in audit log entry', async () => {
@@ -383,7 +413,12 @@ describe('Snapshot capture — individual UPDATE', () => {
     await PATCH(req, { params: Promise.resolve({ id: wsId, individualId: indId }) });
 
     const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
+    // Phase 10b follow-up: description is an encrypted Buffer; check presence
+    // and decryptability rather than plaintext.
     expect(callData.description).toBeTruthy();
+    const { decryptAuditDescription } = await import('@/lib/tree/audit');
+    const plaintext = decryptAuditDescription(callData.description, TEST_KEY);
+    expect(plaintext).toBeTruthy();
   });
 });
 
@@ -499,9 +534,12 @@ describe('Snapshot capture — unconditional write (toggle OFF)', () => {
     expect(mockTreeEditLogCreate).toHaveBeenCalled();
     const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
     expect(callData.action).toBe('update');
+    // Phase 10b: envelope-wrapped — decrypt before field access.
     expect(callData.snapshotBefore).toBeDefined();
-    expect(callData.snapshotBefore.givenName).toBe('محمد');
+    const before = unwrapSnapshot(callData.snapshotBefore) as { givenName: string };
+    expect(before.givenName).toBe('محمد');
     expect(callData.snapshotAfter).toBeDefined();
-    expect(callData.snapshotAfter.givenName).toBe('أحمد');
+    const after = unwrapSnapshot(callData.snapshotAfter) as { givenName: string };
+    expect(after.givenName).toBe('أحمد');
   });
 });

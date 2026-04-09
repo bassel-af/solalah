@@ -5,7 +5,8 @@ import { redeemTokenSchema } from '@/lib/tree/branch-pointer-schemas';
 import { hashToken } from '@/lib/tree/branch-share-token';
 import { validateSpouseGender } from '@/lib/tree/family-validators';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { snapshotBranchPointer, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { snapshotBranchPointer, encryptAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { touchTreeTimestamp } from '@/lib/tree/queries';
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -292,6 +293,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       select: { id: true },
     });
     if (tree) {
+      const workspaceKey = await getWorkspaceKey(workspaceId);
       await Promise.all([
         prisma.treeEditLog.create({
           data: {
@@ -302,8 +304,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             entityId: pointer.id,
             snapshotBefore: JSON_NULL,
             snapshotAfter: snapshotBranchPointer(pointer),
-            description: buildAuditDescription('redeem_pointer', 'branch_pointer'),
-          },
+            description: encryptAuditDescription('redeem_pointer', 'branch_pointer', null, workspaceKey),
+          } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
         }),
         touchTreeTimestamp(tree.id),
       ]);

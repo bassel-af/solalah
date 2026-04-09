@@ -1,5 +1,12 @@
 import { randomUUID } from 'crypto'
 import type { GedcomData } from '../gedcom/types'
+import {
+  generateWorkspaceKey,
+  wrapKey,
+  unwrapKey,
+  encryptFieldNullable,
+} from '../crypto/workspace-encryption'
+import { getMasterKey } from '../crypto/master-key'
 
 // ---------------------------------------------------------------------------
 // Return type
@@ -61,6 +68,32 @@ export async function seedTreeFromGedcomData(
 
     const treeId = tree.id
 
+    // Phase 10b: resolve (or create) the workspace data key so every row we
+    // insert can be encrypted before hitting the DB. Seed scripts and the
+    // /tree/import route both go through here.
+    let workspaceKey: Buffer
+    const workspaceRow = await tx.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { encryptedKey: true },
+    })
+    if (!workspaceRow) {
+      throw new Error(`Workspace not found: ${workspaceId}`)
+    }
+    if (workspaceRow.encryptedKey) {
+      workspaceKey = unwrapKey(Buffer.from(workspaceRow.encryptedKey), getMasterKey())
+    } else {
+      // Lazy create — covers legacy dev workspaces that predate Phase 10b.
+      const fresh = generateWorkspaceKey()
+      const wrapped = wrapKey(fresh, getMasterKey())
+      await tx.workspace.update({
+        where: { id: workspaceId },
+        data: { encryptedKey: wrapped },
+      })
+      workspaceKey = fresh
+    }
+    const enc = (value: string | null): Buffer | null =>
+      encryptFieldNullable(value, workspaceKey)
+
     // 2. Idempotent check: skip if tree already has individuals
     const existingCount = await tx.individual.count({ where: { treeId } })
     if (existingCount > 0) {
@@ -103,29 +136,29 @@ export async function seedTreeFromGedcomData(
       familyGedcomToDbId[fam.id] = randomUUID()
     }
 
-    // 6. Create individuals
+    // 6. Create individuals — sensitive fields encrypted with workspaceKey
     await tx.individual.createMany({
       data: individualEntries.map((ind) => {
         const record: Record<string, unknown> = {
           id: gedcomToDbId[ind.id],
           treeId,
           gedcomId: ind.id,
-          givenName: ind.givenName || null,
-          surname: ind.surname || null,
-          fullName: ind.name || null,
+          givenName: enc(ind.givenName || null),
+          surname: enc(ind.surname || null),
+          fullName: enc(ind.name || null),
           sex: ind.sex,
-          birthDate: ind.birth || null,
-          birthPlace: ind.birthPlace || null,
-          birthDescription: ind.birthDescription || null,
-          birthNotes: ind.birthNotes || null,
-          birthHijriDate: ind.birthHijriDate || null,
-          deathDate: ind.death || null,
-          deathPlace: ind.deathPlace || null,
-          deathDescription: ind.deathDescription || null,
-          deathNotes: ind.deathNotes || null,
-          deathHijriDate: ind.deathHijriDate || null,
-          kunya: ind.kunya || null,
-          notes: ind.notes || null,
+          birthDate: enc(ind.birth || null),
+          birthPlace: enc(ind.birthPlace || null),
+          birthDescription: enc(ind.birthDescription || null),
+          birthNotes: enc(ind.birthNotes || null),
+          birthHijriDate: enc(ind.birthHijriDate || null),
+          deathDate: enc(ind.death || null),
+          deathPlace: enc(ind.deathPlace || null),
+          deathDescription: enc(ind.deathDescription || null),
+          deathNotes: enc(ind.deathNotes || null),
+          deathHijriDate: enc(ind.deathHijriDate || null),
+          kunya: enc(ind.kunya || null),
+          notes: enc(ind.notes || null),
           isDeceased: ind.isDeceased,
           isPrivate: ind.isPrivate,
         }
@@ -145,23 +178,23 @@ export async function seedTreeFromGedcomData(
             gedcomId: fam.id,
             husbandId: fam.husband ? gedcomToDbId[fam.husband] ?? null : null,
             wifeId: fam.wife ? gedcomToDbId[fam.wife] ?? null : null,
-            marriageContractDate: fam.marriageContract.date || null,
-            marriageContractHijriDate: fam.marriageContract.hijriDate || null,
-            marriageContractPlace: fam.marriageContract.place || null,
-            marriageContractDescription: fam.marriageContract.description || null,
-            marriageContractNotes: fam.marriageContract.notes || null,
-            marriageDate: fam.marriage.date || null,
-            marriageHijriDate: fam.marriage.hijriDate || null,
-            marriagePlace: fam.marriage.place || null,
-            marriageDescription: fam.marriage.description || null,
-            marriageNotes: fam.marriage.notes || null,
+            marriageContractDate: enc(fam.marriageContract.date || null),
+            marriageContractHijriDate: enc(fam.marriageContract.hijriDate || null),
+            marriageContractPlace: enc(fam.marriageContract.place || null),
+            marriageContractDescription: enc(fam.marriageContract.description || null),
+            marriageContractNotes: enc(fam.marriageContract.notes || null),
+            marriageDate: enc(fam.marriage.date || null),
+            marriageHijriDate: enc(fam.marriage.hijriDate || null),
+            marriagePlace: enc(fam.marriage.place || null),
+            marriageDescription: enc(fam.marriage.description || null),
+            marriageNotes: enc(fam.marriage.notes || null),
             isDivorced: fam.isDivorced,
             isUmmWalad: fam.isUmmWalad ?? false,
-            divorceDate: fam.divorce.date || null,
-            divorceHijriDate: fam.divorce.hijriDate || null,
-            divorcePlace: fam.divorce.place || null,
-            divorceDescription: fam.divorce.description || null,
-            divorceNotes: fam.divorce.notes || null,
+            divorceDate: enc(fam.divorce.date || null),
+            divorceHijriDate: enc(fam.divorce.hijriDate || null),
+            divorcePlace: enc(fam.divorce.place || null),
+            divorceDescription: enc(fam.divorce.description || null),
+            divorceNotes: enc(fam.divorce.notes || null),
           }
           if (fam.marriageContract.placeId) record.marriageContractPlaceId = fam.marriageContract.placeId
           if (fam.marriage.placeId) record.marriagePlaceId = fam.marriage.placeId
@@ -206,7 +239,7 @@ export async function seedTreeFromGedcomData(
           gedcomId: rf.id,
           fosterFatherId: rf.fosterFather ? gedcomToDbId[rf.fosterFather] ?? null : null,
           fosterMotherId: rf.fosterMother ? gedcomToDbId[rf.fosterMother] ?? null : null,
-          notes: rf.notes || null,
+          notes: enc(rf.notes || null),
         })),
       })
 

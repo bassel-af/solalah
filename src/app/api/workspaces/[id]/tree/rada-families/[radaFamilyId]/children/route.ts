@@ -3,9 +3,10 @@ import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { getOrCreateTree, getTreeIndividual, getTreeRadaFamily, touchTreeTimestamp } from '@/lib/tree/queries';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { encryptAuditDescription, JSON_NULL } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; radaFamilyId: string }> };
 
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (isParseError(parsed)) return parsed;
 
   const tree = await getOrCreateTree(workspaceId);
+  const workspaceKey = await getWorkspaceKey(workspaceId);
   const radaFamily = await getTreeRadaFamily(tree.id, radaFamilyId);
   if (!radaFamily) {
     return NextResponse.json(
@@ -88,8 +90,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         entityId: radaFamilyId,
         snapshotBefore: JSON_NULL,
         snapshotAfter: { radaFamilyId, individualId: parsed.data.individualId },
-        description: buildAuditDescription('create', 'rada_family_child'),
-      },
+        description: encryptAuditDescription('create', 'rada_family_child', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);

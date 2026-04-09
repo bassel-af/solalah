@@ -2,12 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
-import { getOrCreateTree, getTreeFamily, getTreeIndividual, touchTreeTimestamp } from '@/lib/tree/queries';
+import {
+  getOrCreateTree,
+  getTreeFamilyDecrypted,
+  getTreeIndividual,
+  touchTreeTimestamp,
+} from '@/lib/tree/queries';
 import { updateFamilySchema } from '@/lib/tree/schemas';
 import { validateFamilyGender } from '@/lib/tree/family-validators';
 import { isSyntheticFamilyId } from '@/lib/tree/branch-pointer-guards';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { snapshotFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import {
+  snapshotFamily,
+  encryptAuditDescription,
+  encryptAuditPayload,
+  JSON_NULL,
+} from '@/lib/tree/audit';
+import { getWorkspaceKey, encryptFamilyInput, encryptSnapshot } from '@/lib/tree/encryption';
 
 type RouteParams = { params: Promise<{ id: string; familyId: string }> };
 
@@ -33,7 +44,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (isParseError(parsed)) return parsed;
 
   const tree = await getOrCreateTree(workspaceId);
-  const existing = await getTreeFamily(tree.id, familyId);
+  // Phase 10b: fetch the key once; decrypt the existing family so the
+  // snapshot + validation code below sees plaintext event fields.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const existing = await getTreeFamilyDecrypted(workspaceId, tree.id, familyId);
   if (!existing) {
     return NextResponse.json(
       { error: 'العائلة غير موجودة في هذه الشجرة' },
@@ -133,11 +147,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: genderCheck.error }, { status: 400 });
   }
 
+  // Phase 10b: encrypt event fields before writing. Scalars (husbandId,
+  // wifeId, isUmmWalad, isDivorced, *PlaceId) pass through untouched.
+  // Cast via unknown — Prisma's Bytes column type is Uint8Array<ArrayBuffer>
+  // and its unchecked-vs-checked update union narrows nullable FKs; the
+  // runtime shape we produce is the correct one.
   const family = await prisma.family.update({
     where: { id: familyId },
-    data: parsed.data,
+    data: encryptFamilyInput(parsed.data, workspaceKey) as unknown as Parameters<typeof prisma.family.update>[0]['data'],
     include: { children: true },
   });
+
+  // After-snapshot: merge decrypted existing with plaintext parsed.data so
+  // snapshotFamily sees plaintext strings everywhere (task #13 will wrap the
+  // stored snapshot in an encrypted envelope).
+  const afterPlaintext = {
+    ...existing,
+    ...parsed.data,
+    id: familyId,
+    children: family.children,
+  };
 
   await Promise.all([
     prisma.treeEditLog.create({
@@ -147,11 +176,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         action: 'update',
         entityType: 'family',
         entityId: familyId,
-        payload: parsed.data,
-        snapshotBefore: snapshotFamily(existing),
-        snapshotAfter: snapshotFamily(family),
-        description: buildAuditDescription('update', 'family'),
-      },
+        payload: encryptAuditPayload(parsed.data, workspaceKey),
+        // Phase 10b: encrypted envelopes.
+        snapshotBefore: encryptSnapshot(snapshotFamily(existing), workspaceKey),
+        snapshotAfter: encryptSnapshot(snapshotFamily(afterPlaintext), workspaceKey),
+        description: encryptAuditDescription('update', 'family', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);
@@ -178,7 +208,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   if (!allowed) return rateLimitResponse(retryAfterSeconds);
 
   const tree = await getOrCreateTree(workspaceId);
-  const existing = await getTreeFamily(tree.id, familyId);
+  // Phase 10b: decrypted read + key for snapshot envelope.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const existing = await getTreeFamilyDecrypted(workspaceId, tree.id, familyId);
   if (!existing) {
     return NextResponse.json(
       { error: 'العائلة غير موجودة في هذه الشجرة' },
@@ -202,10 +234,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: 'delete',
         entityType: 'family',
         entityId: familyId,
-        snapshotBefore: snapshotFamily(existing),
+        snapshotBefore: encryptSnapshot(snapshotFamily(existing), workspaceKey),
         snapshotAfter: JSON_NULL,
-        description: buildAuditDescription('delete', 'family'),
-      },
+        description: encryptAuditDescription('delete', 'family', null, workspaceKey),
+      } as unknown as Parameters<typeof tx.treeEditLog.create>[0]['data'],
     });
   });
 

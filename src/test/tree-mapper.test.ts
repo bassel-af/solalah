@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper'
 import type { DbTree, DbIndividual, DbFamily } from '@/lib/tree/mapper'
 import type { GedcomData } from '@/lib/gedcom/types'
+import { generateWorkspaceKey } from '@/lib/crypto/workspace-encryption'
+
+// Phase 10b: dbTreeToGedcomData requires a workspace key. These tests pass
+// plaintext-string fixtures (legacy fixture shape), which the decrypt adapter
+// passes through unchanged. The key argument is still required by the type
+// signature, so we generate a deterministic throwaway key for the test run.
+const TEST_WORKSPACE_KEY: Buffer = generateWorkspaceKey()
 
 // ---------------------------------------------------------------------------
 // Helper: build minimal DB-shaped objects that mirror Prisma query results
@@ -83,7 +90,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result: GedcomData = dbTreeToGedcomData(dbTree)
+    const result: GedcomData = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals).toEqual({})
     expect(result.families).toEqual({})
@@ -111,7 +118,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind).toBeDefined()
@@ -143,7 +150,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.name).toBe('Fatima')
@@ -165,7 +172,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.name).toBe('Ahmad bin Saeed')
@@ -186,7 +193,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.name).toBe('')
@@ -218,7 +225,7 @@ describe('dbTreeToGedcomData', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     expect(fam).toBeDefined()
@@ -244,7 +251,7 @@ describe('dbTreeToGedcomData', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['person-1'].familiesAsSpouse).toEqual(['fam-1', 'fam-2'])
     expect(result.individuals['wife-1'].familiesAsSpouse).toEqual(['fam-1'])
@@ -269,7 +276,7 @@ describe('dbTreeToGedcomData', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['child-1'].familyAsChild).toBe('fam-1')
     expect(result.individuals['parent-1'].familyAsChild).toBeNull()
@@ -296,7 +303,7 @@ describe('dbTreeToGedcomData', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['child-1'].familyAsChild).toBe('fam-1')
   })
@@ -311,7 +318,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['ind-1'].isPrivate).toBe(true)
   })
@@ -328,7 +335,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['male-1'].sex).toBe('M')
     expect(result.individuals['female-1'].sex).toBe('F')
@@ -345,7 +352,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['ind-1'].birth).toBe('')
     expect(result.individuals['ind-1'].death).toBe('')
@@ -364,7 +371,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['ind-1'].isDeceased).toBe(true)
     expect(result.individuals['ind-2'].isDeceased).toBe(true) // no date but still deceased
@@ -387,7 +394,7 @@ describe('dbTreeToGedcomData', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.families['fam-1'].husband).toBeNull()
     expect(result.families['fam-1'].wife).toBeNull()
@@ -423,7 +430,7 @@ describe('dbTreeToGedcomData', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     // man-1 has two spouse families
     expect(result.individuals['man-1'].familiesAsSpouse).toEqual(['fam-1', 'fam-2'])
@@ -453,7 +460,7 @@ describe('dbTreeToGedcomData', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['ind-1'].name).toBe('Ahmad Saeed')
     expect(result.individuals['ind-1'].givenName).toBe('Ahmad')
@@ -488,7 +495,7 @@ describe('redactPrivateIndividuals', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -529,7 +536,7 @@ describe('redactPrivateIndividuals', () => {
       ],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['father-1']
 
@@ -557,7 +564,7 @@ describe('redactPrivateIndividuals', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -597,7 +604,7 @@ describe('redactPrivateIndividuals', () => {
       ],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
 
     // Families remain intact
@@ -625,7 +632,7 @@ describe('redactPrivateIndividuals', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const originalName = gedcom.individuals['ind-1'].name
 
     redactPrivateIndividuals(gedcom)
@@ -656,7 +663,7 @@ describe('redactPrivateIndividuals', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -683,7 +690,7 @@ describe('redactPrivateIndividuals', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -713,7 +720,7 @@ describe('dbTreeToGedcomData — birthNotes and deathNotes mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthNotes).toBe('Born at home')
@@ -736,7 +743,7 @@ describe('dbTreeToGedcomData — birthNotes and deathNotes mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthNotes).toBe('')
@@ -765,7 +772,7 @@ describe('redactPrivateIndividuals — birthNotes and deathNotes', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -790,7 +797,7 @@ describe('redactPrivateIndividuals — birthNotes and deathNotes', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -819,7 +826,7 @@ describe('dbTreeToGedcomData — birthDescription and deathDescription mapping',
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthDescription).toBe('Natural birth')
@@ -842,7 +849,7 @@ describe('dbTreeToGedcomData — birthDescription and deathDescription mapping',
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthDescription).toBe('')
@@ -871,7 +878,7 @@ describe('redactPrivateIndividuals — birthDescription and deathDescription', (
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -896,7 +903,7 @@ describe('redactPrivateIndividuals — birthDescription and deathDescription', (
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -926,7 +933,7 @@ describe('dbTreeToGedcomData — birthPlace, deathPlace, notes mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthPlace).toBe('Mecca')
@@ -951,7 +958,7 @@ describe('dbTreeToGedcomData — birthPlace, deathPlace, notes mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthPlace).toBe('')
@@ -986,7 +993,7 @@ describe('dbTreeToGedcomData — Hijri date mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthHijriDate).toBe('1369/03/16')
@@ -1007,7 +1014,7 @@ describe('dbTreeToGedcomData — Hijri date mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.birthHijriDate).toBe('')
@@ -1036,7 +1043,7 @@ describe('redactPrivateIndividuals — Hijri dates', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -1061,7 +1068,7 @@ describe('redactPrivateIndividuals — Hijri dates', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -1096,7 +1103,7 @@ describe('dbTreeToGedcomData — family event mapping', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     expect(fam.marriageContract.date).toBe('2020-01-01')
@@ -1124,7 +1131,7 @@ describe('dbTreeToGedcomData — family event mapping', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     expect(fam.marriage.date).toBe('2020-03-15')
@@ -1153,7 +1160,7 @@ describe('dbTreeToGedcomData — family event mapping', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     expect(fam.isDivorced).toBe(true)
@@ -1177,7 +1184,7 @@ describe('dbTreeToGedcomData — family event mapping', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const fam = result.families['fam-1']
 
     // All event fields default to empty strings
@@ -1229,7 +1236,7 @@ describe('dbTreeToGedcomData — kunya mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.kunya).toBe('أبو محمد')
@@ -1250,7 +1257,7 @@ describe('dbTreeToGedcomData — kunya mapping', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const ind = result.individuals['ind-1']
 
     expect(ind.kunya).toBe('')
@@ -1277,7 +1284,7 @@ describe('redactPrivateIndividuals — kunya', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 
@@ -1300,7 +1307,7 @@ describe('redactPrivateIndividuals — kunya', () => {
       families: [],
     }
 
-    const gedcom = dbTreeToGedcomData(dbTree)
+    const gedcom = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
     const result = redactPrivateIndividuals(gedcom)
     const ind = result.individuals['ind-1']
 

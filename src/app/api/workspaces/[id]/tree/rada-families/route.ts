@@ -6,7 +6,8 @@ import { getOrCreateTree, getTreeIndividual, touchTreeTimestamp } from '@/lib/tr
 import { createRadaFamilySchema } from '@/lib/tree/schemas';
 import { detectCircularRadaRef, detectDuplicateChildren } from '@/lib/tree/rada-validators';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { snapshotRadaFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { snapshotRadaFamily, encryptAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import { getWorkspaceKey, encryptRadaFamilyInput, encryptSnapshot } from '@/lib/tree/encryption';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -100,16 +101,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  // Phase 10b: encrypt the `notes` field before writing.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const { notes: encryptedNotes } = encryptRadaFamilyInput(
+    { notes: notes ?? null },
+    workspaceKey,
+  );
+
   const radaFamily = await prisma.radaFamily.create({
+    // Cast via unknown — Buffer vs Uint8Array<ArrayBuffer>.
     data: {
       treeId: tree.id,
       fosterFatherId: fosterFatherId ?? null,
       fosterMotherId: fosterMotherId ?? null,
-      notes: notes ?? null,
+      notes: encryptedNotes ?? null,
       children: {
         create: childrenIds.map((individualId) => ({ individualId })),
       },
-    },
+    } as unknown as Parameters<typeof prisma.radaFamily.create>[0]['data'],
     include: { children: true },
   });
 
@@ -122,9 +131,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         entityType: 'rada_family',
         entityId: radaFamily.id,
         snapshotBefore: JSON_NULL,
-        snapshotAfter: snapshotRadaFamily(radaFamily),
-        description: buildAuditDescription('create', 'rada_family'),
-      },
+        // Phase 10b: encrypted envelope.
+        snapshotAfter: encryptSnapshot(
+          snapshotRadaFamily({
+            id: radaFamily.id,
+            fosterFatherId: radaFamily.fosterFatherId,
+            fosterMotherId: radaFamily.fosterMotherId,
+            children: radaFamily.children,
+            notes: notes ?? null,
+          }),
+          workspaceKey,
+        ),
+        description: encryptAuditDescription('create', 'rada_family', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);

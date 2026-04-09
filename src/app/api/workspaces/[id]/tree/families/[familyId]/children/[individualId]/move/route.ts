@@ -7,7 +7,8 @@ import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
 import { isSyntheticFamilyId } from '@/lib/tree/branch-pointer-guards';
 import { isPointedIndividualInWorkspace } from '@/lib/tree/branch-pointer-queries';
-import { buildAuditDescription } from '@/lib/tree/audit';
+import { encryptAuditDescription, encryptAuditPayload } from '@/lib/tree/audit';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 
 type RouteParams = {
   params: Promise<{ id: string; familyId: string; individualId: string }>;
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     // 9. Resolve tree
     const tree = await getOrCreateTree(workspaceId);
+    const workspaceKey = await getWorkspaceKey(workspaceId);
 
     // 10. Verify source family belongs to tree
     const sourceFamily = await getTreeFamily(tree.id, familyId);
@@ -214,16 +216,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           action: 'MOVE_SUBTREE',
           entityType: 'family_child',
           entityId: individualId,
-          payload: {
-            sourceFamilyId: familyId,
-            targetFamilyId,
-            individualId,
-            descendantCount: descendants.size,
-          },
+          payload: encryptAuditPayload(
+            {
+              sourceFamilyId: familyId,
+              targetFamilyId,
+              individualId,
+              descendantCount: descendants.size,
+            },
+            workspaceKey,
+          ),
           snapshotBefore: { familyId, individualId },
           snapshotAfter: { familyId: targetFamilyId, individualId },
-          description: buildAuditDescription('MOVE_SUBTREE', 'family_child'),
-        },
+          description: encryptAuditDescription('MOVE_SUBTREE', 'family_child', null, workspaceKey),
+        } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
       });
     });
 

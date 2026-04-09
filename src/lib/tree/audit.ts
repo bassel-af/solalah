@@ -2,6 +2,12 @@
  * Audit log helpers: snapshot extraction and description building.
  */
 
+import {
+  encryptField,
+  encryptFieldNullable,
+  decryptField,
+} from '@/lib/crypto/workspace-encryption';
+
 // Prisma Json fields require plain objects; these snapshot types use
 // an index signature so they're directly assignable to InputJsonValue.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -287,4 +293,89 @@ export function buildAuditDescription(
     default:
       return `${action} ${label}${name}`;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10b follow-up (task #21): encrypt/decrypt helpers for
+// TreeEditLog.description and TreeEditLog.payload.
+//
+// Design note: decrypt helpers throw on auth-tag mismatch, matching every
+// other Phase 10b crypto helper. The migration script (#24) runs before
+// any read path ever sees a mixed-state DB, so there is NO legacy-plaintext
+// fallback here. Wrong-key and tampered-ciphertext cases both propagate.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a plaintext Arabic audit description via `buildAuditDescription`
+ * and immediately encrypt it with the workspace data key. Plaintext never
+ * escapes the function; callers pass the returned Buffer straight into
+ * `prisma.treeEditLog.create({ data: { description, ... } })`.
+ *
+ * Returns null only if the computed plaintext is empty — in practice,
+ * `buildAuditDescription` always returns a non-empty string, so this
+ * helper only returns null when `encryptFieldNullable` decides to
+ * (empty-string coercion).
+ */
+export function encryptAuditDescription(
+  action: string,
+  entityType: string,
+  entityName: string | null | undefined,
+  workspaceKey: Buffer,
+): Buffer | null {
+  const plaintext = buildAuditDescription(
+    action,
+    entityType,
+    entityName ?? undefined,
+  );
+  return encryptFieldNullable(plaintext, workspaceKey);
+}
+
+/**
+ * Decrypt a stored `TreeEditLog.description` Bytes column. Accepts Buffer
+ * or Uint8Array (Prisma driver returns the latter). Returns null for null
+ * input. Throws on auth-tag mismatch.
+ */
+export function decryptAuditDescription(
+  stored: Uint8Array | Buffer | null,
+  workspaceKey: Buffer,
+): string | null {
+  if (stored === null || stored === undefined) return null;
+  const buf = Buffer.isBuffer(stored) ? stored : Buffer.from(stored);
+  return decryptField(buf, workspaceKey);
+}
+
+/**
+ * Encrypt an audit payload object as a JSON-serialized AES-256-GCM blob.
+ * Returns null for null/undefined input.
+ *
+ * The entire payload is encrypted (not surgically carved) to keep the
+ * write path simple and future-proof: new actions that add PII fields
+ * inherit the encryption automatically without touching an allowlist.
+ * The plaintext columns we need for querying (`action`, `entityType`,
+ * `entityId`, `userId`, `timestamp`) are separate top-level columns on
+ * TreeEditLog, not inside the payload JSON — so no query capability is
+ * lost by encrypting the whole blob.
+ */
+export function encryptAuditPayload(
+  payload: unknown,
+  workspaceKey: Buffer,
+): Buffer | null {
+  if (payload === null || payload === undefined) return null;
+  const json = JSON.stringify(payload);
+  return encryptField(json, workspaceKey);
+}
+
+/**
+ * Decrypt a stored `TreeEditLog.payload` Bytes column and parse the
+ * resulting JSON. Accepts Buffer or Uint8Array. Returns null for null
+ * input. Throws on auth-tag mismatch OR on JSON parse failure.
+ */
+export function decryptAuditPayload(
+  stored: Uint8Array | Buffer | null,
+  workspaceKey: Buffer,
+): unknown | null {
+  if (stored === null || stored === undefined) return null;
+  const buf = Buffer.isBuffer(stored) ? stored : Buffer.from(stored);
+  const json = decryptField(buf, workspaceKey);
+  return JSON.parse(json);
 }

@@ -78,6 +78,30 @@ vi.mock('@/lib/tree/cascade-delete', () => ({
   buildImpactResponse: vi.fn(() => ({ hasImpact: false, affectedCount: 0, affectedNames: [], versionHash: 'mock-hash' })),
 }));
 
+// Phase 10b: stub workspace-key helpers.
+const TEST_KEY = Buffer.alloc(32, 7);
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
+
+import { decryptFieldNullable } from '@/lib/crypto/workspace-encryption';
+
+// Phase 10b: Individual mutation routes now write AES-encrypted Buffers to
+// the DB. Use this helper in assertions to recover the plaintext string for
+// comparison.
+function dec(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  if (Buffer.isBuffer(value)) return decryptFieldNullable(value, TEST_KEY);
+  if (value instanceof Uint8Array) return decryptFieldNullable(Buffer.from(value), TEST_KEY);
+  throw new Error(`dec(): unexpected value type: ${typeof value}`);
+}
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -504,7 +528,8 @@ describe('POST /api/workspaces/[id]/tree/individuals', () => {
     expect(res.status).toBe(201);
 
     const createCall = mockIndividualCreate.mock.calls[0][0];
-    expect(createCall.data.kunya).toBe('أبو أحمد');
+    // Phase 10b: kunya is encrypted on write; decrypt to assert plaintext
+    expect(dec(createCall.data.kunya)).toBe('أبو أحمد');
   });
 });
 
@@ -622,16 +647,18 @@ describe('PATCH /api/workspaces/[id]/tree/individuals/[individualId]', () => {
     );
     await PATCH(req, individualParams);
 
-    expect(mockTreeEditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        treeId,
-        userId: fakeUser.id,
-        action: 'update',
-        entityType: 'individual',
-        entityId: indId,
-        payload: { givenName: 'عبدالله' },
-      }),
-    });
+    // Phase 10b follow-up: payload is now encrypted; capture + decrypt.
+    expect(mockTreeEditLogCreate).toHaveBeenCalled();
+    const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
+    expect(callData.treeId).toBe(treeId);
+    expect(callData.userId).toBe(fakeUser.id);
+    expect(callData.action).toBe('update');
+    expect(callData.entityType).toBe('individual');
+    expect(callData.entityId).toBe(indId);
+
+    const { decryptAuditPayload } = await import('@/lib/tree/audit');
+    const decoded = decryptAuditPayload(callData.payload, TEST_KEY);
+    expect(decoded).toEqual({ givenName: 'عبدالله' });
   });
 
   test('returns 400 for invalid sex value in update', async () => {
@@ -936,11 +963,9 @@ describe('PATCH individual — isDeceased and notes fields', () => {
     const res = await PATCH(req, individualParams);
 
     expect(res.status).toBe(200);
-    expect(mockIndividualUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ notes: 'ملاحظات' }),
-      }),
-    );
+    // Phase 10b: notes is encrypted; decrypt on the call args to verify
+    const updateCall = mockIndividualUpdate.mock.calls[0][0];
+    expect(dec(updateCall.data.notes)).toBe('ملاحظات');
   });
 
   test('rejects notes exceeding 5000 characters in update', async () => {
@@ -991,7 +1016,7 @@ describe('POST individual — notes field', () => {
 
     expect(res.status).toBe(201);
     const createCall = mockIndividualCreate.mock.calls[0][0];
-    expect(createCall.data.notes).toBe('ملاحظات جديدة');
+    expect(dec(createCall.data.notes)).toBe('ملاحظات جديدة');
   });
 
   test('rejects notes exceeding 5000 characters in create', async () => {
@@ -1041,8 +1066,8 @@ describe('POST individual — birthNotes and deathNotes fields', () => {
 
     expect(res.status).toBe(201);
     const createCall = mockIndividualCreate.mock.calls[0][0];
-    expect(createCall.data.birthNotes).toBe('ملاحظات الولادة');
-    expect(createCall.data.deathNotes).toBe('ملاحظات الوفاة');
+    expect(dec(createCall.data.birthNotes)).toBe('ملاحظات الولادة');
+    expect(dec(createCall.data.deathNotes)).toBe('ملاحظات الوفاة');
   });
 
   test('rejects birthNotes exceeding 5000 characters in create', async () => {
@@ -1104,14 +1129,9 @@ describe('PATCH individual — birthNotes and deathNotes fields', () => {
     const res = await PATCH(req, individualParams);
 
     expect(res.status).toBe(200);
-    expect(mockIndividualUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          birthNotes: 'ملاحظات الولادة',
-          deathNotes: 'ملاحظات الوفاة',
-        }),
-      }),
-    );
+    const updateCall = mockIndividualUpdate.mock.calls[0][0];
+    expect(dec(updateCall.data.birthNotes)).toBe('ملاحظات الولادة');
+    expect(dec(updateCall.data.deathNotes)).toBe('ملاحظات الوفاة');
   });
 
   test('rejects birthNotes exceeding 5000 characters in update', async () => {
@@ -1177,8 +1197,8 @@ describe('POST individual — birthDescription and deathDescription fields', () 
 
     expect(res.status).toBe(201);
     const createCall = mockIndividualCreate.mock.calls[0][0];
-    expect(createCall.data.birthDescription).toBe('ولادة طبيعية');
-    expect(createCall.data.deathDescription).toBe('نوبة قلبية');
+    expect(dec(createCall.data.birthDescription)).toBe('ولادة طبيعية');
+    expect(dec(createCall.data.deathDescription)).toBe('نوبة قلبية');
   });
 
   test('rejects birthDescription exceeding 500 characters in create', async () => {
@@ -1240,14 +1260,9 @@ describe('PATCH individual — birthDescription and deathDescription fields', ()
     const res = await PATCH(req, individualParams);
 
     expect(res.status).toBe(200);
-    expect(mockIndividualUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          birthDescription: 'ولادة طبيعية',
-          deathDescription: 'نوبة قلبية',
-        }),
-      }),
-    );
+    const updateCall = mockIndividualUpdate.mock.calls[0][0];
+    expect(dec(updateCall.data.birthDescription)).toBe('ولادة طبيعية');
+    expect(dec(updateCall.data.deathDescription)).toBe('نوبة قلبية');
   });
 
   test('rejects birthDescription exceeding 500 characters in update', async () => {
@@ -1313,8 +1328,8 @@ describe('POST individual — Hijri date fields', () => {
 
     expect(res.status).toBe(201);
     const createCall = mockIndividualCreate.mock.calls[0][0];
-    expect(createCall.data.birthHijriDate).toBe('1369/03/16');
-    expect(createCall.data.deathHijriDate).toBe('1441/10/09');
+    expect(dec(createCall.data.birthHijriDate)).toBe('1369/03/16');
+    expect(dec(createCall.data.deathHijriDate)).toBe('1441/10/09');
   });
 
   test('rejects birthHijriDate exceeding 50 characters', async () => {
@@ -1364,14 +1379,9 @@ describe('PATCH individual — Hijri date fields', () => {
     const res = await PATCH(req, individualParams);
 
     expect(res.status).toBe(200);
-    expect(mockIndividualUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          birthHijriDate: '1369/03/16',
-          deathHijriDate: '1441/10/09',
-        }),
-      }),
-    );
+    const updateCall = mockIndividualUpdate.mock.calls[0][0];
+    expect(dec(updateCall.data.birthHijriDate)).toBe('1369/03/16');
+    expect(dec(updateCall.data.deathHijriDate)).toBe('1441/10/09');
   });
 
   test('rejects deathHijriDate exceeding 50 characters', async () => {

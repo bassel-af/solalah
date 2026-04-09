@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
 import { auditLogLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
 import { auditLogQuerySchema } from '@/lib/tree/audit-log-schemas';
+import { getWorkspaceKey, decryptSnapshot } from '@/lib/tree/encryption';
+import { decryptAuditDescription, decryptAuditPayload } from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -65,8 +67,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     where.timestamp = timestamp;
   }
 
-  // Query with pagination
-  const [entries, totalCount] = await Promise.all([
+  // Query with pagination + fetch workspace key in parallel so we can
+  // decrypt snapshot envelopes before returning them to the client. Phase
+  // 10b: snapshots stored after task #13 are `{ _encrypted: true, data: ... }`
+  // envelopes; pre-Phase-10b rows are plaintext objects and pass through
+  // `decryptSnapshot` unchanged via its legacy-sentinel check.
+  const [entries, totalCount, workspaceKey] = await Promise.all([
     prisma.treeEditLog.findMany({
       where,
       orderBy: { timestamp: 'desc' },
@@ -79,6 +85,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     }),
     prisma.treeEditLog.count({ where }),
+    getWorkspaceKey(workspaceId),
   ]);
 
   return NextResponse.json({
@@ -87,10 +94,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       action: e.action,
       entityType: e.entityType,
       entityId: e.entityId,
-      description: e.description,
-      snapshotBefore: e.snapshotBefore,
-      snapshotAfter: e.snapshotAfter,
-      payload: e.payload,
+      // Phase 10b follow-up: both description and payload are AES-256-GCM
+      // encrypted with the workspace key; decrypted here before returning
+      // to the admin UI.
+      description: decryptAuditDescription(e.description, workspaceKey),
+      snapshotBefore: decryptSnapshot(e.snapshotBefore, workspaceKey),
+      snapshotAfter: decryptSnapshot(e.snapshotAfter, workspaceKey),
+      payload: decryptAuditPayload(e.payload, workspaceKey),
       timestamp: e.timestamp instanceof Date ? e.timestamp.toISOString() : String(e.timestamp),
       user: {
         displayName: e.user.displayName,

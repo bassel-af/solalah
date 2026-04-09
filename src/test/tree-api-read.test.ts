@@ -1,4 +1,10 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { generateWorkspaceKey, wrapKey } from '@/lib/crypto/workspace-encryption';
+import { getMasterKey } from '@/lib/crypto/master-key';
+
+// Phase 10b: shared wrapped key so mocked prisma.workspace.findUnique calls
+// can return a valid encrypted_key for routes calling getWorkspaceKey.
+const TEST_WRAPPED_KEY = wrapKey(generateWorkspaceKey(), getMasterKey());
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before any imports that use them
@@ -92,7 +98,15 @@ function mockNotMember() {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/workspaces/[id]/tree', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Phase 10b: default workspace mock returns encryptedKey so
+    // getWorkspaceKey() succeeds. Individual tests can override.
+    mockWorkspaceFindUnique.mockResolvedValue({
+      enableKunya: true,
+      encryptedKey: TEST_WRAPPED_KEY,
+    });
+  });
 
   test('returns 401 for unauthenticated user', async () => {
     mockNoAuth();
@@ -344,7 +358,7 @@ describe('GET /api/workspaces/[id]/tree', () => {
   test('strips kunya from all individuals when enableKunya is false', async () => {
     mockAuth();
     mockMember();
-    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: false });
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: false, encryptedKey: TEST_WRAPPED_KEY });
 
     const now = new Date();
     mockFamilyTreeFindUnique.mockResolvedValue({
@@ -396,7 +410,7 @@ describe('GET /api/workspaces/[id]/tree', () => {
   test('preserves kunya in response when enableKunya is true', async () => {
     mockAuth();
     mockMember();
-    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: true });
+    mockWorkspaceFindUnique.mockResolvedValue({ enableKunya: true, encryptedKey: TEST_WRAPPED_KEY });
 
     const now = new Date();
     mockFamilyTreeFindUnique.mockResolvedValue({

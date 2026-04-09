@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
-import { snapshotBranchPointer, buildAuditDescription } from '@/lib/tree/audit';
+import { snapshotBranchPointer, encryptAuditDescription } from '@/lib/tree/audit';
 import { touchTreeTimestamp } from '@/lib/tree/queries';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 
 type RouteParams = { params: Promise<{ id: string; pointerId: string }> };
 
@@ -45,6 +46,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       select: { id: true },
     });
     if (tree) {
+      const workspaceKey = await getWorkspaceKey(workspaceId);
       await Promise.all([
         prisma.treeEditLog.create({
           data: {
@@ -55,8 +57,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             entityId: pointerId,
             snapshotBefore: snapshotBranchPointer(pointer),
             snapshotAfter: snapshotBranchPointer({ ...pointer, status: 'broken' }),
-            description: buildAuditDescription('disconnect', 'branch_pointer'),
-          },
+            description: encryptAuditDescription('disconnect', 'branch_pointer', null, workspaceKey),
+          } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
         }),
         touchTreeTimestamp(tree.id),
       ]);

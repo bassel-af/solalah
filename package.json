@@ -20,7 +20,8 @@
     "reseed:all": "npx tsx scripts/reseed-all.ts",
     "start:fresh": "npx tsx scripts/start-fresh.ts",
     "preprocess-geonames": "npx tsx scripts/preprocess-geonames.ts",
-    "smoke": "npx tsx scripts/smoke-test.ts"
+    "smoke": "npx tsx scripts/smoke-test.ts",
+    "encrypt:existing": "npx tsx --env-file=.env.local --env-file-if-exists=.env scripts/encrypt-existing-data.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.8",

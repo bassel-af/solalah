@@ -3,11 +3,16 @@ import { prisma } from '@/lib/db';
 import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth';
 import { getTreeByWorkspaceId, getOrCreateTree } from '@/lib/tree/queries';
 import { dbTreeToGedcomData } from '@/lib/tree/mapper';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { extractPointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import { prepareDeepCopy, persistDeepCopy } from '@/lib/tree/branch-pointer-deep-copy';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { snapshotBranchPointer, buildAuditDescription } from '@/lib/tree/audit';
+import {
+  snapshotBranchPointer,
+  encryptAuditDescription,
+  encryptAuditPayload,
+} from '@/lib/tree/audit';
 
 type RouteParams = { params: Promise<{ id: string; tokenId: string }> };
 
@@ -86,10 +91,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   let copiedPointers = 0;
   let disconnectedPointers = 0;
 
+  // Phase 10b follow-up: fetch the source workspace key once, up front, so
+  // BOTH the deep-copy loop (for decrypting the source tree) AND the final
+  // token-revocation audit log (for encrypting description + payload) can
+  // reuse it. The source workspace is always `workspaceId` because this
+  // handler runs on the workspace that owns the token.
+  const sourceKey = await getWorkspaceKey(workspaceId);
+
   if (activePointers.length > 0) {
-    // Step 3: Fetch source tree ONCE (all pointers share the same source)
+    // Step 3: Fetch source tree ONCE (all pointers share the same source).
     const sourceTree = await getTreeByWorkspaceId(workspaceId);
-    const sourceData = sourceTree ? dbTreeToGedcomData(sourceTree) : null;
+    const sourceData = sourceTree ? dbTreeToGedcomData(sourceTree, sourceKey) : null;
 
     // Step 4: For each pointer, attempt deep copy then revoke
     for (const pointer of activePointers) {
@@ -107,13 +119,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             pointerId: pointer.id,
           });
 
+          // Phase 10b: each pointer's target workspace has its OWN
+          // encryption key. Fetch it before persisting so the copied rows
+          // are encrypted with the target's key, not the source's.
           const targetTree = await getOrCreateTree(pointer.targetWorkspaceId);
+          const targetKey = await getWorkspaceKey(pointer.targetWorkspaceId);
 
           // Per-pointer transaction: persistDeepCopy + update pointer + log
           await prisma.$transaction(async (tx) => {
             const txPrisma = tx as typeof prisma;
 
-            await persistDeepCopy(txPrisma, targetTree.id, copyResult);
+            await persistDeepCopy(txPrisma, targetTree.id, copyResult, targetKey);
 
             await txPrisma.branchPointer.update({
               where: { id: pointer.id },
@@ -129,8 +145,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                 entityId: pointer.id,
                 snapshotBefore: snapshotBranchPointer(pointer),
                 snapshotAfter: snapshotBranchPointer({ ...pointer, status: 'revoked' }),
-                description: buildAuditDescription('deep_copy', 'branch_pointer'),
-              },
+                // Phase 10b follow-up: description encrypted with TARGET
+                // workspace key because the log lives in the target's tree.
+                description: encryptAuditDescription('deep_copy', 'branch_pointer', null, targetKey),
+              } as unknown as Parameters<typeof txPrisma.treeEditLog.create>[0]['data'],
             });
           });
 
@@ -189,6 +207,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       select: { id: true },
     });
     if (revokeTree) {
+      // Phase 10b follow-up: the source workspace key (already named
+      // `sourceKey` earlier in this handler for the deep-copy decrypt
+      // path) is the right key to use here — the audit log lives in the
+      // SOURCE workspace's tree because that's where the token originated.
       await prisma.treeEditLog.create({
         data: {
           treeId: revokeTree.id,
@@ -196,9 +218,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           action: 'revoke_token',
           entityType: 'share_token',
           entityId: tokenId,
-          payload: { disconnectedPointers, copiedPointers },
-          description: buildAuditDescription('revoke_token', 'share_token'),
-        },
+          payload: encryptAuditPayload({ disconnectedPointers, copiedPointers }, sourceKey),
+          description: encryptAuditDescription('revoke_token', 'share_token', null, sourceKey),
+        } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
       });
     }
   } catch {

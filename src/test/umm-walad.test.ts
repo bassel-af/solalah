@@ -7,6 +7,9 @@ import {
 import { dbTreeToGedcomData, type DbTree } from '@/lib/tree/mapper';
 import { buildFamilyEventInitialData } from '@/lib/person-detail-helpers';
 import type { Family, FamilyEvent } from '@/lib/gedcom/types';
+import { generateWorkspaceKey } from '@/lib/crypto/workspace-encryption';
+
+const TEST_WORKSPACE_KEY: Buffer = generateWorkspaceKey();
 
 // ============================================================================
 // 1. Type system — Family.isUmmWalad
@@ -167,7 +170,7 @@ describe('dbTreeToGedcomData maps isUmmWalad', () => {
       ],
     };
 
-    const result = dbTreeToGedcomData(dbTree);
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY);
     expect(result.families['fam1'].isUmmWalad).toBe(true);
   });
 
@@ -196,7 +199,7 @@ describe('dbTreeToGedcomData maps isUmmWalad', () => {
       ],
     };
 
-    const result = dbTreeToGedcomData(dbTree);
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY);
     expect(result.families['fam1'].isUmmWalad).toBe(false);
   });
 });

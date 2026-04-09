@@ -53,6 +53,18 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// Phase 10b follow-up (task #22): the move route now fetches the workspace
+// key to encrypt the audit description + payload. Stub it here.
+const TEST_KEY = Buffer.alloc(32, 7);
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -396,20 +408,28 @@ describe('POST /api/workspaces/[id]/tree/families/[familyId]/children/[individua
     const req = makeRequest(baseUrl(), { body: { targetFamilyId: targetFamId } });
     await POST(req, moveParams);
 
-    expect(mockTreeEditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        treeId,
-        userId: fakeUser.id,
-        action: 'MOVE_SUBTREE',
-        entityType: 'family_child',
-        entityId: childId,
-        payload: {
-          sourceFamilyId: sourceFamId,
-          targetFamilyId: targetFamId,
-          individualId: childId,
-          descendantCount: 0,
-        },
-      }),
+    // Phase 10b follow-up: payload is now encrypted; capture + decrypt
+    // before asserting plaintext field values.
+    expect(mockTreeEditLogCreate).toHaveBeenCalled();
+    const callData = mockTreeEditLogCreate.mock.calls[0][0].data;
+    expect(callData.treeId).toBe(treeId);
+    expect(callData.userId).toBe(fakeUser.id);
+    expect(callData.action).toBe('MOVE_SUBTREE');
+    expect(callData.entityType).toBe('family_child');
+    expect(callData.entityId).toBe(childId);
+
+    const { decryptAuditPayload } = await import('@/lib/tree/audit');
+    const decoded = decryptAuditPayload(callData.payload, TEST_KEY) as {
+      sourceFamilyId: string;
+      targetFamilyId: string;
+      individualId: string;
+      descendantCount: number;
+    };
+    expect(decoded).toEqual({
+      sourceFamilyId: sourceFamId,
+      targetFamilyId: targetFamId,
+      individualId: childId,
+      descendantCount: 0,
     });
   });
 

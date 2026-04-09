@@ -4,6 +4,7 @@ import { requireWorkspaceAdmin, isErrorResponse } from '@/lib/api/workspace-auth
 import { hashToken } from '@/lib/tree/branch-share-token';
 import { getTreeByWorkspaceId } from '@/lib/tree/queries';
 import { dbTreeToGedcomData, redactPrivateIndividuals } from '@/lib/tree/mapper';
+import { getWorkspaceKey } from '@/lib/tree/encryption';
 import { extractPointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
@@ -48,8 +49,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     select: { nameAr: true },
   });
 
-  // Fetch source tree
-  const sourceTree = await getTreeByWorkspaceId(shareToken.sourceWorkspaceId);
+  // Fetch source tree + source workspace key in parallel
+  const [sourceTree, sourceKey] = await Promise.all([
+    getTreeByWorkspaceId(shareToken.sourceWorkspaceId),
+    getWorkspaceKey(shareToken.sourceWorkspaceId),
+  ]);
   if (!sourceTree) {
     return NextResponse.json(
       { error: 'شجرة المصدر غير متوفرة' },
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const sourceData = dbTreeToGedcomData(sourceTree);
+  const sourceData = dbTreeToGedcomData(sourceTree, sourceKey);
 
   // Get root person name
   const rootPerson = sourceData.individuals[shareToken.rootIndividualId];

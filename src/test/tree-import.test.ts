@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { treeImportLimiter } from '@/lib/api/rate-limit'
+import { generateWorkspaceKey, wrapKey } from '@/lib/crypto/workspace-encryption'
+import { getMasterKey } from '@/lib/crypto/master-key'
+
+// Phase 10b: pre-wrapped workspace key used by the mocked prisma client.
+const TEST_WRAPPED_KEY = wrapKey(generateWorkspaceKey(), getMasterKey())
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before any imports that use them
@@ -27,11 +32,17 @@ const mockRadaFamilyCreateMany = vi.fn()
 const mockRadaFamilyChildCreateMany = vi.fn()
 const mockTreeEditLogCreate = vi.fn()
 const mockTransaction = vi.fn()
+const mockWorkspaceFindUnique = vi.fn()
+const mockWorkspaceUpdate = vi.fn()
 
 vi.mock('@/lib/db', () => ({
   prisma: {
     workspaceMembership: {
       findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+    },
+    workspace: {
+      findUnique: (...args: unknown[]) => mockWorkspaceFindUnique(...args),
+      update: (...args: unknown[]) => mockWorkspaceUpdate(...args),
     },
     familyTree: {
       findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),
@@ -195,6 +206,10 @@ function mockNonEmptyTree() {
 }
 
 function mockSeedSuccess() {
+  // Phase 10b: seed helper needs a valid workspace.encryptedKey to unwrap.
+  mockWorkspaceFindUnique.mockResolvedValue({ encryptedKey: TEST_WRAPPED_KEY })
+  mockWorkspaceUpdate.mockResolvedValue({})
+
   mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
     return fn({
       familyTree: {
@@ -217,6 +232,10 @@ function mockSeedSuccess() {
       },
       radaFamilyChild: {
         createMany: mockRadaFamilyChildCreateMany,
+      },
+      workspace: {
+        findUnique: mockWorkspaceFindUnique,
+        update: mockWorkspaceUpdate,
       },
     })
   })

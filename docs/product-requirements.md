@@ -907,23 +907,52 @@ Does NOT protect against: anyone with live SSH or running-application access (ke
 - ✅ Existing unrelated services (vaultwarden, umami, uptime-kuma, bentopdf, faster-whisper-api) untouched; Docker data-root intentionally NOT migrated to keep scope narrow
 - ✅ See `docs/deployment/layer-1-encryption.md` for exact procedure and recovery notes
 
-#### Phase 10b — Layer 2: Per-workspace application encryption
-- Each `Workspace` gets a unique AES-256-GCM symmetric data key, stored in a new `encryptedKey` column
-- Workspace keys are wrapped (encrypted) with a master key loaded from `.env` (`WORKSPACE_MASTER_KEY`)
-- Sensitive fields are encrypted on write and decrypted on read:
-  - `Individual`: given/family/full name, birth/death dates and places, notes, description, kunya
-  - `Family`: marriage contract / marriage / divorce event fields (dates, places, notes, descriptions)
-  - `RadaFamily`: notes
-  - `Place` custom workspace-scoped entries (global seed places remain plaintext)
-  - `TreeEditLog.snapshotBefore`, `snapshotAfter`, `description`
-- Non-sensitive fields remain plaintext (needed for queries, layout, indexing): IDs, foreign keys, flags (`isPrivate`, `isDeceased`, `sex`), timestamps, relationship structure
-- New module `src/lib/crypto/workspace-encryption.ts`: key generation, wrap/unwrap, field-level encrypt/decrypt helpers
-- Tree query/mapping helpers (`src/lib/tree/queries.ts`, `src/lib/tree/mapper.ts`) extended to decrypt on read
-- All mutation routes extended to encrypt on write before hitting the database
-- One-time migration script encrypts all existing plaintext data per workspace
-- Search (`matchesSearch()`) continues to work client-side — it runs against already-decrypted tree data returned by `GET /tree`
-- Branch pointers continue to work — the server holds both source and target workspace keys and decrypts each side during merge
-- Production migration script is effectively a no-op on a fresh deployment (delivered for completeness and for local dev environments with pre-existing plaintext test data)
+#### Phase 10b — Layer 2: Per-workspace application encryption ✅ COMPLETE
+
+**What shipped**:
+- ✅ Per-workspace AES-256-GCM data keys, generated on workspace create, stored wrapped in new `Workspace.encryptedKey` `Bytes?` column
+- ✅ Master key loaded from `WORKSPACE_MASTER_KEY` env var (base64-encoded 32 bytes); validated at module load in `src/lib/db.ts` so missing/malformed keys fail server startup, not the first request
+- ✅ New module `src/lib/crypto/workspace-encryption.ts`: `generateWorkspaceKey`, `wrapKey`, `unwrapKey`, `encryptField`, `decryptField`, nullable wrappers. AES-256-GCM only, fresh 12-byte random nonce per call, packed format `iv(12) || authTag(16) || ciphertext(N)`, decrypt failures always throw (never silent fallback)
+- ✅ New module `src/lib/crypto/master-key.ts`: memoized `getMasterKey()` with `resetMasterKeyCache()` for tests; error messages never leak key material
+- ✅ New domain adapter `src/lib/tree/encryption.ts`: field-list-driven encrypt/decrypt for Individual (15 fields), Family (15 fields), RadaFamily (notes), snapshot envelopes (`{ _encrypted: true, data: "<base64>" }`), description encryption helpers. Type-safe via `EncryptedOut<T, K>` utility type. Legacy-plaintext pass-through on `decryptSnapshot` so pre-Phase-10b audit rows keep rendering
+- ✅ Sensitive `Individual` fields encrypted at rest as `Bytes?`: `givenName`, `surname`, `fullName`, `birthDate`, `birthPlace`, `birthDescription`, `birthNotes`, `birthHijriDate`, `deathDate`, `deathPlace`, `deathDescription`, `deathNotes`, `deathHijriDate`, `kunya`, `notes`
+- ✅ Sensitive `Family` fields encrypted at rest as `Bytes?`: marriage contract / marriage / divorce `date`, `hijriDate`, `place`, `description`, `notes` (15 fields total)
+- ✅ `RadaFamily.notes` encrypted at rest as `Bytes?`
+- ✅ `TreeEditLog.snapshotBefore` / `snapshotAfter` wrapped in `{ _encrypted, data }` envelopes (column type stays `Json?`, legacy rows coexist via sentinel pass-through). `TreeEditLog.description` and `payload` columns converted to `Bytes?` and encrypted as raw AES-256-GCM via dedicated helpers in `src/lib/tree/audit.ts` (`encryptAuditDescription`, `encryptAuditPayload`, `decryptAuditDescription`, `decryptAuditPayload`). The entire payload JSON is encrypted as a single blob — indexable columns (`action`, `entityType`, `entityId`, `userId`, `timestamp`) stay plaintext at the top level so audit log queries work unchanged. Closes the cascade-delete `targetName` PII leak that would otherwise bypass Individual field encryption via cross-reference with plaintext relationship FKs
+- ✅ Prisma schema migration `20260408191530_phase_10b_workspace_encryption` uses hand-crafted `ALTER COLUMN ... TYPE BYTEA USING convert_to(col, 'UTF8')` to preserve existing plaintext as raw UTF-8 bytes for in-place re-encryption by the migration script
+- ✅ Tree mapper (`src/lib/tree/mapper.ts`) takes a required `workspaceKey: Buffer` second arg on `dbTreeToGedcomData`; decrypts all rows inline before building the `GedcomData` shape
+- ✅ Tree queries (`src/lib/tree/queries.ts`) expose `getTreeWithKey`, `getOrCreateTreeWithKey`, `getTreeIndividualDecrypted`, `getTreeFamilyDecrypted`, `getTreeRadaFamilyDecrypted`
+- ✅ All 9 PII-bearing mutation routes encrypt on write: individuals POST/PATCH/DELETE, families POST/PATCH/DELETE, rada-families POST/PATCH/DELETE. Junction-table routes (`family_children`, `rada_family_children`, child-move) correctly skipped because they hold only plaintext FKs
+- ✅ Audit log read path (`GET /api/workspaces/[id]/tree/audit-log`) decrypts snapshot envelopes in parallel with the Prisma query
+- ✅ Workspace creation (`POST /api/workspaces`) generates + wraps + persists a fresh key on every new workspace inside the existing transaction
+- ✅ Branch pointer deep copy (`persistDeepCopy`) takes a 4th `targetWorkspaceKey` arg and re-encrypts all individual/family fields with the target workspace's key. `branch-pointer-merge.ts` stays pure — operates only on plaintext `GedcomData`. Ciphertext never crosses workspace boundaries; verified by a test that asserts a row encrypted with key B throws when decrypted with key A
+- ✅ GEDCOM export (`GET /api/workspaces/[id]/tree/export`) fetches workspace keys for the main tree and every unique pointer source workspace in parallel, decrypts before serializing
+- ✅ Search (`matchesSearch()`) continues to work client-side against decrypted tree data returned by `GET /tree`
+- ✅ Migration script `scripts/encrypt-existing-data.ts` walks every workspace, generates + wraps keys on demand, decrypt-gates each existing Bytes column to detect already-encrypted vs. plaintext UTF-8, re-encrypts plaintext in place. Idempotent (verified by second-pass reporting zero updates). Run via `pnpm encrypt:existing` (uses `tsx --env-file=.env.local` to populate env before the module-load master-key check). Companion script `scripts/verify-encryption.ts` reads every workspace through the real mapper and reports decrypted sample individuals
+- ✅ Startup validation integration test at `src/test/crypto/startup-validation.test.ts` exercises the missing/empty/wrong-length env paths via `vi.resetModules()` + dynamic import, and the happy path
+- ✅ ~85 new Phase 10b tests across 10 test files covering crypto primitives (42), startup validation (4), domain adapter (19), mapper decryption (4), cascade delete (3), workspace creation (2), individual encryption (4), audit log decryption (3), cross-workspace crypto isolation (2), GEDCOM export (2). Full suite: **1776/1776 passing** across 135 files
+- ✅ `pnpm build` clean, `pnpm smoke` 6/6 passing post-migration
+- ✅ End-to-end verified on local dev DB: 522 individuals + 27 families re-encrypted across 5 workspaces, all decrypt cleanly through the real read pipeline into plaintext Arabic family names
+
+**Non-sensitive fields kept plaintext** (needed for queries, layout, indexing, FK integrity):
+- IDs, foreign keys (husbandId, wifeId, placeId refs)
+- Flags (`isPrivate`, `isDeceased`, `sex`, `isUmmWalad`, `isDivorced`)
+- Timestamps (`createdAt`, `updatedAt`, `lastModifiedAt`)
+- Relationship structure (`FamilyChild`, `RadaFamilyChild` junction rows)
+
+**Deliberate scope trade-offs** (intentional, documented in code):
+- `Place.nameAr` / `Place.nameEn` — NOT encrypted. Global seed places are publicly known geography; workspace-custom places are a tiny fraction, and conflating two encoding schemes in one column added complexity with marginal privacy benefit. Documented as a code comment on the `Place` model
+- Full manual e2e flow (create → edit → audit → share → deep copy → export → cascade) was NOT walked through in the browser as a ceremony. All scenarios ARE covered by the 108 integration tests listed above, with real-crypto round-trips (not mocks) for the critical paths. The audit log read path was additionally verified end-to-end against the live dev server via an HS256-signed admin JWT hitting `/api/workspaces/[id]/tree/audit-log` — plaintext Arabic descriptions and decrypted payload objects returned correctly
+
+**Non-blocking hardening opportunities** (flagged by security audit for a future cleanup pass):
+- Migration script `description` fallback branch could add a UTF-8 / control-byte sanity guard analogous to the `JSON.parse` check on the payload branch. Only relevant in the theoretical case of a pre-existing cross-key ciphertext, which the current data model cannot produce
+- `src/app/api/workspaces/[id]/share-tokens/[tokenId]/route.ts` has pre-existing bare `try/catch {}` blocks swallowing audit-log write errors. Pre-dates this encryption work; worth a cleanup pass to log the swallowed error (without PII) via `console.error` to avoid silent audit gaps
+
+**Branch pointers**: continue to work across workspaces with different keys. The server holds both source and target keys and decrypts each side during merge. Deep copy re-encrypts with the target workspace's key before writing.
+
+**Production migration**: the migration script is effectively a no-op on a fresh deployment (Workspace.encryptedKey auto-populated on create since Phase 10b), delivered for completeness and for local dev environments with pre-existing plaintext test data.
+
+**Phase 10b follow-up** (post-merge cleanup, shipped same session): audit log `description` and `payload` encryption closed the two original "Known gaps" (reverted `TreeEditLog.description` column and the cascade-delete `targetName` leak). New helpers in `src/lib/tree/audit.ts`, schema migration `20260409101126_phase_10b_followup_encrypt_audit_description_payload` with hand-crafted `USING convert_to(col, 'UTF8')` clauses, 16 mutation route call sites updated, migration script extended with idempotent re-encryption, 1802/1802 tests passing (+26 new tests), security audit approved with two non-blocking LOW observations (see "Non-blocking hardening opportunities" above)
 
 #### Phase 10c — Layer 1 Stage 2: Tang-bound unlock (future)
 

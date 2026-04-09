@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { dbTreeToGedcomData, redactPrivateIndividuals, mapRadaFamily } from '@/lib/tree/mapper'
-import type { DbTree, DbIndividual, DbFamily, DbRadaFamily } from '@/lib/tree/mapper'
+import type { DbTree, DbIndividual, DbFamily, DecryptedRadaFamily } from '@/lib/tree/mapper'
 import type { GedcomData, RadaFamily } from '@/lib/gedcom/types'
 import { getRadaRelationships } from '@/lib/gedcom/relationships'
+import { generateWorkspaceKey } from '@/lib/crypto/workspace-encryption'
+
+const TEST_WORKSPACE_KEY: Buffer = generateWorkspaceKey()
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -167,7 +170,7 @@ function makeGedcomDataWithRada(): GedcomData {
 
 describe('mapRadaFamily', () => {
   it('maps a DB rada family record to RadaFamily type', () => {
-    const dbRadaFamily: DbRadaFamily = {
+    const dbRadaFamily: DecryptedRadaFamily = {
       id: 'rf-1',
       treeId: TREE_ID,
       gedcomId: '_RADA_FAM_1',
@@ -194,7 +197,7 @@ describe('mapRadaFamily', () => {
   })
 
   it('maps null foster parents to null', () => {
-    const dbRadaFamily: DbRadaFamily = {
+    const dbRadaFamily: DecryptedRadaFamily = {
       id: 'rf-2',
       treeId: TREE_ID,
       gedcomId: null,
@@ -247,7 +250,7 @@ describe('dbTreeToGedcomData with rada families', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.radaFamilies).toBeDefined()
     expect(result.radaFamilies!['rf-1']).toEqual({
@@ -287,7 +290,7 @@ describe('dbTreeToGedcomData with rada families', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['ind-2'].radaFamiliesAsChild).toEqual(['rf-1'])
     expect(result.individuals['ind-3'].radaFamiliesAsChild).toEqual(['rf-1'])
@@ -305,7 +308,7 @@ describe('dbTreeToGedcomData with rada families', () => {
       families: [],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     // Should not have radaFamilies when none present
     expect(result.radaFamilies).toBeUndefined()
@@ -346,7 +349,7 @@ describe('dbTreeToGedcomData with rada families', () => {
       ],
     }
 
-    const result = dbTreeToGedcomData(dbTree)
+    const result = dbTreeToGedcomData(dbTree, TEST_WORKSPACE_KEY)
 
     expect(result.individuals['ind-1'].radaFamiliesAsChild).toEqual(['rf-1', 'rf-2'])
   })

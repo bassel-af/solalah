@@ -4,7 +4,7 @@
 
 **ALWAYS use the test family route when testing in the browser with Playwright/MCP.**
 
-Default test URL: `http://localhost:3000/test?only=canvas`
+Default test URL: `http://localhost:4000/test?only=canvas`
 
 The `/test` route loads `/public/test-family.ged` (a small test dataset) instead of production data. This is configured as a family entry in `src/config/families.ts`.
 

@@ -1,4 +1,12 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { generateWorkspaceKey, wrapKey } from '@/lib/crypto/workspace-encryption';
+import { getMasterKey } from '@/lib/crypto/master-key';
+
+// Phase 10b: a fresh wrapped workspace key the mocked prisma returns so that
+// routes calling `getWorkspaceKey` receive a valid encrypted_key and unwrap
+// cleanly. Generated at module load (deterministic per test run).
+const TEST_PLAINTEXT_KEY = generateWorkspaceKey();
+const TEST_WRAPPED_KEY = wrapKey(TEST_PLAINTEXT_KEY, getMasterKey());
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before any imports that use them
@@ -23,7 +31,11 @@ vi.mock('@/lib/db', () => ({
       findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
     },
     workspace: {
-      findUnique: vi.fn().mockResolvedValue({ enableKunya: true }),
+      // Phase 10b: include encryptedKey so getWorkspaceKey() unwraps successfully
+      findUnique: vi.fn().mockResolvedValue({
+        enableKunya: true,
+        encryptedKey: TEST_WRAPPED_KEY,
+      }),
     },
     familyTree: {
       findUnique: (...args: unknown[]) => mockFamilyTreeFindUnique(...args),

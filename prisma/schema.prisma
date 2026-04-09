@@ -64,6 +64,9 @@ model Workspace {
   enableKunya          Boolean              @default(false) @map("enable_kunya")
   enableAuditLog       Boolean              @default(false) @map("enable_audit_log")
   enableVersionControl Boolean              @default(false) @map("enable_version_control")
+  // Phase 10b: per-workspace data encryption key, wrapped with WORKSPACE_MASTER_KEY.
+  // Nullable so existing workspaces can be migrated in a second pass by the migration script.
+  encryptedKey         Bytes?               @map("encrypted_key")
   createdAt            DateTime             @default(now()) @map("created_at")
 
   // Relations
@@ -207,24 +210,26 @@ model Individual {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   treeId      String   @map("tree_id") @db.Uuid
   gedcomId    String?  @map("gedcom_id") // original GEDCOM ID if imported
-  givenName   String?  @map("given_name")
-  surname     String?
-  fullName    String?  @map("full_name")
-  sex         String?  // M, F, or null
-  birthDate   String?  @map("birth_date")
-  birthPlace  String?  @map("birth_place")
+  // Phase 10b: all fields below are AES-256-GCM ciphertext (nonce || tag || data)
+  // produced by src/lib/tree/encryption.ts using the workspace's data key.
+  givenName   Bytes?   @map("given_name")
+  surname     Bytes?
+  fullName    Bytes?   @map("full_name")
+  sex         String?  // M, F, or null — plaintext: needed for gender validation, tree layout
+  birthDate   Bytes?   @map("birth_date")
+  birthPlace  Bytes?   @map("birth_place")
   birthPlaceId String? @map("birth_place_id") @db.Uuid
-  birthDescription String? @map("birth_description") @db.VarChar(500)
-  birthNotes  String?  @map("birth_notes") @db.Text
-  deathDate   String?  @map("death_date")
-  deathPlace  String?  @map("death_place")
+  birthDescription Bytes? @map("birth_description")
+  birthNotes  Bytes?   @map("birth_notes")
+  deathDate   Bytes?   @map("death_date")
+  deathPlace  Bytes?   @map("death_place")
   deathPlaceId String? @map("death_place_id") @db.Uuid
-  deathDescription String? @map("death_description") @db.VarChar(500)
-  deathNotes  String?  @map("death_notes") @db.Text
-  birthHijriDate String? @map("birth_hijri_date")
-  kunya       String?  @db.VarChar(200)
-  notes       String?  @db.Text
-  deathHijriDate String? @map("death_hijri_date")
+  deathDescription Bytes? @map("death_description")
+  deathNotes  Bytes?   @map("death_notes")
+  birthHijriDate Bytes? @map("birth_hijri_date")
+  kunya       Bytes?
+  notes       Bytes?
+  deathHijriDate Bytes? @map("death_hijri_date")
   isDeceased  Boolean  @default(false) @map("is_deceased")
   isPrivate   Boolean  @default(false) @map("is_private")
   createdById String?  @map("created_by") @db.Uuid
@@ -260,33 +265,37 @@ model Family {
   husbandId String? @map("husband_id") @db.Uuid
   wifeId    String? @map("wife_id") @db.Uuid
 
+  // Phase 10b: event detail fields below are AES-256-GCM ciphertext
+  // (nonce || tag || data) produced by src/lib/tree/encryption.ts.
+  // PlaceId FKs stay plaintext so Prisma can maintain referential integrity.
+
   // Marriage contract (MARC)
-  marriageContractDate        String? @map("marriage_contract_date")
-  marriageContractHijriDate   String? @map("marriage_contract_hijri_date")
-  marriageContractPlace       String? @map("marriage_contract_place")
+  marriageContractDate        Bytes?  @map("marriage_contract_date")
+  marriageContractHijriDate   Bytes?  @map("marriage_contract_hijri_date")
+  marriageContractPlace       Bytes?  @map("marriage_contract_place")
   marriageContractPlaceId     String? @map("marriage_contract_place_id") @db.Uuid
-  marriageContractDescription String? @map("marriage_contract_description") @db.VarChar(500)
-  marriageContractNotes       String? @map("marriage_contract_notes") @db.Text
+  marriageContractDescription Bytes?  @map("marriage_contract_description")
+  marriageContractNotes       Bytes?  @map("marriage_contract_notes")
 
   // Marriage (MARR)
-  marriageDate        String? @map("marriage_date")
-  marriageHijriDate   String? @map("marriage_hijri_date")
-  marriagePlace       String? @map("marriage_place")
+  marriageDate        Bytes?  @map("marriage_date")
+  marriageHijriDate   Bytes?  @map("marriage_hijri_date")
+  marriagePlace       Bytes?  @map("marriage_place")
   marriagePlaceId     String? @map("marriage_place_id") @db.Uuid
-  marriageDescription String? @map("marriage_description") @db.VarChar(500)
-  marriageNotes       String? @map("marriage_notes") @db.Text
+  marriageDescription Bytes?  @map("marriage_description")
+  marriageNotes       Bytes?  @map("marriage_notes")
 
   // Umm walad
   isUmmWalad           Boolean @default(false) @map("is_umm_walad")
 
   // Divorce (DIV)
   isDivorced           Boolean @default(false) @map("is_divorced")
-  divorceDate          String? @map("divorce_date")
-  divorceHijriDate     String? @map("divorce_hijri_date")
-  divorcePlace         String? @map("divorce_place")
+  divorceDate          Bytes?  @map("divorce_date")
+  divorceHijriDate     Bytes?  @map("divorce_hijri_date")
+  divorcePlace         Bytes?  @map("divorce_place")
   divorcePlaceId       String? @map("divorce_place_id") @db.Uuid
-  divorceDescription   String? @map("divorce_description") @db.VarChar(500)
-  divorceNotes         String? @map("divorce_notes") @db.Text
+  divorceDescription   Bytes?  @map("divorce_description")
+  divorceNotes         Bytes?  @map("divorce_notes")
 
   // Relations
   tree                     FamilyTree    @relation(fields: [treeId], references: [id], onDelete: Cascade)
@@ -319,7 +328,8 @@ model RadaFamily {
   gedcomId        String?  @map("gedcom_id")
   fosterFatherId  String?  @map("foster_father_id") @db.Uuid
   fosterMotherId  String?  @map("foster_mother_id") @db.Uuid
-  notes           String?  @db.Text
+  // Phase 10b: encrypted with the workspace data key
+  notes           Bytes?
   createdAt       DateTime @default(now()) @map("created_at")
 
   tree          FamilyTree       @relation(fields: [treeId], references: [id], onDelete: Cascade)
@@ -353,10 +363,24 @@ model TreeEditLog {
   action          String   // create, update, delete, cascade_delete, MOVE_SUBTREE, etc.
   entityType      String   @map("entity_type") // individual, family, family_child, rada_family, etc.
   entityId        String   @map("entity_id") @db.Uuid
-  payload         Json?    // action-specific metadata (backward compat)
+  // Phase 10b follow-up (task #20): payload is AES-256-GCM ciphertext
+  // encoding JSON bytes. Some payloads (e.g. cascade_delete.targetName)
+  // historically carried plaintext PII; encrypting the whole JSON blob
+  // closes that leak. Legacy rows written before this migration contain
+  // UTF-8 bytes of the canonical JSON text — the migration script (#24)
+  // detects them via the same "try decrypt first, else treat as plaintext"
+  // gate used in #16 and re-encrypts in place.
+  payload         Bytes?
+  // Phase 10b: snapshots are JSON-serialized envelopes of the form
+  // `{ _encrypted: true, data: "<base64-ciphertext>" }` when written by
+  // src/lib/tree/encryption.ts. Legacy rows without the envelope remain
+  // readable as plaintext (pass-through in decryptSnapshot).
   snapshotBefore  Json?    @map("snapshot_before")  // full entity state before mutation
   snapshotAfter   Json?    @map("snapshot_after")   // full entity state after mutation
-  description     String?  @db.VarChar(500)         // human-readable Arabic description
+  // Phase 10b follow-up (task #20): description is AES-256-GCM ciphertext.
+  // Same plaintext→UTF-8-bytes migration path as payload above; #24 flips
+  // each row once then stays idempotent on subsequent runs.
+  description     Bytes?                             // human-readable Arabic description (ciphertext)
   timestamp       DateTime @default(now())
 
   // Relations
@@ -578,6 +602,12 @@ model BranchPointer {
 // Places — hierarchical location data for autocomplete
 // =============================================================================
 
+// Phase 10b note: Place.nameAr / nameEn are intentionally LEFT AS PLAINTEXT.
+// Global seeded places (workspaceId IS NULL) are publicly known geography with
+// no privacy value. Workspace-custom rows (workspaceId NOT NULL) are a tiny
+// fraction of all places, so conflating two encoding schemes in one column
+// would add complexity with marginal security benefit. If this trade-off is
+// ever revisited, encrypt only rows where workspaceId IS NOT NULL.
 model Place {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId String?   @map("workspace_id") @db.Uuid // null = global/seeded place

@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { serializeBigInt } from '@/lib/api/serialize';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { generateWorkspaceKey, wrapKey } from '@/lib/crypto/workspace-encryption';
+import { getMasterKey } from '@/lib/crypto/master-key';
 
 const createWorkspaceSchema = z.object({
   slug: z.string().max(64).regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
@@ -41,16 +43,26 @@ export async function POST(request: NextRequest) {
 
   const { slug, nameAr, description, logoUrl } = parsed.data;
 
+  // Phase 10b: generate a fresh per-workspace data key and wrap it with the
+  // master key BEFORE opening the transaction. This keeps the crypto work
+  // outside the DB transaction (no point holding a row lock while we call
+  // randomBytes), and guarantees every new workspace ships with a usable key.
+  const plaintextKey = generateWorkspaceKey();
+  const encryptedKey = wrapKey(plaintextKey, getMasterKey());
+
   try {
     const workspace = await prisma.$transaction(async (tx) => {
       const ws = await tx.workspace.create({
+        // Cast via unknown — Prisma Bytes type is Uint8Array<ArrayBuffer>
+        // while Node Buffer is a subclass with ArrayBufferLike.
         data: {
           slug,
           nameAr,
           description: description ?? null,
           logoUrl: logoUrl ?? null,
           createdById: user.id,
-        },
+          encryptedKey,
+        } as unknown as Parameters<typeof tx.workspace.create>[0]['data'],
       });
 
       await tx.workspaceMembership.create({

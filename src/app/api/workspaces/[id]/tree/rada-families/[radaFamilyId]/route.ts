@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireTreeEditor, isErrorResponse } from '@/lib/api/workspace-auth';
 import { treeMutateLimiter, rateLimitResponse } from '@/lib/api/rate-limit';
-import { getOrCreateTree, getTreeIndividual, getTreeRadaFamily, touchTreeTimestamp } from '@/lib/tree/queries';
+import {
+  getOrCreateTree,
+  getTreeIndividual,
+  getTreeRadaFamilyDecrypted,
+  touchTreeTimestamp,
+} from '@/lib/tree/queries';
 import { updateRadaFamilySchema } from '@/lib/tree/schemas';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
-import { snapshotRadaFamily, buildAuditDescription, JSON_NULL } from '@/lib/tree/audit';
+import {
+  snapshotRadaFamily,
+  encryptAuditDescription,
+  encryptAuditPayload,
+  JSON_NULL,
+} from '@/lib/tree/audit';
+import { getWorkspaceKey, encryptRadaFamilyInput, encryptSnapshot } from '@/lib/tree/encryption';
 
 type RouteParams = { params: Promise<{ id: string; radaFamilyId: string }> };
 
@@ -35,7 +46,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (isParseError(parsed)) return parsed;
 
   const tree = await getOrCreateTree(workspaceId);
-  const existing = await getTreeRadaFamily(tree.id, radaFamilyId);
+  // Phase 10b: fetch key once; decrypted read for snapshotBefore plaintext.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const existing = await getTreeRadaFamilyDecrypted(workspaceId, tree.id, radaFamilyId);
   if (!existing) {
     return NextResponse.json(
       { error: 'عائلة الرضاعة غير موجودة في هذه الشجرة' },
@@ -77,11 +90,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  // Phase 10b: encrypt the notes field (the only encrypted one on RadaFamily)
+  // before writing. Other fields pass through. Cast via unknown — see note
+  // in families routes.
   const radaFamily = await prisma.radaFamily.update({
     where: { id: radaFamilyId },
-    data: parsed.data,
+    data: encryptRadaFamilyInput(parsed.data, workspaceKey) as unknown as Parameters<typeof prisma.radaFamily.update>[0]['data'],
     include: { children: true },
   });
+
+  const afterPlaintext = {
+    ...existing,
+    ...parsed.data,
+    id: radaFamilyId,
+    children: radaFamily.children,
+  };
 
   await Promise.all([
     prisma.treeEditLog.create({
@@ -91,11 +114,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         action: 'update',
         entityType: 'rada_family',
         entityId: radaFamilyId,
-        payload: parsed.data,
-        snapshotBefore: snapshotRadaFamily(existing),
-        snapshotAfter: snapshotRadaFamily(radaFamily),
-        description: buildAuditDescription('update', 'rada_family'),
-      },
+        payload: encryptAuditPayload(parsed.data, workspaceKey),
+        // Phase 10b: encrypted envelopes.
+        snapshotBefore: encryptSnapshot(snapshotRadaFamily(existing), workspaceKey),
+        snapshotAfter: encryptSnapshot(snapshotRadaFamily(afterPlaintext), workspaceKey),
+        description: encryptAuditDescription('update', 'rada_family', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);
@@ -126,7 +150,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 
   const tree = await getOrCreateTree(workspaceId);
-  const existing = await getTreeRadaFamily(tree.id, radaFamilyId);
+  // Phase 10b: decrypted read + key for the snapshot envelope.
+  const workspaceKey = await getWorkspaceKey(workspaceId);
+  const existing = await getTreeRadaFamilyDecrypted(workspaceId, tree.id, radaFamilyId);
   if (!existing) {
     return NextResponse.json(
       { error: 'عائلة الرضاعة غير موجودة في هذه الشجرة' },
@@ -147,10 +173,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         action: 'delete',
         entityType: 'rada_family',
         entityId: radaFamilyId,
-        snapshotBefore: snapshotRadaFamily(existing),
+        snapshotBefore: encryptSnapshot(snapshotRadaFamily(existing), workspaceKey),
         snapshotAfter: JSON_NULL,
-        description: buildAuditDescription('delete', 'rada_family'),
-      },
+        description: encryptAuditDescription('delete', 'rada_family', null, workspaceKey),
+      } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
     }),
     touchTreeTimestamp(tree.id),
   ]);

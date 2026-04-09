@@ -46,6 +46,16 @@ vi.mock('@/lib/tree/queries', () => ({
   getTreeByWorkspaceId: (...args: unknown[]) => mockGetTreeByWorkspaceId(...args),
 }));
 
+// Phase 10b: stub workspace-key helpers.
+vi.mock('@/lib/tree/encryption', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/tree/encryption')>('@/lib/tree/encryption');
+  return {
+    ...actual,
+    getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+    getOrCreateWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32, 7)),
+  };
+});
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
