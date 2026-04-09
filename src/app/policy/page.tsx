@@ -89,8 +89,9 @@ export default function PolicyPage() {
               التواصل مع مدير المنصة.
             </p>
             <p>
-              يتم تأمين الاتصال عبر بروتوكول HTTPS ويتم تشفير كلمات المرور
-              باستخدام خوارزميات تشفير قوية.
+              بيانات شجرة عائلتك مشفّرة بالكامل على خوادمنا بمفتاح خاص بكل
+              عائلة. الأسماء، التواريخ، الأحداث، وسجل التعديلات جميعها محمية
+              بتشفير من المستوى المصرفي. يتم تأمين الاتصال عبر بروتوكول HTTPS.
             </p>
           </div>
 
@@ -115,8 +116,10 @@ export default function PolicyPage() {
               at any time by contacting the platform administrator.
             </p>
             <p>
-              Communication is secured via HTTPS and passwords are encrypted
-              using strong hashing algorithms.
+              Your family tree data is fully encrypted on our servers with a
+              dedicated key per family workspace. Names, dates, events, and the
+              edit history are all protected with bank-grade encryption.
+              Communication is secured via HTTPS.
             </p>
           </div>
         </section>
@@ -172,7 +175,7 @@ export default function PolicyPage() {
         </section>
 
         <p className={styles.lastUpdated}>
-          آخر تحديث: مارس 2026 &mdash; Last updated: March 2026
+          آخر تحديث: أبريل 2026 &mdash; Last updated: April 2026
         </p>
       </div>
     </div>

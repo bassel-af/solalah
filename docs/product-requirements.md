@@ -887,7 +887,7 @@ Notification
 - It does not actually prevent admin access (the server controls the workspace member list and could silently add itself as a hidden member)
 - It breaks branch pointers (Phase 5), magic links, server-side search, GEDCOM export, and audit logs
 - The UX cost is high (passphrase prompts, lost-key scenarios, new-device bootstrap) and the practical security gain is minimal for a centralized web app
-- Honest transparency + layered encryption + self-hosting option is a more defensible story than E2EE theater
+- Honest transparency + layered encryption is a more defensible story than E2EE theater
 
 **Deployment order note**: production deployment of the new app is intentionally delayed until Phase 10b ships, so the very first production write lands already encrypted. No data migration is required on the production server.
 
@@ -969,7 +969,7 @@ Does NOT protect against: anyone with live SSH or running-application access (ke
 
 **Privacy policy updates**:
 - Update `/policy` page with explicit encryption statement in Arabic + English
-- Add FAQ entries: what the platform can and cannot see, what happens if keys are lost, self-hosting option for families requiring absolute independence
+- Add FAQ entries: how family data is protected, what encryption means in practice, what happens if keys are lost
 - Clearly disclose that platform administrators with live server access can technically read workspace data, and that such access is logged
 
 **Operational safeguards**:
