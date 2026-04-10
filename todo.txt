@@ -4,12 +4,9 @@ landing page and login page.
 - Data backup.
 - .env file.
 
-- Fix branch نسخ
-
-
 Think of app name ربما "نسلي
 Test with non admin role (edit etc)
-add in policty that user agree to use
+add in policy that user agree to use
 the product as is even if it contains 
 issues or features he desires are missing.
 

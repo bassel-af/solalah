@@ -174,6 +174,55 @@ export default function PolicyPage() {
           </div>
         </section>
 
+        {/* Disclaimer */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            إخلاء المسؤولية / Disclaimer
+          </h2>
+
+          <div className={styles.arabicBlock}>
+            <p>
+              تُقدَّم المنصة &laquo;كما هي&raquo; و&laquo;حسب التوفر&raquo; دون
+              أي ضمانات من أي نوع، سواء كانت صريحة أو ضمنية.
+            </p>
+            <p>
+              لا نضمن أن المنصة ستكون خالية من الأخطاء أو الأعطال أو الانقطاعات،
+              ولا نضمن توفر جميع الميزات التي قد يرغب بها المستخدم.
+            </p>
+            <p>
+              باستخدامك للمنصة، فإنك تقبل أنها قد تحتوي على مشكلات تقنية أو
+              ميزات غير مكتملة، وأنك تستخدمها على مسؤوليتك الخاصة.
+            </p>
+            <p>
+              لا نتحمل أي مسؤولية عن أي أضرار مباشرة أو غير مباشرة ناتجة عن
+              استخدام المنصة أو عدم القدرة على استخدامها.
+            </p>
+          </div>
+
+          <div className={styles.englishBlock}>
+            <p className={styles.englishLabel}>English</p>
+            <p>
+              The platform is provided &ldquo;as is&rdquo; and &ldquo;as
+              available&rdquo; without warranties of any kind, whether express or
+              implied.
+            </p>
+            <p>
+              We do not guarantee that the platform will be free from errors,
+              defects, or interruptions, nor do we guarantee the availability of
+              any particular feature the user may desire.
+            </p>
+            <p>
+              By using the platform, you accept that it may contain technical
+              issues or incomplete features, and that you use it at your own
+              risk.
+            </p>
+            <p>
+              We shall not be liable for any direct or indirect damages arising
+              from the use of, or inability to use, the platform.
+            </p>
+          </div>
+        </section>
+
         <p className={styles.lastUpdated}>
           آخر تحديث: أبريل 2026 &mdash; Last updated: April 2026
         </p>
