@@ -84,6 +84,7 @@ import {
   decryptField,
 } from '../src/lib/crypto/workspace-encryption';
 import { encryptSnapshot } from '../src/lib/tree/encryption';
+import { isLikelyPlaintextUtf8 } from './lib/utf8-guard';
 
 // ---------------------------------------------------------------------------
 // Constants: which fields get the bytes-migration treatment.
@@ -420,9 +421,20 @@ async function migrateWorkspace(
         }
       }
       if (!alreadyEncrypted) {
-        const plaintext = descBuf.toString('utf8');
-        updates.description = encryptField(plaintext, workspaceKey);
-        stats.editLogDescriptionsEncrypted++;
+        // Sanity guard mirrors the JSON.parse check on the payload branch:
+        // if the bytes don't look like plaintext UTF-8 (binary control bytes,
+        // invalid UTF-8 sequences), skip the row instead of re-wrapping
+        // garbage. The warning log carries ONLY a stable identifier — never
+        // the description content, which could be PII.
+        if (!isLikelyPlaintextUtf8(descBuf)) {
+          console.warn(
+            `   [skip] edit log ${log.id} description: bytes failed UTF-8 sanity guard`,
+          );
+        } else {
+          const plaintext = descBuf.toString('utf8');
+          updates.description = encryptField(plaintext, workspaceKey);
+          stats.editLogDescriptionsEncrypted++;
+        }
       }
     }
 

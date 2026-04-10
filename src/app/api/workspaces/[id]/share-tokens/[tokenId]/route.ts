@@ -8,6 +8,7 @@ import { extractPointedSubtree } from '@/lib/tree/branch-pointer-merge';
 import { prepareDeepCopy, persistDeepCopy } from '@/lib/tree/branch-pointer-deep-copy';
 import { z } from 'zod';
 import { parseValidatedBody, isParseError } from '@/lib/api/route-helpers';
+import { logSwallowedAuditError } from '@/lib/api/swallowed-error-log';
 import {
   snapshotBranchPointer,
   encryptAuditDescription,
@@ -160,15 +161,22 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             data: { status: 'revoked' },
           });
         }
-      } catch {
+      } catch (err) {
+        // Phase 10b follow-up: log the swallowed error PII-free so that
+        // operators see the gap. Helper logs only error class + pointerId.
+        logSwallowedAuditError('pointer_deep_copy', { pointerId: pointer.id }, err);
         // Best-effort: mark pointer as revoked without copy
         try {
           await prisma.branchPointer.update({
             where: { id: pointer.id },
             data: { status: 'revoked' },
           });
-        } catch {
-          // Ignore — pointer may already be revoked
+        } catch (innerErr) {
+          logSwallowedAuditError(
+            'pointer_fallback_revoke',
+            { pointerId: pointer.id },
+            innerErr,
+          );
         }
       }
 
@@ -223,8 +231,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         } as unknown as Parameters<typeof prisma.treeEditLog.create>[0]['data'],
       });
     }
-  } catch {
-    // Audit logging failure should not block token revocation
+  } catch (err) {
+    // Phase 10b follow-up: log the swallowed audit-write error PII-free so
+    // operators can see the gap; never include err.message which may carry
+    // workspace names, user emails, or token values from Prisma errors.
+    logSwallowedAuditError('token_revoke_audit_write', { tokenId }, err);
   }
 
   return NextResponse.json({ success: true, disconnectedPointers, copiedPointers });

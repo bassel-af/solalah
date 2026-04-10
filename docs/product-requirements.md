@@ -944,15 +944,17 @@ Does NOT protect against: anyone with live SSH or running-application access (ke
 - `Place.nameAr` / `Place.nameEn` — NOT encrypted. Global seed places are publicly known geography; workspace-custom places are a tiny fraction, and conflating two encoding schemes in one column added complexity with marginal privacy benefit. Documented as a code comment on the `Place` model
 - Full manual e2e flow (create → edit → audit → share → deep copy → export → cascade) was NOT walked through in the browser as a ceremony. All scenarios ARE covered by the 108 integration tests listed above, with real-crypto round-trips (not mocks) for the critical paths. The audit log read path was additionally verified end-to-end against the live dev server via an HS256-signed admin JWT hitting `/api/workspaces/[id]/tree/audit-log` — plaintext Arabic descriptions and decrypted payload objects returned correctly
 
-**Non-blocking hardening opportunities** (flagged by security audit for a future cleanup pass):
-- Migration script `description` fallback branch could add a UTF-8 / control-byte sanity guard analogous to the `JSON.parse` check on the payload branch. Only relevant in the theoretical case of a pre-existing cross-key ciphertext, which the current data model cannot produce
-- `src/app/api/workspaces/[id]/share-tokens/[tokenId]/route.ts` has pre-existing bare `try/catch {}` blocks swallowing audit-log write errors. Pre-dates this encryption work; worth a cleanup pass to log the swallowed error (without PII) via `console.error` to avoid silent audit gaps
+**Hardening follow-ups** (shipped post-Phase-10b in the cleanup pass):
+- ✅ Migration script `description` fallback branch now gates on `isLikelyPlaintextUtf8()` (`scripts/lib/utf8-guard.ts`) — rejects empty buffers, binary control bytes (0x00–0x08, 0x0e–0x1f, 0x7f), and invalid UTF-8 sequences. Skip path logs `[skip] edit log <id>` with stable id only, no field content. 10 unit tests
+- ✅ `src/app/api/workspaces/[id]/share-tokens/[tokenId]/route.ts` bare `try/catch {}` blocks replaced with `logSwallowedAuditError()` (`src/lib/api/swallowed-error-log.ts`). Three call sites: `pointer_deep_copy`, `pointer_fallback_revoke`, `token_revoke_audit_write`. Logs only error class name + stable entity ref (`tokenId` / `pointerId`); never `err.message`. Helper itself never throws (inner try/catch around `console.error`). 8 unit tests
+- ⏳ **LOW-2 (AdminAccessLog retention policy)** — deferred to a future operational phase, not yet implemented. Once `logAdminAccess()` is wired to admin-only routes the table will start growing; we will need a retention/rotation policy (time-based or size-based) before that wiring lands in production. Tracked under operational safeguards
+- ☑ **LOW-4 (UTF-8 guard accepts VT 0x0b and FF 0x0c)** — accepted as a non-blocking observation. The byte-range definition (`0x00–0x08`, `0x0e–0x1f`, `0x7f`) is the source of truth and matches the test contract; VT/FF intentionally fall outside the rejected ranges because they round-trip through UTF-8 cleanly and the migration's only consumer is a manual one-time pass with operator review of the `[skip]` warnings. Documented but not changed
 
 **Branch pointers**: continue to work across workspaces with different keys. The server holds both source and target keys and decrypts each side during merge. Deep copy re-encrypts with the target workspace's key before writing.
 
 **Production migration**: the migration script is effectively a no-op on a fresh deployment (Workspace.encryptedKey auto-populated on create since Phase 10b), delivered for completeness and for local dev environments with pre-existing plaintext test data.
 
-**Phase 10b follow-up** (post-merge cleanup, shipped same session): audit log `description` and `payload` encryption closed the two original "Known gaps" (reverted `TreeEditLog.description` column and the cascade-delete `targetName` leak). New helpers in `src/lib/tree/audit.ts`, schema migration `20260409101126_phase_10b_followup_encrypt_audit_description_payload` with hand-crafted `USING convert_to(col, 'UTF8')` clauses, 16 mutation route call sites updated, migration script extended with idempotent re-encryption, 1802/1802 tests passing (+26 new tests), security audit approved with two non-blocking LOW observations (see "Non-blocking hardening opportunities" above)
+**Phase 10b follow-up** (post-merge cleanup, shipped same session): audit log `description` and `payload` encryption closed the two original "Known gaps" (reverted `TreeEditLog.description` column and the cascade-delete `targetName` leak). New helpers in `src/lib/tree/audit.ts`, schema migration `20260409101126_phase_10b_followup_encrypt_audit_description_payload` with hand-crafted `USING convert_to(col, 'UTF8')` clauses, 16 mutation route call sites updated, migration script extended with idempotent re-encryption, 1802/1802 tests passing (+26 new tests), security audit approved with two non-blocking LOW observations (since shipped — see "Hardening follow-ups" above)
 
 #### Phase 10c — Layer 1 Stage 2: Tang-bound unlock (future)
 
@@ -964,18 +966,17 @@ Does NOT protect against: anyone with live SSH or running-application access (ke
 **Key management**:
 - `WORKSPACE_MASTER_KEY` in `.env` (generated via `openssl rand -base64 32`)
 - Required for server startup — app fails fast if missing
-- Lost master key = all data unrecoverable; backup procedure documented in `docs/encryption.md`
-- Key rotation procedure documented (manual re-wrap of all `Workspace.encryptedKey` values with new master key)
+- Lost master key = all data unrecoverable
+- ✅ Operator runbook shipped at `docs/encryption.md` (key generation, backup, recovery if lost, rotation step-by-step, migration script usage, two-layer architecture, incident response 9a-9d, audit access state)
 
 **Privacy policy updates**:
-- Update `/policy` page with explicit encryption statement in Arabic + English
-- Add FAQ entries: how family data is protected, what encryption means in practice, what happens if keys are lost
-- Clearly disclose that platform administrators with live server access can technically read workspace data, and that such access is logged
+- ✅ Updated `/policy` page with encryption statement in Arabic + English (bank-grade encryption messaging, per-family vault framing, no exploitable implementation details)
+- FAQ entries deferred (how family data is protected, what encryption means in practice, what happens if keys are lost) — to be added when a dedicated FAQ page or section is built
 
 **Operational safeguards**:
-- New `AdminAccessLog` model capturing any server-side access to workspace data outside normal authenticated member requests
+- ✅ `AdminAccessLog` model + `logAdminAccess()` helper (`src/lib/audit/admin-access.ts`) for capturing server-side access to workspace data outside normal authenticated member requests (model + helper scaffolded; wiring deferred until admin-only routes exist). Audit-immortal across user deletion (no FK to User per security review MEDIUM-1), `ipAddress` capped at 64 chars and `action`/`entityType`/`entityId` capped at 100 chars to prevent X-Forwarded-For floods. Helper truncates `reason`/`userAgent`/`ipAddress`, swallows DB errors with PII-free `console.error`, never throws. 18 unit tests
 - Production server SSH access restricted, MFA required for admin accounts
-- Documented incident-response procedure for suspected key or server compromise
+- Documented incident-response procedure for suspected key or server compromise (see `docs/encryption.md` section 9)
 
 **Out of scope for this phase**:
 - End-to-end encryption (see rationale above)

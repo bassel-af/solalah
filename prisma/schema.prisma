@@ -83,6 +83,7 @@ model Workspace {
   targetedShareTokens     BranchShareToken[]    @relation("ShareTokenTarget")
   outgoingPointers        BranchPointer[]       @relation("PointerSource")
   incomingPointers        BranchPointer[]       @relation("PointerTarget")
+  adminAccessLogs         AdminAccessLog[]
 
   @@map("workspaces")
 }
@@ -632,4 +633,40 @@ model Place {
 
   @@unique([workspaceId, nameAr])
   @@map("places")
+}
+
+// =============================================================================
+// Admin Access Log — Phase 10b operational safeguard
+// Captures any server-side / admin access to workspace data outside normal
+// authenticated member requests. Helper at src/lib/audit/admin-access.ts.
+// Scaffold + helper only — wiring to admin routes lives in a future phase.
+// =============================================================================
+
+model AdminAccessLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // Phase 10b security review (T9 MEDIUM-1): NO FK relation to User. The
+  // audit log must be IMMORTAL across user deletion — a deleted user's
+  // access history is exactly what we need most. Keeping `userId` as a raw
+  // UUID column with no `@relation` removes the cascade and the include type.
+  userId      String   @map("user_id") @db.Uuid
+  action      String   @db.VarChar(100) // 'workspace_data_read' | 'audit_log_read' | 'cascade_delete_preview' | etc.
+  workspaceId String?  @map("workspace_id") @db.Uuid
+  entityType  String?  @map("entity_type") @db.VarChar(100)
+  entityId    String?  @map("entity_id") @db.VarChar(100)
+  reason      String?  @db.VarChar(500)
+  // T9 MEDIUM-2: cap ipAddress at 64 chars so a caller passing X-Forwarded-For
+  // verbatim cannot flood the table with megabyte values.
+  ipAddress   String?  @map("ip_address") @db.VarChar(64)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Workspace relation kept (workspaces are intentional admin actions, not
+  // stealth-cleanup paths) but with SetNull so audit rows survive workspace
+  // deletion as well.
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([action, createdAt])
+  @@map("admin_access_logs")
 }
