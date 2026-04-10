@@ -25,6 +25,8 @@ interface WorkspaceInfo {
   enableRadaa?: boolean;
   enableKunya?: boolean;
   enableAuditLog?: boolean;
+  hideBirthDateForFemale?: boolean;
+  hideBirthDateForMale?: boolean;
 }
 
 interface WorkspaceTreeClientProps {
@@ -126,6 +128,8 @@ function TreeContent({
         enableRadaa={workspace.enableRadaa}
         enableKunya={workspace.enableKunya}
         enableAuditLog={workspace.enableAuditLog}
+        hideBirthDateForFemale={workspace.hideBirthDateForFemale}
+        hideBirthDateForMale={workspace.hideBirthDateForMale}
         description={workspace.description}
       >
         <EmptyTreeWithForm canEdit={canEdit} />
@@ -144,6 +148,8 @@ function TreeContent({
       enableRadaa={workspace.enableRadaa}
       enableKunya={workspace.enableKunya}
       enableAuditLog={workspace.enableAuditLog}
+      hideBirthDateForFemale={workspace.hideBirthDateForFemale}
+      hideBirthDateForMale={workspace.hideBirthDateForMale}
       description={workspace.description}
     >
       <div className="app-layout">

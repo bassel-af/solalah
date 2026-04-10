@@ -28,6 +28,10 @@ interface WorkspaceTreeContextValue {
   enableKunya?: boolean;
   /** Whether the workspace has audit log feature enabled */
   enableAuditLog?: boolean;
+  /** Whether to hide birth dates for female individuals */
+  hideBirthDateForFemale?: boolean;
+  /** Whether to hide birth dates for male individuals */
+  hideBirthDateForMale?: boolean;
   /** Workspace description (shown in sidebar "about" panel) */
   description?: string;
 }
@@ -45,6 +49,8 @@ interface WorkspaceTreeProviderProps {
   enableRadaa?: boolean;
   enableKunya?: boolean;
   enableAuditLog?: boolean;
+  hideBirthDateForFemale?: boolean;
+  hideBirthDateForMale?: boolean;
   description?: string;
 }
 
@@ -59,10 +65,12 @@ export function WorkspaceTreeProvider({
   enableRadaa,
   enableKunya,
   enableAuditLog,
+  hideBirthDateForFemale,
+  hideBirthDateForMale,
   description,
 }: WorkspaceTreeProviderProps) {
   return (
-    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, enableAuditLog, description }}>
+    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, enableAuditLog, hideBirthDateForFemale, hideBirthDateForMale, description }}>
       {children}
     </WorkspaceTreeContext.Provider>
   );
@@ -74,4 +82,8 @@ export function useWorkspaceTree() {
     throw new Error('useWorkspaceTree must be used within a WorkspaceTreeProvider');
   }
   return context;
+}
+
+export function useOptionalWorkspaceTree() {
+  return useContext(WorkspaceTreeContext);
 }

@@ -4,6 +4,8 @@ import clsx from 'clsx';
 import type { Individual } from '@/lib/gedcom';
 import { getDisplayName } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
+import { useOptionalWorkspaceTree } from '@/context/WorkspaceTreeContext';
+import { shouldHideBirthDate } from '@/lib/tree/birth-date-privacy';
 import styles from './PersonCard.module.css';
 
 interface PersonCardProps {
@@ -13,6 +15,7 @@ interface PersonCardProps {
 
 export function PersonCard({ person, isRoot = false }: PersonCardProps) {
   const { searchQuery } = useTree();
+  const wsContext = useOptionalWorkspaceTree();
 
   if (!person) return null;
 
@@ -23,8 +26,15 @@ export function PersonCard({ person, isRoot = false }: PersonCardProps) {
     searchQuery &&
     displayName.toLowerCase().includes(searchQuery.toLowerCase());
 
+  const hideBirth = shouldHideBirthDate(person, {
+    hideBirthDateForFemale: wsContext?.hideBirthDateForFemale,
+    hideBirthDateForMale: wsContext?.hideBirthDateForMale,
+  });
+
   let dates = '';
-  if (person.birth || person.death) {
+  if (hideBirth) {
+    if (person.death) dates = person.death;
+  } else if (person.birth || person.death) {
     dates = `${person.birth || '?'} - ${person.death || ''}`;
   }
 

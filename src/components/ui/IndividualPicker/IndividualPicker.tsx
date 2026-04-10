@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useMemo, useId } from 'react';
 import type { GedcomData, Individual } from '@/lib/gedcom/types';
 import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH } from '@/lib/gedcom/display';
 import { matchesSearch, searchRelevance } from '@/lib/utils/search';
+import { useOptionalWorkspaceTree } from '@/context/WorkspaceTreeContext';
+import { shouldHideBirthDate } from '@/lib/tree/birth-date-privacy';
 import styles from './IndividualPicker.module.css';
 
 export interface IndividualPickerProps {
@@ -28,6 +30,7 @@ export function IndividualPicker({
   exclude,
   sexFilter,
 }: IndividualPickerProps) {
+  const wsContext = useOptionalWorkspaceTree();
   const individuals = data.individuals;
   const selectedPerson = value ? individuals[value] : null;
   const [query, setQuery] = useState('');
@@ -124,6 +127,10 @@ export function IndividualPicker({
   );
 
   const getBirthYear = (person: Individual): string => {
+    if (shouldHideBirthDate(person, {
+      hideBirthDateForFemale: wsContext?.hideBirthDateForFemale,
+      hideBirthDateForMale: wsContext?.hideBirthDateForMale,
+    })) return '';
     const date = person.birth || person.birthHijriDate;
     if (!date) return '';
     const match = date.match(/\d{3,4}/);

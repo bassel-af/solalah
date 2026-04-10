@@ -29,7 +29,7 @@ describe('robots.ts', () => {
     expect(disallow).toContain('/auth/login?');
   });
 
-  it('allows the 6 public pages', () => {
+  it('allows the 7 public pages', () => {
     const result = robots();
     const rules = result.rules;
     const singleRule = Array.isArray(rules) ? rules[0] : rules;
@@ -39,9 +39,10 @@ describe('robots.ts', () => {
     expect(allow).toContain('/');
     expect(allow).toContain('/policy');
     expect(allow).toContain('/islamic-gedcom');
+    expect(allow).toContain('/features');
     expect(allow).toContain('/auth/login');
     expect(allow).toContain('/auth/signup');
     expect(allow).toContain('/auth/forgot-password');
-    expect(allow).toHaveLength(6);
+    expect(allow).toHaveLength(7);
   });
 });

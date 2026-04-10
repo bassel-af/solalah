@@ -20,6 +20,8 @@ import '@xyflow/react/dist/style.css';
 import type { GedcomData, Individual } from '@/lib/gedcom';
 import { getDisplayName, getAllAncestors, getAllDescendants, findTopmostAncestor, hasExternalFamily, computeGraftDescriptors } from '@/lib/gedcom';
 import { useTree } from '@/context/TreeContext';
+import { useOptionalWorkspaceTree } from '@/context/WorkspaceTreeContext';
+import { shouldHideBirthDate } from '@/lib/tree/birth-date-privacy';
 import { getLayoutedElements, NODE_WIDTH, NODE_HEIGHT, SPOUSE_WIDTH, SPOUSE_GAP, type GraftNodeBuilder } from './layout';
 
 // Highlight state for lineage tracing
@@ -58,6 +60,7 @@ interface PersonNodeData {
 
 function PersonNode({ data }: { data: PersonNodeData }) {
   const { person, spouses, isRoot, searchQuery, isHighlightedPerson, isAncestor, isDescendant, hasHighlight, selectedPersonId, isInLawExpansion, hideSpouseBadge, onPersonClick, onOpenSidebar, onRerootToAncestor } = data;
+  const wsContext = useOptionalWorkspaceTree();
 
   const getHighlightClass = (_personId: string, isMainPerson: boolean) => {
     if (!hasHighlight) return '';
@@ -79,6 +82,10 @@ function PersonNode({ data }: { data: PersonNodeData }) {
     const deceasedClass = p.isDeceased ? 'deceased' : '';
     const inLawClass = isInLawExpansion ? 'in-law-expansion' : '';
     const pointedClass = p._pointed ? 'pointed' : '';
+    const hideBirth = shouldHideBirthDate(p, {
+      hideBirthDateForFemale: wsContext?.hideBirthDateForFemale,
+      hideBirthDateForMale: wsContext?.hideBirthDateForMale,
+    });
     const isMatch =
       searchQuery && displayName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchClass = isMatch ? 'search-match' : '';
@@ -102,9 +109,9 @@ function PersonNode({ data }: { data: PersonNodeData }) {
           onClick={handleClick}
         >
           <div className="person-name">{displayName}</div>
-          {(p.birth || p.death || p.isDeceased) && (
+          {((!hideBirth && p.birth) || p.death || p.isDeceased) && (
             <div className="person-dates-container">
-              {p.birth && (
+              {!hideBirth && p.birth && (
                 <div className="person-date-row">
                   <iconify-icon icon="lucide:calendar" width="14" />
                   <span>{p.birth}</span>

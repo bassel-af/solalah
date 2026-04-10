@@ -168,4 +168,82 @@ describe('PATCH /api/workspaces/[id]', () => {
     const body = await res.json();
     expect(body.data.nameAr).toBe('اسم محدث');
   });
+
+  test('accepts hideBirthDateForFemale boolean field', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+    const updatedWs = {
+      id: wsId,
+      slug: 'test-ws',
+      nameAr: 'اختبار',
+      hideBirthDateForFemale: true,
+    };
+    mockWorkspaceUpdate.mockResolvedValue(updatedWs);
+
+    const { PATCH } = await import('@/app/api/workspaces/[id]/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}`, {
+      method: 'PATCH',
+      body: { hideBirthDateForFemale: true },
+    });
+    const res = await PATCH(req, routeParams);
+
+    expect(res.status).toBe(200);
+    expect(mockWorkspaceUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ hideBirthDateForFemale: true }),
+      }),
+    );
+  });
+
+  test('accepts hideBirthDateForMale boolean field', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+    const updatedWs = {
+      id: wsId,
+      slug: 'test-ws',
+      nameAr: 'اختبار',
+      hideBirthDateForMale: true,
+    };
+    mockWorkspaceUpdate.mockResolvedValue(updatedWs);
+
+    const { PATCH } = await import('@/app/api/workspaces/[id]/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}`, {
+      method: 'PATCH',
+      body: { hideBirthDateForMale: true },
+    });
+    const res = await PATCH(req, routeParams);
+
+    expect(res.status).toBe(200);
+    expect(mockWorkspaceUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ hideBirthDateForMale: true }),
+      }),
+    );
+  });
+
+  test('rejects non-boolean value for hideBirthDateForFemale', async () => {
+    mockAuth();
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+    });
+
+    const { PATCH } = await import('@/app/api/workspaces/[id]/route');
+    const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}`, {
+      method: 'PATCH',
+      body: { hideBirthDateForFemale: 'yes' },
+    });
+    const res = await PATCH(req, routeParams);
+
+    expect(res.status).toBe(400);
+  });
 });

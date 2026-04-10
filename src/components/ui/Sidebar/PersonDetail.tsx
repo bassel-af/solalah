@@ -3,7 +3,7 @@
 import clsx from 'clsx';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useTree } from '@/context/TreeContext';
-import { useWorkspaceTree } from '@/context/WorkspaceTreeContext';
+import { useOptionalWorkspaceTree } from '@/context/WorkspaceTreeContext';
 import { getDisplayName, getPersonRelationships, getRadaRelationships, getAllDescendants, findTopmostAncestor, hasExternalFamily } from '@/lib/gedcom';
 import type { Individual } from '@/lib/gedcom';
 import { IndividualForm, type IndividualFormData } from '@/components/tree/IndividualForm/IndividualForm';
@@ -35,21 +35,8 @@ import {
 import { MoveSubtreeModal } from '@/components/tree/MoveSubtreeModal';
 import type { AddParentResult } from '@/lib/person-detail-helpers';
 import { apiFetch } from '@/lib/api/client';
+import { shouldHideBirthDate } from '@/lib/tree/birth-date-privacy';
 import styles from './PersonDetail.module.css';
-
-// ---------------------------------------------------------------------------
-// Optional context hook — returns null when WorkspaceTreeContext is absent
-// (e.g. legacy static GEDCOM tree view)
-// ---------------------------------------------------------------------------
-
-function useOptionalWorkspaceTree() {
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useWorkspaceTree();
-  } catch {
-    return null;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -60,21 +47,23 @@ function DateInfo({
   className,
   compact,
   calendarPreference = 'hijri',
+  hideBirthDate,
 }: {
   person: Individual;
   className?: string;
   compact?: boolean;
   calendarPreference?: CalendarPreference;
+  hideBirthDate?: boolean;
 }) {
-  const birthPrimary = getPreferredDate(person.birth, person.birthHijriDate, calendarPreference);
-  const birthSecondary = getSecondaryDate(person.birth, person.birthHijriDate, calendarPreference);
-  const birthSuffix = getDateSuffix(person.birth, person.birthHijriDate);
+  const birthPrimary = hideBirthDate ? '' : getPreferredDate(person.birth, person.birthHijriDate, calendarPreference);
+  const birthSecondary = hideBirthDate ? '' : getSecondaryDate(person.birth, person.birthHijriDate, calendarPreference);
+  const birthSuffix = hideBirthDate ? '' : getDateSuffix(person.birth, person.birthHijriDate);
   const deathPrimary = getPreferredDate(person.death, person.deathHijriDate, calendarPreference);
   const deathSecondary = getSecondaryDate(person.death, person.deathHijriDate, calendarPreference);
   const deathSuffix = getDateSuffix(person.death, person.deathHijriDate);
 
   const birthDateWithSuffix = birthPrimary ? `${birthPrimary}${birthSuffix ? ` ${birthSuffix}` : ''}` : '';
-  const birthDisplay = compact ? birthDateWithSuffix : formatDateWithPlace(birthDateWithSuffix, person.birthPlace);
+  const birthDisplay = compact ? birthDateWithSuffix : formatDateWithPlace(birthDateWithSuffix, hideBirthDate ? '' : person.birthPlace);
   const deathDateWithSuffix = deathPrimary ? `${deathPrimary}${deathSuffix ? ` ${deathSuffix}` : ''}` : '';
   const deathDisplay = compact ? deathDateWithSuffix : formatDateWithPlace(deathDateWithSuffix, person.deathPlace);
   const deceasedLabel = getDeceasedLabel(person);
@@ -91,10 +80,10 @@ function DateInfo({
           )}
         </span>
       )}
-      {!compact && person.birthDescription && (
+      {!compact && !hideBirthDate && person.birthDescription && (
         <span className={styles.eventDescription}>{person.birthDescription}</span>
       )}
-      {!compact && person.birthNotes && (
+      {!compact && !hideBirthDate && person.birthNotes && (
         <span className={styles.eventNote}>{person.birthNotes}</span>
       )}
       {deathDisplay && (
@@ -128,6 +117,7 @@ interface RelationshipSectionProps {
 }
 
 function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, hideNonVisible }: RelationshipSectionProps) {
+  const wsCtx = useOptionalWorkspaceTree();
   if (people.length === 0) return null;
 
   const visiblePeople = hideNonVisible
@@ -141,6 +131,10 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
       {visiblePeople.map((person) => {
         const isVisible = visiblePersonIds.has(person.id);
         const name = getDisplayName(person);
+        const personHideBirth = shouldHideBirthDate(person, {
+          hideBirthDateForFemale: wsCtx?.hideBirthDateForFemale,
+          hideBirthDateForMale: wsCtx?.hideBirthDateForMale,
+        });
 
         if (isVisible) {
           return (
@@ -155,7 +149,7 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
             >
               <div className={styles.relPersonInfo}>
                 <span className={styles.relPersonName}>{name}</span>
-                <DateInfo person={person} className={styles.relPersonDates} compact />
+                <DateInfo person={person} className={styles.relPersonDates} compact hideBirthDate={personHideBirth} />
               </div>
               <svg className={styles.relChevron} width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -175,7 +169,7 @@ function RelationshipSection({ title, people, visiblePersonIds, onPersonClick, h
           >
             <div className={styles.relPersonInfo}>
               <span className={styles.relPersonName}>{name}</span>
-              <DateInfo person={person} className={styles.relPersonDates} compact />
+              <DateInfo person={person} className={styles.relPersonDates} compact hideBirthDate={personHideBirth} />
             </div>
           </span>
         );
@@ -202,7 +196,12 @@ function RadaPersonItem({
   roleTag: string;
   onClick: (id: string) => void;
 }) {
+  const wsCtx = useOptionalWorkspaceTree();
   const name = getDisplayName(person);
+  const personHideBirth = shouldHideBirthDate(person, {
+    hideBirthDateForFemale: wsCtx?.hideBirthDateForFemale,
+    hideBirthDateForMale: wsCtx?.hideBirthDateForMale,
+  });
 
   // Rada-related persons are always clickable — they exist in the data and
   // their PersonDetail can be viewed even when they are not rendered on the
@@ -221,7 +220,7 @@ function RadaPersonItem({
           {name}
           <span className={styles.radaRoleTag}>{roleTag}</span>
         </span>
-        <DateInfo person={person} className={styles.relPersonDates} compact />
+        <DateInfo person={person} className={styles.relPersonDates} compact hideBirthDate={personHideBirth} />
       </div>
       <svg className={styles.relChevron} width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -420,6 +419,10 @@ export function PersonDetail({ personId }: PersonDetailProps) {
   const { preference: calendarPreference, setPreference: setCalendarPreference } = useCalendarPreference();
 
   const person = data?.individuals[personId];
+  const hideBirth = person ? shouldHideBirthDate(person, {
+    hideBirthDateForFemale: workspace?.hideBirthDateForFemale,
+    hideBirthDateForMale: workspace?.hideBirthDateForMale,
+  }) : false;
 
   const {
     formMode, setFormMode,
@@ -776,7 +779,7 @@ export function PersonDetail({ personId }: PersonDetailProps) {
       <div className={styles.hero}>
         <h2 className={styles.heroName}>{name}</h2>
         {person.kunya && <span className={styles.heroKunya}>{person.kunya}</span>}
-        <DateInfo person={person} className={styles.heroDates} calendarPreference={calendarPreference} />
+        <DateInfo person={person} className={styles.heroDates} calendarPreference={calendarPreference} hideBirthDate={hideBirth} />
         <div className={styles.heroActions}>
           {person.sex && (
             <span className={clsx(styles.heroSexBadge, {

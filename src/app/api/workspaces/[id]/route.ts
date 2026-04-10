@@ -16,6 +16,8 @@ const updateWorkspaceSchema = z.object({
   enableKunya: z.boolean().optional(),
   enableAuditLog: z.boolean().optional(),
   enableVersionControl: z.boolean().optional(),
+  hideBirthDateForFemale: z.boolean().optional(),
+  hideBirthDateForMale: z.boolean().optional(),
 });
 
 // GET /api/workspaces/[id] — Get workspace details

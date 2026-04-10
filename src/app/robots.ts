@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       disallow: ['/', '/auth/login?'],
-      allow: ['/', '/policy', '/islamic-gedcom', '/auth/login', '/auth/signup', '/auth/forgot-password'],
+      allow: ['/', '/policy', '/islamic-gedcom', '/features', '/auth/login', '/auth/signup', '/auth/forgot-password'],
     },
     sitemap: 'https://solalah.com/sitemap.xml',
   };

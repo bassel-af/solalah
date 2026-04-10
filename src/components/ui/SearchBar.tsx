@@ -2,8 +2,10 @@
 
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTree } from '@/context/TreeContext';
+import { useOptionalWorkspaceTree } from '@/context/WorkspaceTreeContext';
 import { getDisplayName } from '@/lib/gedcom';
 import { matchesSearch, searchRelevance } from '@/lib/utils/search';
+import { shouldHideBirthDate } from '@/lib/tree/birth-date-privacy';
 
 interface SearchMatch {
   id: string;
@@ -13,6 +15,7 @@ interface SearchMatch {
 
 export function SearchBar() {
   const { data, searchQuery, setSearchQuery, focusPersonId, setFocusPersonId } = useTree();
+  const wsContext = useOptionalWorkspaceTree();
   const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -26,8 +29,14 @@ export function SearchBar() {
       const name = getDisplayName(person);
       const searchText = person.kunya ? `${name} ${person.kunya}` : name;
       if (matchesSearch(searchText, searchQuery)) {
+        const hideBirth = shouldHideBirthDate(person, {
+          hideBirthDateForFemale: wsContext?.hideBirthDateForFemale,
+          hideBirthDateForMale: wsContext?.hideBirthDateForMale,
+        });
         let dates = '';
-        if (person.birth || person.death) {
+        if (hideBirth) {
+          if (person.death) dates = person.death;
+        } else if (person.birth || person.death) {
           dates = `${person.birth || '?'} - ${person.death || ''}`;
         }
         results.push({ id: person.id, name, dates });
@@ -36,7 +45,7 @@ export function SearchBar() {
 
     results.sort((a, b) => searchRelevance(a.name, searchQuery) - searchRelevance(b.name, searchQuery));
     return results;
-  }, [data, searchQuery]);
+  }, [data, searchQuery, wsContext?.hideBirthDateForFemale, wsContext?.hideBirthDateForMale]);
 
   // Auto-focus first match when search query changes
   useEffect(() => {

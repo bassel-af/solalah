@@ -27,6 +27,8 @@ interface Workspace {
   enableKunya?: boolean;
   enableAuditLog?: boolean;
   enableVersionControl?: boolean;
+  hideBirthDateForFemale?: boolean;
+  hideBirthDateForMale?: boolean;
 }
 
 interface Member {
@@ -272,7 +274,7 @@ export default function WorkspaceDetailPage() {
   }
 
   async function handleToggleFeature(
-    featureKey: 'enableUmmWalad' | 'enableRadaa' | 'enableKunya' | 'enableAuditLog' | 'enableVersionControl',
+    featureKey: 'enableUmmWalad' | 'enableRadaa' | 'enableKunya' | 'enableAuditLog' | 'enableVersionControl' | 'hideBirthDateForFemale' | 'hideBirthDateForMale',
     newVal: boolean,
   ) {
     if (!workspace) return;
@@ -506,6 +508,51 @@ export default function WorkspaceDetailPage() {
                 onChange={(val) => handleToggleFeature('enableVersionControl', val)}
                 disabled={!isAdmin || !(workspace.enableAuditLog ?? false)}
                 loading={togglingFeature === 'enableVersionControl'}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Privacy Settings */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>الخصوصية</h3>
+          </div>
+
+          <div className={styles.featureList}>
+            {/* Hide birth date for women */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span className={styles.featureName}>إخفاء تاريخ الميلاد للنساء</span>
+                </div>
+                <p className={styles.featureDescription}>
+                  إخفاء تاريخ الميلاد للنساء في شجرة العائلة — يبقى التاريخ محفوظاً في قاعدة البيانات
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={workspace.hideBirthDateForFemale ?? false}
+                onChange={(val) => handleToggleFeature('hideBirthDateForFemale', val)}
+                disabled={!isAdmin}
+                loading={togglingFeature === 'hideBirthDateForFemale'}
+              />
+            </div>
+
+            {/* Hide birth date for men */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span className={styles.featureName}>إخفاء تاريخ الميلاد للرجال</span>
+                </div>
+                <p className={styles.featureDescription}>
+                  إخفاء تاريخ الميلاد للرجال في شجرة العائلة — يبقى التاريخ محفوظاً في قاعدة البيانات
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={workspace.hideBirthDateForMale ?? false}
+                onChange={(val) => handleToggleFeature('hideBirthDateForMale', val)}
+                disabled={!isAdmin}
+                loading={togglingFeature === 'hideBirthDateForMale'}
               />
             </div>
           </div>

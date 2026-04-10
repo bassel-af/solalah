@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { useTree } from '@/context/TreeContext';
 import { useWorkspaceTree } from '@/context/WorkspaceTreeContext';
 import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH, findTopmostAncestor } from '@/lib/gedcom';
+import { shouldHideBirthDate } from '@/lib/tree/birth-date-privacy';
 import { PersonDetail } from './PersonDetail';
 import { matchesSearch, searchRelevance } from '@/lib/utils/search';
 import styles from './Sidebar.module.css';
@@ -35,7 +36,7 @@ export function Sidebar() {
     setMobileSidebarOpen,
   } = useTree();
 
-  const { description } = useWorkspaceTree();
+  const { description, hideBirthDateForFemale, hideBirthDateForMale } = useWorkspaceTree();
 
   const [searchFilter, setSearchFilter] = useState('');
   const [rootDropdownOpen, setRootDropdownOpen] = useState(false);
@@ -73,8 +74,11 @@ export function Sidebar() {
       if (person.isPrivate) continue;
 
       const name = getDisplayNameWithNasab(data, person, DEFAULT_NASAB_DEPTH);
+      const hideBirth = shouldHideBirthDate(person, { hideBirthDateForFemale, hideBirthDateForMale });
       let dates = '';
-      if (person.birth || person.death) {
+      if (hideBirth) {
+        if (person.death) dates = person.death;
+      } else if (person.birth || person.death) {
         dates = person.death ? `${person.birth || '?'} - ${person.death}` : (person.birth || '');
       }
       individuals.push({
