@@ -35,6 +35,12 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// Mock encryption — tests provide plaintext strings, not ciphertext
+vi.mock('@/lib/tree/encryption', () => ({
+  getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
+  decryptIndividualRow: vi.fn().mockImplementation((row: unknown) => row),
+}));
+
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------

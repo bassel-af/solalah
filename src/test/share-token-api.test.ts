@@ -46,6 +46,12 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+// Mock encryption — tests provide plaintext strings, not ciphertext
+vi.mock('@/lib/tree/encryption', () => ({
+  getWorkspaceKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
+  decryptIndividualRow: vi.fn().mockImplementation((row: unknown) => row),
+}));
+
 // Mock token generation
 vi.mock('@/lib/tree/branch-share-token', () => ({
   generateShareToken: () => 'brsh_test-token-123',
