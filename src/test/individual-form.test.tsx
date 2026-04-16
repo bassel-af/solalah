@@ -100,6 +100,34 @@ describe('IndividualForm', () => {
     })
   })
 
+  describe('sex required', () => {
+    it('disables submit button when sex is not selected in create mode', () => {
+      render(<IndividualForm {...defaultProps} initialData={{ givenName: 'أحمد' }} />)
+      const submit = screen.getByRole('button', { name: 'إضافة' }) as HTMLButtonElement
+      expect(submit.disabled).toBe(true)
+    })
+
+    it('enables submit button once sex is selected in create mode', () => {
+      render(<IndividualForm {...defaultProps} initialData={{ givenName: 'أحمد' }} />)
+      const maleRadio = screen.getByLabelText('ذكر') as HTMLInputElement
+      fireEvent.click(maleRadio)
+      const submit = screen.getByRole('button', { name: 'إضافة' }) as HTMLButtonElement
+      expect(submit.disabled).toBe(false)
+    })
+
+    it('disables submit button in edit mode when sex is empty', () => {
+      render(
+        <IndividualForm
+          {...defaultProps}
+          mode="edit"
+          initialData={{ givenName: 'أحمد', sex: '' }}
+        />,
+      )
+      const submit = screen.getByRole('button', { name: 'حفظ' }) as HTMLButtonElement
+      expect(submit.disabled).toBe(true)
+    })
+  })
+
   describe('lockedSex prop', () => {
     it('pre-selects male when lockedSex is M', () => {
       render(<IndividualForm {...defaultProps} lockedSex="M" />)

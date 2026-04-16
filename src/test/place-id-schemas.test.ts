@@ -81,6 +81,7 @@ describe('createIndividualSchema — placeId fields', () => {
   test('accepts birthPlaceId along with givenName', () => {
     const result = createIndividualSchema.safeParse({
       givenName: 'محمد',
+      sex: 'M',
       birthPlaceId: 'a0000000-0000-4000-a000-000000000001',
     })
     expect(result.success).toBe(true)

@@ -93,18 +93,28 @@ describe('createIndividualSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  test('accepts givenName alone', () => {
+  test('requires sex', () => {
     const result = createIndividualSchema.safeParse({ givenName: 'محمد' });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects null sex', () => {
+    const result = createIndividualSchema.safeParse({ givenName: 'محمد', sex: null });
+    expect(result.success).toBe(false);
+  });
+
+  test('accepts givenName with sex', () => {
+    const result = createIndividualSchema.safeParse({ givenName: 'محمد', sex: 'M' });
     expect(result.success).toBe(true);
   });
 
-  test('accepts fullName alone', () => {
-    const result = createIndividualSchema.safeParse({ fullName: 'محمد بن عبدالله' });
+  test('accepts fullName with sex', () => {
+    const result = createIndividualSchema.safeParse({ fullName: 'محمد بن عبدالله', sex: 'F' });
     expect(result.success).toBe(true);
   });
 
   test('defaults isPrivate to false', () => {
-    const result = createIndividualSchema.safeParse({ givenName: 'محمد' });
+    const result = createIndividualSchema.safeParse({ givenName: 'محمد', sex: 'M' });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.isPrivate).toBe(false);
@@ -133,6 +143,16 @@ describe('updateIndividualSchema', () => {
       expect(result.data.birthPlace).toBeNull();
       expect(result.data.notes).toBeNull();
     }
+  });
+
+  test('accepts valid sex value', () => {
+    const result = updateIndividualSchema.safeParse({ sex: 'F' });
+    expect(result.success).toBe(true);
+  });
+
+  test('rejects null sex', () => {
+    const result = updateIndividualSchema.safeParse({ sex: null });
+    expect(result.success).toBe(false);
   });
 });
 

@@ -346,7 +346,7 @@ describe('POST /api/workspaces/[id]/tree/individuals', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { fullName: 'محمد بن عبدالله السعيد' },
+      body: { fullName: 'محمد بن عبدالله السعيد', sex: 'M' },
     });
     const res = await POST(req, individualsParams);
 
@@ -450,7 +450,7 @@ describe('POST /api/workspaces/[id]/tree/individuals', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'سعيد' },
+      body: { givenName: 'سعيد', sex: 'M' },
     });
     await POST(req, individualsParams);
 
@@ -495,7 +495,7 @@ describe('POST /api/workspaces/[id]/tree/individuals', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', kunya: 'أبو أحمد' },
+      body: { givenName: 'محمد', sex: 'M', kunya: 'أبو أحمد' },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(201);
@@ -522,7 +522,7 @@ describe('POST /api/workspaces/[id]/tree/individuals', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', kunya: 'أبو أحمد' },
+      body: { givenName: 'محمد', sex: 'M', kunya: 'أبو أحمد' },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(201);
@@ -1010,7 +1010,7 @@ describe('POST individual — notes field', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', notes: 'ملاحظات جديدة' },
+      body: { givenName: 'محمد', sex: 'M', notes: 'ملاحظات جديدة' },
     });
     const res = await POST(req, individualsParams);
 
@@ -1025,7 +1025,7 @@ describe('POST individual — notes field', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', notes: 'a'.repeat(5001) },
+      body: { givenName: 'محمد', sex: 'M', notes: 'a'.repeat(5001) },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
@@ -1060,7 +1060,7 @@ describe('POST individual — birthNotes and deathNotes fields', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthNotes: 'ملاحظات الولادة', deathNotes: 'ملاحظات الوفاة' },
+      body: { givenName: 'محمد', sex: 'M', birthNotes: 'ملاحظات الولادة', deathNotes: 'ملاحظات الوفاة' },
     });
     const res = await POST(req, individualsParams);
 
@@ -1076,7 +1076,7 @@ describe('POST individual — birthNotes and deathNotes fields', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthNotes: 'a'.repeat(5001) },
+      body: { givenName: 'محمد', sex: 'M', birthNotes: 'a'.repeat(5001) },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
@@ -1088,7 +1088,7 @@ describe('POST individual — birthNotes and deathNotes fields', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', deathNotes: 'a'.repeat(5001) },
+      body: { givenName: 'محمد', sex: 'M', deathNotes: 'a'.repeat(5001) },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
@@ -1191,7 +1191,7 @@ describe('POST individual — birthDescription and deathDescription fields', () 
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthDescription: 'ولادة طبيعية', deathDescription: 'نوبة قلبية' },
+      body: { givenName: 'محمد', sex: 'M', birthDescription: 'ولادة طبيعية', deathDescription: 'نوبة قلبية' },
     });
     const res = await POST(req, individualsParams);
 
@@ -1207,7 +1207,7 @@ describe('POST individual — birthDescription and deathDescription fields', () 
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthDescription: 'a'.repeat(501) },
+      body: { givenName: 'محمد', sex: 'M', birthDescription: 'a'.repeat(501) },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
@@ -1219,7 +1219,7 @@ describe('POST individual — birthDescription and deathDescription fields', () 
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', deathDescription: 'a'.repeat(501) },
+      body: { givenName: 'محمد', sex: 'M', deathDescription: 'a'.repeat(501) },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
@@ -1322,7 +1322,7 @@ describe('POST individual — Hijri date fields', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthHijriDate: '1369/03/16', deathHijriDate: '1441/10/09' },
+      body: { givenName: 'محمد', sex: 'M', birthHijriDate: '1369/03/16', deathHijriDate: '1441/10/09' },
     });
     const res = await POST(req, individualsParams);
 
@@ -1338,7 +1338,7 @@ describe('POST individual — Hijri date fields', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthHijriDate: 'a'.repeat(51) },
+      body: { givenName: 'محمد', sex: 'M', birthHijriDate: 'a'.repeat(51) },
     });
     const res = await POST(req, individualsParams);
     expect(res.status).toBe(400);
@@ -1534,7 +1534,7 @@ describe('POST individual — null fields accepted in create', () => {
     const { POST } = await import('@/app/api/workspaces/[id]/tree/individuals/route');
     const req = makeRequest(`http://localhost:3000/api/workspaces/${wsId}/tree/individuals`, {
       method: 'POST',
-      body: { givenName: 'محمد', birthDate: null, birthPlace: null },
+      body: { givenName: 'محمد', sex: 'M', birthDate: null, birthPlace: null },
     });
     const res = await POST(req, individualsParams);
 

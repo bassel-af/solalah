@@ -264,6 +264,8 @@ export function IndividualForm({
 
   const effectiveLoading = branchLinkMode ? branchLinkLoading : isLoading;
   const branchLinkDisabled = branchLinkMode && (!branchToken.trim() || !selectedBranchPersonId);
+  const sexMissing = !branchLinkMode && !formData.sex;
+  const givenNameMissing = !branchLinkMode && mode === 'create' && !formData.givenName.trim();
 
   const actions = (
     <>
@@ -276,7 +278,7 @@ export function IndividualForm({
         type="submit"
         form="individual-form"
         loading={effectiveLoading}
-        disabled={effectiveLoading || (branchLinkMode ? branchLinkDisabled : (mode === 'create' && !formData.givenName.trim()))}
+        disabled={effectiveLoading || (branchLinkMode ? branchLinkDisabled : (givenNameMissing || sexMissing))}
       >
         {submitLabel}
       </Button>
@@ -450,7 +452,7 @@ export function IndividualForm({
 
         {/* Sex */}
         <div className={styles.fieldGroup}>
-          <span className={styles.label}>الجنس</span>
+          <span className={`${styles.label} ${styles.required}`}>الجنس</span>
           <div className={styles.radioGroup} role="radiogroup" aria-label="الجنس">
             <label className={styles.radioLabel}>
               <input

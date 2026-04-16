@@ -28,9 +28,10 @@ export const individualFieldsSchema = z.object({
   notes: z.string().max(5000).nullable().optional(),
 });
 
-/** Create individual — extends shared fields with name requirement + isPrivate default */
+/** Create individual — extends shared fields with name + sex requirement + isPrivate default */
 export const createIndividualSchema = individualFieldsSchema
   .extend({
+    sex: z.enum(['M', 'F']),
     isPrivate: z.boolean().optional().default(false),
   })
   .refine(
@@ -38,8 +39,10 @@ export const createIndividualSchema = individualFieldsSchema
     { message: 'يجب تقديم الاسم الأول أو الاسم الكامل' },
   );
 
-/** Update individual — uses shared fields directly (all optional, null allowed) */
-export const updateIndividualSchema = individualFieldsSchema;
+/** Update individual — shared fields, but sex (when provided) must be M or F, not null */
+export const updateIndividualSchema = individualFieldsSchema.extend({
+  sex: z.enum(['M', 'F']).optional(),
+});
 
 // ---------------------------------------------------------------------------
 // Family — shared event field definitions
