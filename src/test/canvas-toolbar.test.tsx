@@ -24,6 +24,8 @@ vi.mock('@/context/WorkspaceTreeContext', () => ({
     canEdit: false,
     isAdmin: false,
     enableAuditLog: false,
+    enableTreeExport: true,
+    allowMemberExport: true,
     refreshTree: vi.fn(),
     pointers: [],
   }),
@@ -107,5 +109,107 @@ describe('CanvasToolbar', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('menuitem')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Export visibility — separate describe block to swap the mock
+// ---------------------------------------------------------------------------
+
+describe('CanvasToolbar — export visibility', () => {
+  it('hides export button when enableTreeExport is false (even for admin)', async () => {
+    vi.resetModules();
+    vi.doMock('@/context/WorkspaceTreeContext', () => ({
+      useWorkspaceTree: () => ({
+        workspaceId: 'ws-123',
+        canEdit: true,
+        isAdmin: true,
+        enableAuditLog: false,
+        enableTreeExport: false,
+        allowMemberExport: true,
+        refreshTree: vi.fn(),
+        pointers: [],
+      }),
+    }));
+    vi.doMock('@/components/ui/UserNav/UserNav', () => ({
+      UserNav: () => <div data-testid="user-nav">UserNav</div>,
+    }));
+    vi.doMock('@/components/tree/RootBackChip/RootBackChip', () => ({
+      RootBackChip: () => <div data-testid="root-back-chip">RootBackChip</div>,
+    }));
+    vi.doMock('@/context/ToastContext', () => ({
+      useToast: () => ({ showToast: vi.fn() }),
+    }));
+    vi.doMock('@/lib/api/client', () => ({ apiFetch: vi.fn() }));
+
+    const { CanvasToolbar: FreshToolbar } = await import(
+      '@/components/tree/CanvasToolbar/CanvasToolbar'
+    );
+    render(<FreshToolbar workspaceSlug="test" workspaceId="ws-123" />);
+    expect(screen.queryByRole('button', { name: /تصدير ملف GEDCOM/i })).toBeNull();
+  });
+
+  it('hides export button for non-admin when allowMemberExport is false', async () => {
+    vi.resetModules();
+    vi.doMock('@/context/WorkspaceTreeContext', () => ({
+      useWorkspaceTree: () => ({
+        workspaceId: 'ws-123',
+        canEdit: false,
+        isAdmin: false,
+        enableAuditLog: false,
+        enableTreeExport: true,
+        allowMemberExport: false,
+        refreshTree: vi.fn(),
+        pointers: [],
+      }),
+    }));
+    vi.doMock('@/components/ui/UserNav/UserNav', () => ({
+      UserNav: () => <div data-testid="user-nav">UserNav</div>,
+    }));
+    vi.doMock('@/components/tree/RootBackChip/RootBackChip', () => ({
+      RootBackChip: () => <div data-testid="root-back-chip">RootBackChip</div>,
+    }));
+    vi.doMock('@/context/ToastContext', () => ({
+      useToast: () => ({ showToast: vi.fn() }),
+    }));
+    vi.doMock('@/lib/api/client', () => ({ apiFetch: vi.fn() }));
+
+    const { CanvasToolbar: FreshToolbar } = await import(
+      '@/components/tree/CanvasToolbar/CanvasToolbar'
+    );
+    render(<FreshToolbar workspaceSlug="test" workspaceId="ws-123" />);
+    expect(screen.queryByRole('button', { name: /تصدير ملف GEDCOM/i })).toBeNull();
+  });
+
+  it('shows export button for admin even when allowMemberExport is false', async () => {
+    vi.resetModules();
+    vi.doMock('@/context/WorkspaceTreeContext', () => ({
+      useWorkspaceTree: () => ({
+        workspaceId: 'ws-123',
+        canEdit: true,
+        isAdmin: true,
+        enableAuditLog: false,
+        enableTreeExport: true,
+        allowMemberExport: false,
+        refreshTree: vi.fn(),
+        pointers: [],
+      }),
+    }));
+    vi.doMock('@/components/ui/UserNav/UserNav', () => ({
+      UserNav: () => <div data-testid="user-nav">UserNav</div>,
+    }));
+    vi.doMock('@/components/tree/RootBackChip/RootBackChip', () => ({
+      RootBackChip: () => <div data-testid="root-back-chip">RootBackChip</div>,
+    }));
+    vi.doMock('@/context/ToastContext', () => ({
+      useToast: () => ({ showToast: vi.fn() }),
+    }));
+    vi.doMock('@/lib/api/client', () => ({ apiFetch: vi.fn() }));
+
+    const { CanvasToolbar: FreshToolbar } = await import(
+      '@/components/tree/CanvasToolbar/CanvasToolbar'
+    );
+    render(<FreshToolbar workspaceSlug="test" workspaceId="ws-123" />);
+    expect(screen.getByRole('button', { name: /تصدير ملف GEDCOM/i })).toBeInTheDocument();
   });
 });

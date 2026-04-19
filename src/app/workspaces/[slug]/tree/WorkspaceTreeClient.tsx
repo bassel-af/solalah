@@ -28,6 +28,8 @@ interface WorkspaceInfo {
   enableRadaa?: boolean;
   enableKunya?: boolean;
   enableAuditLog?: boolean;
+  enableTreeExport?: boolean;
+  allowMemberExport?: boolean;
   hideBirthDateForFemale?: boolean;
   hideBirthDateForMale?: boolean;
 }
@@ -131,6 +133,8 @@ function TreeContent({
         enableRadaa={workspace.enableRadaa}
         enableKunya={workspace.enableKunya}
         enableAuditLog={workspace.enableAuditLog}
+        enableTreeExport={workspace.enableTreeExport}
+        allowMemberExport={workspace.allowMemberExport}
         hideBirthDateForFemale={workspace.hideBirthDateForFemale}
         hideBirthDateForMale={workspace.hideBirthDateForMale}
         description={workspace.description}

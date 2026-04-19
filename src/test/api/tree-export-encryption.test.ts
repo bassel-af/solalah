@@ -214,6 +214,8 @@ describe('GET /api/workspaces/[id]/tree/export — Phase 10b decryption', () => 
       slug: 'test-family',
       encryptedKey: WRAPPED_KEY,
       enableKunya: true,
+      enableTreeExport: true,
+      allowMemberExport: true,
     });
 
     mockFamilyTreeFindUnique.mockResolvedValue(makeEncryptedTree());

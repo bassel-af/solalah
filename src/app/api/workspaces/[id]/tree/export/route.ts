@@ -26,6 +26,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { allowed, retryAfterSeconds } = treeExportLimiter.check(result.user.id)
   if (!allowed) return rateLimitResponse(retryAfterSeconds)
 
+  // Load export-permission toggles + slug in a single query.
+  // This is the server trust boundary — UI hiding elsewhere is purely UX.
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { slug: true, enableTreeExport: true, allowMemberExport: true },
+  })
+  if (!workspace || !workspace.enableTreeExport) {
+    return NextResponse.json(
+      { error: 'تصدير الشجرة غير متاح في هذه المساحة' },
+      { status: 403 },
+    )
+  }
+  const isAdmin = result.membership.role === 'workspace_admin'
+  if (!isAdmin && !workspace.allowMemberExport) {
+    return NextResponse.json(
+      { error: 'ليس لديك صلاحية تصدير الشجرة' },
+      { status: 403 },
+    )
+  }
+
   // Validate version query param
   const versionParam = request.nextUrl.searchParams.get('version') ?? '5.5.1'
   const parsed = versionSchema.safeParse(versionParam)
@@ -48,9 +68,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const pointers = await getActivePointersForWorkspace(workspaceId)
 
   const uniqueSourceIds = [...new Set(pointers.map((p) => p.sourceWorkspaceId))]
+
+  // Security (C3): before we decrypt any source workspace's tree, look up
+  // each source's `enableTreeExport` flag. A source workspace that has
+  // disabled export must not have its pointed subtree serialized into an
+  // exported GEDCOM of another workspace. The pointer is still valid for
+  // live canvas display — but serializing it out is a distinct capability
+  // that must be consented to by the source. Skipping with a `continue`
+  // below mirrors the existing "source tree missing" fallback, so the
+  // export still succeeds with the caller's native data + any remaining
+  // pointers whose source does allow export.
+  const sourceWorkspaceFlags = uniqueSourceIds.length
+    ? await prisma.workspace.findMany({
+        where: { id: { in: uniqueSourceIds } },
+        select: { id: true, enableTreeExport: true },
+      })
+    : []
+  const exportAllowedBySource = new Map(
+    sourceWorkspaceFlags.map((w) => [w.id, w.enableTreeExport]),
+  )
+  const allowedSourceIds = uniqueSourceIds.filter((wsId) =>
+    exportAllowedBySource.get(wsId) === true,
+  )
+
   const sourceTreeMap = new Map<string, GedcomData>()
   const sourceTreeEntries = await Promise.all(
-    uniqueSourceIds.map(async (wsId) => {
+    allowedSourceIds.map(async (wsId) => {
       const [srcTree, sourceKey] = await Promise.all([
         getTreeByWorkspaceId(wsId),
         getWorkspaceKey(wsId),
@@ -64,6 +107,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   for (const pointer of pointers) {
+    // Drop pointers whose source has export disabled (C3) — keeps behavior
+    // identical to "source tree missing": the pointed subtree is simply
+    // absent from the exported GEDCOM.
+    if (!exportAllowedBySource.get(pointer.sourceWorkspaceId)) continue
     const sourceData = sourceTreeMap.get(pointer.sourceWorkspaceId)
     if (!sourceData) continue
 
@@ -89,12 +136,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   // Serialize to GEDCOM (exporter skips _pointed records internally)
   const gedcomText = gedcomDataToGedcom(safeData, version)
 
-  // Fetch workspace slug for filename
-  const workspace = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
-    select: { slug: true },
-  })
-  const slug = workspace?.slug ?? 'family-tree'
+  const slug = workspace.slug ?? 'family-tree'
 
   return new NextResponse(gedcomText, {
     status: 200,

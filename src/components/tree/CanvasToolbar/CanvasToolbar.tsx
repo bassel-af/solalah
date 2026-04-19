@@ -29,7 +29,8 @@ export function CanvasToolbar({ workspaceSlug, workspaceId, undoRedo }: CanvasTo
   const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
-  const { enableAuditLog, isAdmin } = useWorkspaceTree();
+  const { enableAuditLog, isAdmin, enableTreeExport, allowMemberExport } = useWorkspaceTree();
+  const canExport = (enableTreeExport ?? true) && (isAdmin || (allowMemberExport ?? false));
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -120,6 +121,8 @@ export function CanvasToolbar({ workspaceSlug, workspaceId, undoRedo }: CanvasTo
             />
           </>
         )}
+        {canExport && (
+          <>
         <span className={styles.separator} />
         <div className={styles.exportWrapper} ref={exportRef}>
           <button
@@ -187,6 +190,8 @@ export function CanvasToolbar({ workspaceSlug, workspaceId, undoRedo }: CanvasTo
             </ul>
           )}
         </div>
+          </>
+        )}
         {enableAuditLog && isAdmin && (
           <>
             <span className={styles.separator} />

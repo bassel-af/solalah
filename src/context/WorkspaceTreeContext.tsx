@@ -28,6 +28,10 @@ interface WorkspaceTreeContextValue {
   enableKunya?: boolean;
   /** Whether the workspace has audit log feature enabled */
   enableAuditLog?: boolean;
+  /** Whether tree export is available in this workspace */
+  enableTreeExport?: boolean;
+  /** Whether non-admin members are allowed to export the tree */
+  allowMemberExport?: boolean;
   /** Whether to hide birth dates for female individuals */
   hideBirthDateForFemale?: boolean;
   /** Whether to hide birth dates for male individuals */
@@ -49,6 +53,8 @@ interface WorkspaceTreeProviderProps {
   enableRadaa?: boolean;
   enableKunya?: boolean;
   enableAuditLog?: boolean;
+  enableTreeExport?: boolean;
+  allowMemberExport?: boolean;
   hideBirthDateForFemale?: boolean;
   hideBirthDateForMale?: boolean;
   description?: string;
@@ -65,12 +71,14 @@ export function WorkspaceTreeProvider({
   enableRadaa,
   enableKunya,
   enableAuditLog,
+  enableTreeExport,
+  allowMemberExport,
   hideBirthDateForFemale,
   hideBirthDateForMale,
   description,
 }: WorkspaceTreeProviderProps) {
   return (
-    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, enableAuditLog, hideBirthDateForFemale, hideBirthDateForMale, description }}>
+    <WorkspaceTreeContext.Provider value={{ workspaceId, canEdit, isAdmin, refreshTree, pointers, enableUmmWalad, enableRadaa, enableKunya, enableAuditLog, enableTreeExport, allowMemberExport, hideBirthDateForFemale, hideBirthDateForMale, description }}>
       {children}
     </WorkspaceTreeContext.Provider>
   );

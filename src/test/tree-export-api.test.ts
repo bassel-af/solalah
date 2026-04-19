@@ -102,8 +102,15 @@ function mockNotMember() {
   mockMembershipFindUnique.mockResolvedValue(null);
 }
 
-function mockWorkspace(slug: string = 'test-family') {
-  mockWorkspaceFindUnique.mockResolvedValue({ slug });
+function mockWorkspace(
+  slug: string = 'test-family',
+  overrides: { enableTreeExport?: boolean; allowMemberExport?: boolean } = {},
+) {
+  mockWorkspaceFindUnique.mockResolvedValue({
+    slug,
+    enableTreeExport: overrides.enableTreeExport ?? true,
+    allowMemberExport: overrides.allowMemberExport ?? true,
+  });
 }
 
 const now = new Date();
@@ -441,7 +448,7 @@ describe('GET /api/workspaces/[id]/tree/export', () => {
     expect(contentDisposition).toBe('attachment; filename="saeed.ged"');
   });
 
-  test('uses fallback filename when workspace not found', async () => {
+  test('returns 403 when workspace row cannot be loaded (defense in depth)', async () => {
     mockAuth();
     mockMember();
     mockEmptyTree();
@@ -449,9 +456,7 @@ describe('GET /api/workspaces/[id]/tree/export', () => {
     const { GET } = await import('@/app/api/workspaces/[id]/tree/export/route');
     const req = makeRequest(`${baseUrl}?version=5.5.1`);
     const res = await GET(req, exportParams);
-    const contentDisposition = res.headers.get('content-disposition');
-    expect(contentDisposition).toContain('.ged');
-    expect(contentDisposition).toContain('attachment');
+    expect(res.status).toBe(403);
   });
 
   test('sets Cache-Control to private, no-store', async () => {
@@ -550,6 +555,72 @@ describe('GET /api/workspaces/[id]/tree/export', () => {
     // Structural data should remain
     expect(body).toContain('@ind-private@ INDI');
     expect(body).toContain('1 WIFE @ind-private@');
+  });
+
+  // ── Tree export visibility toggles ───────────────────────────────────
+
+  function mockAdmin() {
+    mockMembershipFindUnique.mockResolvedValue({
+      userId: fakeUser.id,
+      workspaceId: wsId,
+      role: 'workspace_admin',
+      permissions: [],
+    });
+  }
+
+  test('returns 403 for any user when enableTreeExport is false (member)', async () => {
+    mockAuth();
+    mockMember();
+    mockEmptyTree();
+    mockWorkspace('test-family', { enableTreeExport: false, allowMemberExport: true });
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/export/route');
+    const req = makeRequest(`${baseUrl}?version=5.5.1`);
+    const res = await GET(req, exportParams);
+    expect(res.status).toBe(403);
+  });
+
+  test('returns 403 for admin when enableTreeExport is false', async () => {
+    mockAuth();
+    mockAdmin();
+    mockEmptyTree();
+    mockWorkspace('test-family', { enableTreeExport: false, allowMemberExport: false });
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/export/route');
+    const req = makeRequest(`${baseUrl}?version=5.5.1`);
+    const res = await GET(req, exportParams);
+    expect(res.status).toBe(403);
+  });
+
+  test('returns 403 for member when allowMemberExport is false', async () => {
+    mockAuth();
+    mockMember();
+    mockEmptyTree();
+    mockWorkspace('test-family', { enableTreeExport: true, allowMemberExport: false });
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/export/route');
+    const req = makeRequest(`${baseUrl}?version=5.5.1`);
+    const res = await GET(req, exportParams);
+    expect(res.status).toBe(403);
+  });
+
+  test('returns 200 for admin when allowMemberExport is false (admin always allowed)', async () => {
+    mockAuth();
+    mockAdmin();
+    mockEmptyTree();
+    mockWorkspace('test-family', { enableTreeExport: true, allowMemberExport: false });
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/export/route');
+    const req = makeRequest(`${baseUrl}?version=5.5.1`);
+    const res = await GET(req, exportParams);
+    expect(res.status).toBe(200);
+  });
+
+  test('returns 200 for member when both toggles are on', async () => {
+    mockAuth();
+    mockMember();
+    mockEmptyTree();
+    mockWorkspace('test-family', { enableTreeExport: true, allowMemberExport: true });
+    const { GET } = await import('@/app/api/workspaces/[id]/tree/export/route');
+    const req = makeRequest(`${baseUrl}?version=5.5.1`);
+    const res = await GET(req, exportParams);
+    expect(res.status).toBe(200);
   });
 
   // ── 7.0 specific ─────────────────────────────────────────────────────

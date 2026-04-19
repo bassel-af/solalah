@@ -19,12 +19,15 @@ export default function PolicyPage() {
 
           <div className={styles.arabicBlock}>
             <p>
-              منصة سلالة هي منصة عائلية خاصة مصممة لتوثيق الأنساب والتواصل بين
-              أفراد العائلة. باستخدامك للمنصة، فإنك توافق على الشروط التالية:
+              منصة سلالة هي منصة للعائلات لتوثيق الأنساب والتواصل بين أفراد
+              العائلة. التسجيل مفتوح للجميع، ويمكن لأي مستخدم إنشاء مساحة
+              عائلية ودعوة أقاربه إليها. باستخدامك للمنصة، فإنك توافق على
+              الشروط التالية:
             </p>
             <p>
-              يقتصر استخدام المنصة على أفراد العائلة المدعوين فقط. يُمنع مشاركة
-              بيانات الدخول مع أشخاص غير مصرح لهم.
+              الوصول إلى كل مساحة عائلية يقتصر على الأعضاء المدعوين إليها من
+              قِبَل مدير المساحة. يُمنع مشاركة بيانات الدخول مع أشخاص غير مصرح
+              لهم.
             </p>
             <p>
               أنت مسؤول عن دقة المعلومات التي تضيفها إلى شجرة العائلة والمحتوى
@@ -43,13 +46,16 @@ export default function PolicyPage() {
           <div className={styles.englishBlock}>
             <p className={styles.englishLabel}>English</p>
             <p>
-              Solalah is a private family platform designed for genealogy
-              documentation and family communication. By using the platform, you
-              agree to the following terms:
+              Solalah is a family collaboration platform for documenting
+              genealogy and connecting family members. Sign-up is open to
+              anyone, and any registered user can create a family workspace and
+              invite their relatives. By using the platform, you agree to the
+              following terms:
             </p>
             <p>
-              Access is restricted to invited family members only. Sharing login
-              credentials with unauthorized individuals is prohibited.
+              Access to each family workspace is limited to members invited by
+              a workspace administrator. Sharing login credentials with
+              unauthorized individuals is prohibited.
             </p>
             <p>
               You are responsible for the accuracy of information you add to the

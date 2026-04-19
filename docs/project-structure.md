@@ -4,7 +4,7 @@ Last updated: 2026-04-05
 
 ## Overview
 
-This is a Next.js 15 + React 19 + TypeScript private family collaboration platform (evolving from a read-only genealogy viewer). The project uses the App Router with Turbopack, Prisma ORM with PostgreSQL, and Supabase Auth (self-hosted). It follows modern React conventions with a component-based architecture, Context API for state management, custom hooks for data fetching and UI logic, and CSS Modules for styling. The primary language is Arabic (RTL layout).
+This is a Next.js 15 + React 19 + TypeScript family collaboration platform (evolving from a read-only genealogy viewer). The project uses the App Router with Turbopack, Prisma ORM with PostgreSQL, and Supabase Auth (self-hosted). It follows modern React conventions with a component-based architecture, Context API for state management, custom hooks for data fetching and UI logic, and CSS Modules for styling. The primary language is Arabic (RTL layout).
 
 The project is at Phase 5 (Branch Pointers) with Phases 1-5 complete.
 

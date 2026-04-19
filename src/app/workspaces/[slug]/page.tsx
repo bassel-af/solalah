@@ -8,11 +8,23 @@ import { roleLabel } from '@/lib/workspace/labels';
 import { Spinner } from '@/components/ui/Spinner';
 import { UserNav } from '@/components/ui/UserNav';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import {
+  segmentFromFlags,
+  flagsFromSegment,
+  type ExportVisibilitySegment,
+} from '@/lib/workspace/tree-export-visibility';
 import { ShareBranchModal } from '@/components/workspace/ShareBranchModal/ShareBranchModal';
 import { ShareTokenList } from '@/components/workspace/ShareTokenList/ShareTokenList';
 import { IncomingPointerList } from '@/components/workspace/IncomingPointerList/IncomingPointerList';
 import type { GedcomData } from '@/lib/gedcom/types';
 import styles from './workspace.module.css';
+
+const TREE_EXPORT_SEGMENTS: readonly { value: ExportVisibilitySegment; label: string }[] = [
+  { value: 'off', label: 'معطّل' },
+  { value: 'admins-only', label: 'المديرون فقط' },
+  { value: 'all-members', label: 'جميع الأعضاء' },
+];
 
 interface Workspace {
   id: string;
@@ -27,6 +39,8 @@ interface Workspace {
   enableKunya?: boolean;
   enableAuditLog?: boolean;
   enableVersionControl?: boolean;
+  enableTreeExport?: boolean;
+  allowMemberExport?: boolean;
   hideBirthDateForFemale?: boolean;
   hideBirthDateForMale?: boolean;
 }
@@ -280,10 +294,11 @@ export default function WorkspaceDetailPage() {
     if (!workspace) return;
     setTogglingFeature(featureKey);
     try {
-      // When disabling audit log, also disable version control in the same request
-      const body = featureKey === 'enableAuditLog' && !newVal
-        ? { enableAuditLog: false, enableVersionControl: false }
-        : { [featureKey]: newVal };
+      // Parent → child dependency: disabling audit log also clears version control
+      const body: Record<string, boolean> =
+        featureKey === 'enableAuditLog' && !newVal
+          ? { enableAuditLog: false, enableVersionControl: false }
+          : { [featureKey]: newVal };
 
       const res = await apiFetch(`/api/workspaces/${workspace.id}`, {
         method: 'PATCH',
@@ -300,6 +315,28 @@ export default function WorkspaceDetailPage() {
             prev ? { ...prev, [featureKey]: newVal } : prev,
           );
         }
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setTogglingFeature(null);
+    }
+  }
+
+  async function handleTreeExportVisibilityChange(segment: ExportVisibilitySegment) {
+    if (!workspace) return;
+    const body = flagsFromSegment(segment);
+    // Reuse `togglingFeature` spinner slot — the SegmentedControl is keyed off
+    // 'enableTreeExport' since both fields move as one UI unit.
+    setTogglingFeature('enableTreeExport');
+    try {
+      const res = await apiFetch(`/api/workspaces/${workspace.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setWorkspace((prev) => (prev ? { ...prev, ...body } : prev));
       }
     } catch {
       // silently fail
@@ -464,6 +501,32 @@ export default function WorkspaceDetailPage() {
                 onChange={(val) => handleToggleFeature('enableKunya', val)}
                 disabled={!isAdmin}
                 loading={togglingFeature === 'enableKunya'}
+              />
+            </div>
+
+            {/* Tree export visibility — three-way segmented control */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span id="toggle-tree-export-label" className={styles.featureName}>
+                    تصدير الشجرة
+                  </span>
+                </div>
+                <p id="toggle-tree-export-desc" className={styles.featureDescription}>
+                  تحديد من يمكنه تصدير شجرة العائلة كملف GEDCOM.
+                </p>
+              </div>
+              <SegmentedControl
+                value={segmentFromFlags({
+                  enableTreeExport: workspace.enableTreeExport,
+                  allowMemberExport: workspace.allowMemberExport,
+                })}
+                options={TREE_EXPORT_SEGMENTS}
+                onChange={(val) => handleTreeExportVisibilityChange(val)}
+                disabled={!isAdmin}
+                loading={togglingFeature === 'enableTreeExport'}
+                aria-labelledby="toggle-tree-export-label"
+                aria-describedby="toggle-tree-export-desc"
               />
             </div>
 

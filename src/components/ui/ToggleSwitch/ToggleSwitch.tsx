@@ -7,6 +7,9 @@ interface ToggleSwitchProps {
   loading?: boolean;
   id?: string;
   className?: string;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
 }
 
 export function ToggleSwitch({
@@ -16,6 +19,9 @@ export function ToggleSwitch({
   loading = false,
   id,
   className,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
 }: ToggleSwitchProps) {
   const isDisabled = disabled || loading;
 
@@ -26,6 +32,9 @@ export function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       aria-busy={loading}
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      aria-describedby={ariaDescribedBy}
       disabled={isDisabled}
       className={[
         styles.track,
