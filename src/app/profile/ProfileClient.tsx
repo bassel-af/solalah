@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { createClient } from '@/lib/supabase/client';
+import { translateAuthError } from '@/lib/auth/translate-error';
 import { useToast } from '@/context/ToastContext';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -100,7 +101,7 @@ export default function ProfileClient() {
       { emailRedirectTo: `${window.location.origin}/auth/confirm` },
     );
     if (err) {
-      throw new Error(err.message);
+      throw new Error(translateAuthError(err.message));
     }
   }, []);
 
@@ -119,7 +120,7 @@ export default function ProfileClient() {
     // Current password is correct — update to new password
     const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
     if (updateErr) {
-      throw new Error(updateErr.message);
+      throw new Error(translateAuthError(updateErr.message));
     }
   }, [profile]);
 

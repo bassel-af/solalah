@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout/CenteredCardLayout';
 import { passwordStrengthSchema } from '@/lib/profile/validation';
+import { translateAuthError } from '@/lib/auth/translate-error';
 import {
   preloadZxcvbn,
   checkPasswordStrength,
@@ -79,7 +80,7 @@ export default function ResetPasswordPage() {
       const supabase = createClient();
       const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
       if (updateErr) {
-        setError(updateErr.message);
+        setError(translateAuthError(updateErr.message));
         return;
       }
       await supabase.auth.signOut();

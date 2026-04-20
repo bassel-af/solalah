@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { validateRedirectPath } from '@/lib/auth/validate-redirect';
+import { translateAuthError } from '@/lib/auth/translate-error';
 import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout';
 import { AcknowledgmentModal } from '@/components/AcknowledgmentModal/AcknowledgmentModal';
 import styles from '../auth.module.css';
@@ -52,7 +53,7 @@ function LoginForm() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setError(translateAuthError(error.message));
       setLoading(false);
       return;
     }
@@ -85,7 +86,7 @@ function LoginForm() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(translateAuthError(error.message));
       setMagicLinkStatus('idle');
       return;
     }

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { validateRedirectPath } from '@/lib/auth/validate-redirect';
 import { passwordStrengthSchema } from '@/lib/profile/validation';
+import { translateAuthError } from '@/lib/auth/translate-error';
 import { preloadZxcvbn, checkPasswordStrength } from '@/lib/profile/password-strength';
 import { CenteredCardLayout } from '@/components/ui/CenteredCardLayout';
 import { AcknowledgmentModal } from '@/components/AcknowledgmentModal/AcknowledgmentModal';
@@ -73,7 +74,7 @@ function SignupForm() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(translateAuthError(error.message));
       setLoading(false);
       return;
     }

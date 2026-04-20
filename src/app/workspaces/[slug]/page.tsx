@@ -423,36 +423,6 @@ export default function WorkspaceDetailPage() {
           </div>
 
           <div className={styles.featureList}>
-            {/* Umm Walad */}
-            <div className={styles.featureCard}>
-              <div className={styles.featureContent}>
-                <div className={styles.featureNameRow}>
-                  <span className={styles.featureName}>أم ولد</span>
-                  {(workspace.enableUmmWalad ?? false) && (
-                    <span className={styles.featureBadge}>مفعّل</span>
-                  )}
-                </div>
-                <p className={styles.featureDescription}>
-                  تسجيل علاقة أم الولد في سجلّات الأسرة — تصنيف شرعي يُميّز
-                  عن الزوجة الحرّة
-                </p>
-                <a
-                  href="/islamic-gedcom#umm-walad"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.featureLearnMore}
-                >
-                  تعرّف على المزيد
-                </a>
-              </div>
-              <ToggleSwitch
-                checked={workspace.enableUmmWalad ?? false}
-                onChange={(val) => handleToggleFeature('enableUmmWalad', val)}
-                disabled={!isAdmin}
-                loading={togglingFeature === 'enableUmmWalad'}
-              />
-            </div>
-
             {/* Rada'a */}
             <div className={styles.featureCard}>
               <div className={styles.featureContent}>
@@ -571,6 +541,36 @@ export default function WorkspaceDetailPage() {
                 onChange={(val) => handleToggleFeature('enableVersionControl', val)}
                 disabled={!isAdmin || !(workspace.enableAuditLog ?? false)}
                 loading={togglingFeature === 'enableVersionControl'}
+              />
+            </div>
+
+            {/* Umm Walad */}
+            <div className={styles.featureCard}>
+              <div className={styles.featureContent}>
+                <div className={styles.featureNameRow}>
+                  <span className={styles.featureName}>أم ولد</span>
+                  {(workspace.enableUmmWalad ?? false) && (
+                    <span className={styles.featureBadge}>مفعّل</span>
+                  )}
+                </div>
+                <p className={styles.featureDescription}>
+                  تسجيل علاقة أم الولد في سجلّات الأسرة — تصنيف شرعي يُميّز
+                  عن الزوجة الحرّة
+                </p>
+                <a
+                  href="/islamic-gedcom#umm-walad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.featureLearnMore}
+                >
+                  تعرّف على المزيد
+                </a>
+              </div>
+              <ToggleSwitch
+                checked={workspace.enableUmmWalad ?? false}
+                onChange={(val) => handleToggleFeature('enableUmmWalad', val)}
+                disabled={!isAdmin}
+                loading={togglingFeature === 'enableUmmWalad'}
               />
             </div>
           </div>
