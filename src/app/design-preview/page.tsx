@@ -168,6 +168,29 @@ const workspaces = [
   { name: 'آل الدالاتي', meta: 'حماة · تأسست ٢٠٢٤', members: 21, generations: 4, events: 56, active: false },
 ];
 
+// ---------- Sidebar mock tree nodes (background context) --------------
+
+type MockNode = { id: string; name: string; years: string; gender: 'male' | 'female'; x: number; y: number; size?: 'sm' | 'md' | 'lg' };
+
+const mockCanvasNodes: MockNode[] = [
+  { id: 'm1', name: 'إبراهيم', years: '١٨٤٥ – ١٩٢٢', gender: 'male', x: 42, y: 12, size: 'md' },
+  { id: 'm2', name: 'محمد السعيد', years: '١٨٧٠ – ١٩٤٥', gender: 'male', x: 44, y: 38, size: 'lg' },
+  { id: 'm3', name: 'رقيّة', years: '١٨٧٥ – ١٩٥٠', gender: 'female', x: 66, y: 38, size: 'md' },
+  { id: 'm4', name: 'أحمد', years: '١٩٠٢ – ١٩٧٨', gender: 'male', x: 28, y: 68, size: 'sm' },
+  { id: 'm5', name: 'خالد', years: '١٩٠٦ – ١٩٨٢', gender: 'male', x: 48, y: 68, size: 'sm' },
+  { id: 'm6', name: 'مريم', years: '١٩١٠ – ١٩٩٠', gender: 'female', x: 68, y: 68, size: 'sm' },
+  { id: 'm7', name: 'يوسف', years: '١٩٣٥', gender: 'male', x: 84, y: 40, size: 'sm' },
+];
+
+// ---------- Relations in person sidebar --------------------------------
+
+const sidebarChildren = [
+  { id: 'c1', name: 'أحمد', gender: 'male' as const },
+  { id: 'c2', name: 'خالد', gender: 'male' as const },
+  { id: 'c3', name: 'فاطمة', gender: 'female' as const },
+  { id: 'c4', name: 'حسن', gender: 'male' as const },
+];
+
 // ======================================================================
 
 export default function DesignPreviewPage() {
@@ -326,6 +349,455 @@ export default function DesignPreviewPage() {
 
             <div className={styles.treeStageCaption}>
               مَيَلانٌ خفيف · ١٠°
+            </div>
+          </div>
+        </section>
+
+        {/* ============ PERSON SIDEBAR ============ */}
+        <section className={styles.sidebarSection}>
+          <div className={styles.sectionHead}>
+            <div>
+              <span className={styles.sectionKicker}>لوحة الفرد</span>
+              <h2 className={styles.sectionTitle}>كلُّ حياةٍ في صفحة</h2>
+            </div>
+            <p className={styles.sectionHint}>
+              عند اختيار فردٍ من الشجرة تنزلق لوحتُه الجانبيّة بتفاصيله الكاملة:
+              المولد، الوفاة، الذريّة، والسيرة.
+            </p>
+          </div>
+
+          <div className={styles.sidebarStage}>
+            {/* faded canvas context behind the sidebar */}
+            <div className={styles.sidebarCanvas} aria-hidden>
+              <svg className={styles.sidebarCanvasLines} viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M 44 18 C 44 30, 28 54, 28 64" />
+                <path d="M 44 18 C 44 30, 48 54, 48 64" />
+                <path d="M 44 18 C 44 30, 68 54, 68 64" />
+                <path d="M 56 40 C 62 40, 66 40, 66 40" />
+                <path d="M 44 40 C 60 40, 80 40, 84 40" />
+              </svg>
+              {mockCanvasNodes.map((n) => (
+                <div
+                  key={n.id}
+                  className={`${styles.mockNode} ${n.size === 'lg' ? styles.mockNodeLg : ''} ${n.size === 'md' ? styles.mockNodeMd : ''}`}
+                  style={{ left: `${n.x}%`, top: `${n.y}%` }}
+                >
+                  <div className={`${styles.mockAvatar} ${n.gender === 'female' ? styles.female : ''}`}>
+                    <NodeFigure gender={n.gender} />
+                  </div>
+                  <div className={styles.mockNodeText}>
+                    <div>{n.name}</div>
+                    <span>{n.years}</span>
+                  </div>
+                </div>
+              ))}
+              <div className={styles.sidebarCanvasVignette} />
+            </div>
+
+            <aside className={styles.personSidebar} aria-label="تفاصيل الفرد">
+              <button type="button" className={styles.sidebarClose} aria-label="إغلاق">×</button>
+
+              <header className={styles.personHeader}>
+                <div className={styles.personAvatarLarge}>
+                  <FigureMan />
+                  <span className={styles.personBadge}>الجدّ الأوّل</span>
+                </div>
+                <h3 className={styles.personName}>محمد السعيد</h3>
+                <div className={styles.personKunya}>أبو أحمد</div>
+                <div className={styles.personDates}>
+                  <span>١٢٨٧ – ١٣٦٤ هـ</span>
+                  <span className={styles.dateDivider}>◆</span>
+                  <span>١٨٧٠ – ١٩٤٥ م</span>
+                </div>
+              </header>
+
+              <nav className={styles.personTabs} role="tablist">
+                <button type="button" className={`${styles.personTab} ${styles.personTabActive}`}>التفاصيل</button>
+                <button type="button" className={styles.personTab}>الصِّلات</button>
+                <button type="button" className={styles.personTab}>الأحداث</button>
+                <button type="button" className={styles.personTab}>السجلّ</button>
+              </nav>
+
+              <div className={styles.personBody}>
+                <section className={styles.personField}>
+                  <div className={styles.personFieldLabel}>الميلاد</div>
+                  <div className={styles.personFieldValue}>حلب · الحيّ القديم</div>
+                  <div className={styles.personFieldHint}>١٢٨٧ هـ ≡ ١٨٧٠ م</div>
+                </section>
+
+                <section className={styles.personField}>
+                  <div className={styles.personFieldLabel}>الوفاة</div>
+                  <div className={styles.personFieldValue}>دمشق · حيّ الصّالحيّة</div>
+                  <div className={styles.personFieldHint}>١٣٦٤ هـ ≡ ١٩٤٥ م</div>
+                </section>
+
+                <section className={styles.personField}>
+                  <div className={styles.personFieldLabel}>الزّوجات</div>
+                  <div className={styles.relationRow}>
+                    <div className={styles.relationChip}>
+                      <span className={styles.relationAvatar}><FigureWoman /></span>
+                      فاطمة الدبّاغ
+                    </div>
+                    <div className={styles.relationChip}>
+                      <span className={styles.relationAvatar}><FigureWoman /></span>
+                      عائشة الدالاتي
+                    </div>
+                  </div>
+                </section>
+
+                <section className={styles.personField}>
+                  <div className={styles.personFieldLabel}>الذرّيّة · {sidebarChildren.length}</div>
+                  <div className={styles.relationRow}>
+                    {sidebarChildren.map((c) => (
+                      <div key={c.id} className={styles.relationChip}>
+                        <span className={styles.relationAvatar}>
+                          <NodeFigure gender={c.gender} />
+                        </span>
+                        {c.name}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className={styles.personField}>
+                  <div className={styles.personFieldLabel}>سيرةٌ مختصرة</div>
+                  <p className={styles.personBio}>
+                    من أعيان تجّار حلب، رحل بأسرته إلى دمشق سنة ١٣٢٤ هـ،
+                    وأسّس بيت السعيد الكبير في حيّ الصّالحيّة. شهِدَ له أهلُ بلده
+                    بكرم الضّيافة وصِدق المعاملة.
+                  </p>
+                </section>
+
+                <section className={styles.personField}>
+                  <div className={styles.personFieldLabel}>وسوم</div>
+                  <div className={styles.tagRow}>
+                    <span className={styles.tagGold}>جدّ الأسرة</span>
+                    <span className={styles.tagEmerald}>موثّق</span>
+                    <span className={styles.tagMuted}>عاش ٧٥ عاماً</span>
+                  </div>
+                </section>
+              </div>
+
+              <footer className={styles.personActions}>
+                <button type="button" className={styles.btnEmerald}>تعديل الفرد</button>
+                <button type="button" className={styles.btnGhostSmall} aria-label="إضافة ابن">＋ ابن</button>
+                <button type="button" className={styles.btnGhostSmall} aria-label="حذف">⌫</button>
+              </footer>
+            </aside>
+          </div>
+        </section>
+
+        {/* ============ FORMS ============ */}
+        <section className={styles.formsSection}>
+          <div className={styles.sectionHead}>
+            <div>
+              <span className={styles.sectionKicker}>الاستمارات</span>
+              <h2 className={styles.sectionTitle}>تحريرٌ هادئ، دقيق</h2>
+            </div>
+            <p className={styles.sectionHint}>
+              حقولٌ مضيئة بحدودٍ ذهبيّة على الإلتقاط، توأمةٌ للتواريخ الهجريّة والميلاديّة،
+              ومفاتيحُ تبديلٍ تُشعرُك بصقل الجوهر.
+            </p>
+          </div>
+
+          <div className={styles.formGrid}>
+            <form className={styles.formPanel} onSubmit={(e) => e.preventDefault()}>
+              <div className={styles.formPanelHeader}>
+                <span className={styles.formPanelKicker}>تعديل فرد</span>
+                <h3 className={styles.formPanelTitle}>محمد السعيد</h3>
+                <div className={styles.formPanelHint}>آخر تعديل: قبل ٣ أيّام</div>
+              </div>
+
+              <div className={styles.formBody}>
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>الاسم الكامل</label>
+                  <input className={styles.formInput} defaultValue="محمد السعيد" />
+                </div>
+
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>الكُنية</label>
+                  <input className={styles.formInput} defaultValue="أبو أحمد" placeholder="اختياري" />
+                  <div className={styles.formHint}>
+                    <span className={styles.formHintDot} />
+                    الكُنية اختياريّة وتُعرض في البطاقة
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>الجِنس</label>
+                  <div className={styles.segmented}>
+                    <button type="button" className={`${styles.segment} ${styles.segmentActive}`}>ذكر</button>
+                    <button type="button" className={styles.segment}>أنثى</button>
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>تاريخ الميلاد</label>
+                  <div className={styles.formRowSplit}>
+                    <div className={styles.formInputGroup}>
+                      <input className={styles.formInput} defaultValue="١٢٨٧/٠٤/١٢" />
+                      <span className={styles.formInputSuffix}>هـ</span>
+                    </div>
+                    <div className={styles.formInputGroup}>
+                      <input className={styles.formInput} defaultValue="١٨٧٠/٠٣/٠٨" />
+                      <span className={styles.formInputSuffix}>م</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>مكان الميلاد</label>
+                  <div className={styles.autocomplete}>
+                    <input className={styles.formInput} defaultValue="حل" placeholder="ابحث عن مدينة…" />
+                    <ul className={styles.autocompleteList} role="listbox">
+                      <li className={styles.autocompleteActive} role="option" aria-selected="true">
+                        <span>حلب</span>
+                        <span className={styles.autocompleteHint}>سوريا · محافظة حلب</span>
+                      </li>
+                      <li role="option">
+                        <span>حلبا</span>
+                        <span className={styles.autocompleteHint}>لبنان · عكّار</span>
+                      </li>
+                      <li role="option">
+                        <span>حلحول</span>
+                        <span className={styles.autocompleteHint}>فلسطين · الخليل</span>
+                      </li>
+                      <li className={styles.autocompleteAddNew} role="option">
+                        ＋ إضافة «حل» كمكانٍ خاصّ بالعائلة
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <label className={styles.formLabel}>سيرةٌ مختصرة</label>
+                  <textarea
+                    className={styles.formTextarea}
+                    rows={4}
+                    defaultValue="من أعيان تجّار حلب، رحل بأسرته إلى دمشق سنة ١٣٢٤ هـ…"
+                  />
+                  <div className={styles.formCharCount}>٥٢ / ١٠٠٠ حرف</div>
+                </div>
+
+                <div className={styles.formToggles}>
+                  <label className={styles.switch}>
+                    <input type="checkbox" defaultChecked />
+                    <span className={styles.switchTrack}><span className={styles.switchThumb} /></span>
+                    <span>متوفّى</span>
+                  </label>
+                  <label className={styles.switch}>
+                    <input type="checkbox" />
+                    <span className={styles.switchTrack}><span className={styles.switchThumb} /></span>
+                    <span>خصوصيّة</span>
+                  </label>
+                  <label className={styles.switch}>
+                    <input type="checkbox" />
+                    <span className={styles.switchTrack}><span className={styles.switchThumb} /></span>
+                    <span>أمّ ولد</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.btnPrimary}>حفظ التعديلات</button>
+                <button type="button" className={styles.btnGhost}>إلغاء</button>
+                <div className={styles.formStatus}>
+                  <span className={styles.formStatusDot} />
+                  مُسوّدةٌ محفوظةٌ تلقائيّاً
+                </div>
+              </div>
+            </form>
+
+            <aside className={styles.formSideHints}>
+              <div className={styles.hintCard}>
+                <span className={styles.hintIcon}>☪</span>
+                <h4 className={styles.hintTitle}>التقاويم المزدوجة</h4>
+                <p className={styles.hintBody}>
+                  أدخلِ التاريخ بالهجريّ أو الميلاديّ أو كليهما — كما في سجلّات العائلة.
+                </p>
+              </div>
+              <div className={styles.hintCard}>
+                <span className={styles.hintIcon}>✦</span>
+                <h4 className={styles.hintTitle}>الأماكن المحفوظة</h4>
+                <p className={styles.hintBody}>
+                  قاعدةٌ عالميّة من المدن، ويمكنك إضافة أماكن خاصّة بعائلتك كـ«دار الجدّ».
+                </p>
+              </div>
+              <div className={styles.hintCard}>
+                <span className={styles.hintIcon}>✧</span>
+                <h4 className={styles.hintTitle}>الكُنية المستحبّة</h4>
+                <p className={styles.hintBody}>
+                  الكُنية (أبو فلان / أمّ فلان) تُبرز الفرد في الشجرة وتُستخدم في النَّسَب.
+                </p>
+              </div>
+              <div className={styles.hintCard}>
+                <span className={styles.hintIcon}>⌘</span>
+                <h4 className={styles.hintTitle}>اختصارات سريعة</h4>
+                <p className={styles.hintBody}>
+                  <kbd className={styles.kbd}>⌘</kbd>
+                  <kbd className={styles.kbd}>S</kbd>
+                  للحفظ،&nbsp;
+                  <kbd className={styles.kbd}>⌘</kbd>
+                  <kbd className={styles.kbd}>Z</kbd>
+                  للتراجع.
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        {/* ============ MODALS ============ */}
+        <section className={styles.modalsSection}>
+          <div className={styles.sectionHead}>
+            <div>
+              <span className={styles.sectionKicker}>النّوافذ الطّافية</span>
+              <h2 className={styles.sectionTitle}>قراراتٌ مصونةٌ بحاجز</h2>
+            </div>
+            <p className={styles.sectionHint}>
+              طبقةٌ ضبابيّةٌ ثقيلة تُبرز القرار وتفصله عن المشهد.
+              اللّون الذّهبيّ للحالات الاعتياديّة، والكَهرمانيّ للتحذيرات.
+            </p>
+          </div>
+
+          <div className={styles.modalsStage}>
+            <div className={styles.modalsBackdrop} aria-hidden>
+              <div className={styles.modalsBackdropGrid} />
+              {mockCanvasNodes.slice(0, 4).map((n) => (
+                <div
+                  key={n.id}
+                  className={`${styles.mockNode} ${styles.mockNodeFaded}`}
+                  style={{ left: `${n.x}%`, top: `${n.y + 10}%` }}
+                >
+                  <div className={`${styles.mockAvatar} ${n.gender === 'female' ? styles.female : ''}`}>
+                    <NodeFigure gender={n.gender} />
+                  </div>
+                  <div className={styles.mockNodeText}>
+                    <div>{n.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.modalsRow}>
+              {/* --- Modal 1: Cascade delete (danger) --- */}
+              <div className={`${styles.modal} ${styles.modalDanger}`} role="dialog" aria-modal="true">
+                <div className={styles.modalIcon}>
+                  <svg viewBox="0 0 24 24" aria-hidden>
+                    <path d="M12 3 L22 20 L2 20 Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                    <path d="M12 10 L12 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <circle cx="12" cy="17" r="0.9" fill="currentColor" />
+                  </svg>
+                </div>
+                <div className={styles.modalHead}>
+                  <span className={styles.modalKicker}>تحذير — قرارٌ نهائيّ</span>
+                  <h3 className={styles.modalTitle}>حَذْفُ سلسلةٍ كاملة</h3>
+                  <p className={styles.modalLead}>
+                    سيؤدّي حذفُ «أحمد السعيد» إلى إزالة <strong>١٢ فرداً</strong> من ذرّيّته،
+                    وكسرِ مؤشّرَيْن خارجيّيْن من عائلة الدبّاغ.
+                  </p>
+                </div>
+
+                <div className={styles.modalAffected}>
+                  <div className={styles.modalSubLabel}>الأسماء المتأثّرة</div>
+                  <div className={styles.modalChips}>
+                    <span className={styles.nameChip}>يوسف</span>
+                    <span className={styles.nameChip}>ليلى</span>
+                    <span className={styles.nameChip}>سامي</span>
+                    <span className={styles.nameChip}>نور</span>
+                    <span className={styles.nameChip}>حسن</span>
+                    <span className={styles.nameChip}>رقيّة</span>
+                    <span className={styles.nameChipMuted}>+٦ أسماء</span>
+                  </div>
+                </div>
+
+                <div className={styles.modalConfirm}>
+                  <label className={styles.modalConfirmLabel}>
+                    اكتب <strong>«أحمد السعيد»</strong> للتأكيد:
+                  </label>
+                  <input className={`${styles.formInput} ${styles.formInputDanger}`} placeholder="أحمد السعيد" />
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button type="button" className={styles.btnDanger} disabled>
+                    حَذْفٌ نهائيّ
+                  </button>
+                  <button type="button" className={styles.btnGhost}>إلغاء</button>
+                </div>
+              </div>
+
+              {/* --- Modal 2: Share branch --- */}
+              <div className={styles.modal} role="dialog" aria-modal="true">
+                <div className={`${styles.modalIcon} ${styles.modalIconGold}`}>
+                  <svg viewBox="0 0 24 24" aria-hidden>
+                    <circle cx="6" cy="12" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                    <circle cx="18" cy="6" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                    <circle cx="18" cy="18" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                    <path d="M8 11 L16 7 M8 13 L16 17" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                </div>
+                <div className={styles.modalHead}>
+                  <span className={styles.modalKicker}>مؤشِّر فرع</span>
+                  <h3 className={styles.modalTitle}>مشاركةُ فرعٍ مع عائلةٍ صديقة</h3>
+                  <p className={styles.modalLead}>
+                    أنشئ رمزاً آمناً يسمح لعائلة الدبّاغ برؤية ذرّيّة «محمد السعيد»
+                    كجزءٍ من شجرتها — مع تحكُّمٍ كاملٍ في العُمق والصلاحية.
+                  </p>
+                </div>
+
+                <div className={styles.shareTokenBox}>
+                  <div className={styles.shareTokenLabel}>الرّمز الحاليّ</div>
+                  <div className={styles.shareTokenValue}>
+                    <span className={styles.shareTokenPrefix}>sl-branch-</span>
+                    <code>a7f3b2e9c4d1</code>
+                    <button type="button" className={styles.shareCopyBtn} aria-label="نسخ">
+                      نسخ
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.modalSettings}>
+                  <div className={styles.modalSettingRow}>
+                    <div>
+                      <div className={styles.modalSettingLabel}>عُمق الفرع</div>
+                      <div className={styles.modalSettingHint}>كم جيلاً تَحت الجذر</div>
+                    </div>
+                    <div className={styles.depthField}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className={styles.depthInput}
+                        defaultValue="٥"
+                        aria-label="عدد الأجيال"
+                      />
+                      <span className={styles.depthSuffix}>أجيال</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.modalSettingRow}>
+                    <div>
+                      <div className={styles.modalSettingLabel}>الصلاحية</div>
+                      <div className={styles.modalSettingHint}>ينتهي الرّمز تلقائيّاً</div>
+                    </div>
+                    <input className={styles.formInputSm} defaultValue="٢٠٢٧/٠٤/٢٠" />
+                  </div>
+
+                  <div className={styles.modalSettingRow}>
+                    <div>
+                      <div className={styles.modalSettingLabel}>ربطُ الأطفال بالمرسى</div>
+                      <div className={styles.modalSettingHint}>يظهرون أبناءً للمرسى المُختار</div>
+                    </div>
+                    <label className={styles.switch}>
+                      <input type="checkbox" defaultChecked />
+                      <span className={styles.switchTrack}><span className={styles.switchThumb} /></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button type="button" className={styles.btnPrimary}>إنشاءُ الرّمز</button>
+                  <button type="button" className={styles.btnGhost}>إغلاق</button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
