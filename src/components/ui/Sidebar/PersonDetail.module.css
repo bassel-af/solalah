@@ -710,20 +710,20 @@
 }
 
 .relPerson.deceased .relPersonName {
-  color: rgba(232, 223, 200, 0.5);
+  color: rgba(232, 223, 200, 0.85);
 }
 
 .relPerson.deceased .relPersonDates {
-  color: rgba(232, 223, 200, 0.3);
+  color: rgba(232, 223, 200, 0.6);
 }
 
 .relPerson.deceased.male::before {
-  background: rgba(46, 152, 118, 0.25);
+  background: rgba(46, 152, 118, 0.4);
   box-shadow: none;
 }
 
 .relPerson.deceased.female::before {
-  background: rgba(200, 168, 101, 0.25);
+  background: rgba(200, 168, 101, 0.4);
   box-shadow: none;
 }
 

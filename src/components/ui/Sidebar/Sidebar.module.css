@@ -368,25 +368,22 @@
 }
 
 /* Deceased person */
-.person.deceased {
-  opacity: 0.55;
-}
-
 .person.deceased .personName {
-  color: rgba(232, 223, 200, 0.45);
+  color: rgba(232, 223, 200, 0.58);
+  font-weight: 400;
 }
 
 .person.deceased .personDates {
-  color: rgba(232, 223, 200, 0.25);
+  color: rgba(232, 223, 200, 0.38);
 }
 
 .person.deceased.male::before {
-  background: rgba(46, 152, 118, 0.25);
+  background: rgba(46, 152, 118, 0.28);
   box-shadow: none;
 }
 
 .person.deceased.female::before {
-  background: rgba(210, 139, 139, 0.25);
+  background: rgba(210, 139, 139, 0.28);
   box-shadow: none;
 }
 

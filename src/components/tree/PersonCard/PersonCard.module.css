@@ -64,22 +64,24 @@
 
 /* Deceased person — softer parchment */
 .person.deceased {
-  background: #ede6d0;
-  opacity: 0.78;
+  background: #d8cdaa;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .person.deceased .personName {
-  color: rgba(26, 31, 46, 0.55);
+  color: var(--heritage-midnight);
 }
 
 .person.deceased .personDates {
-  color: rgba(26, 31, 46, 0.4);
+  color: rgba(26, 31, 46, 0.6);
 }
 
 .person.deceased.male {
-  border-top-color: rgba(26, 93, 74, 0.5);
+  border-top-color: rgba(26, 93, 74, 0.55);
 }
 
 .person.deceased.female {
-  border-top-color: rgba(200, 168, 101, 0.5);
+  border-top-color: rgba(200, 168, 101, 0.55);
 }
