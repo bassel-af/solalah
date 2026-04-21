@@ -226,7 +226,7 @@ function TreeShell({ workspaceSlug, workspaceId }: { workspaceSlug: string; work
 }
 
 function EmptyTreeWithForm({ canEdit }: { canEdit: boolean }) {
-  const { workspaceId, refreshTree } = useWorkspaceTree();
+  const { workspaceId, refreshTree, enableKunya } = useWorkspaceTree();
   const { showToast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -334,6 +334,7 @@ function EmptyTreeWithForm({ canEdit }: { canEdit: boolean }) {
           onClose={handleClose}
           isLoading={formLoading}
           error={formError}
+          enableKunya={enableKunya}
         />
       )}
     </>
