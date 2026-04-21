@@ -17,7 +17,7 @@ import { resolveGedcomPlaces } from '../src/lib/tree/seed-place-mapping';
 import { seedPlaces } from '../src/lib/seed/seed-places';
 import type { PlacesData } from '../src/lib/seed/seed-places';
 
-const ADMIN_EMAIL = 'bassel@autoflowa.com';
+const ADMIN_EMAIL = 'bassel@gynat.com';
 const PLACES_FILE = path.resolve(__dirname, '../prisma/seed-data/places.json');
 
 async function buildPlaceNameToIdMap(prisma: PrismaClient): Promise<Map<string, string>> {

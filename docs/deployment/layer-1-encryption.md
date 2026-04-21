@@ -9,20 +9,20 @@ Store all gynat runtime state (PostgreSQL data, `.env` files, application code, 
 | Item | Value |
 |---|---|
 | Server | `general-server` (Hetzner Cloud, Ubuntu 24.04.3 LTS) |
-| Volume | `gynat-encrypted`, 20 GB, attached as `/dev/sdb` |
+| Volume | `jeenat-encrypted`, 20 GB, attached as `/dev/sdb` |
 | Stable device path | `/dev/disk/by-id/scsi-0HC_Volume_105360026` |
 | LUKS UUID | `d990223d-1c3d-4d7b-b5fe-f99d2a17d172` |
 | LUKS format | LUKS2, AES-256-XTS, Argon2id |
 | Keyfile | `/root/.gynat-luks.key` (512 bytes, mode 600) |
-| Mapper | `/dev/mapper/gynat-encrypted` |
-| Filesystem | ext4, label `gynat` |
+| Mapper | `/dev/mapper/jeenat-encrypted` (internal name, not renamed) |
+| Filesystem | ext4, label `jeenat` (internal, not renamed) |
 | Mount point | `/mnt/encrypted` |
 | Directory skeleton | `/mnt/encrypted/gynat/{app,pm2,postgres,backups}` |
 | Auto-unlock | `/etc/crypttab` (keyfile + `luks,discard`) |
 | Auto-mount | `/etc/fstab` (`defaults,nofail`) |
 | Reboot-verified | Yes |
 
-The mapper, filesystem label, and keyfile were originally created with the name `jeenat`. They were renamed to `gynat` in April 2026 when the project was rebranded from Solalah → Gynat.
+When the project rebranded Solalah → Gynat in April 2026, only user-visible paths were renamed: the mount-point subdirectory `/mnt/encrypted/jeenat/` → `/mnt/encrypted/gynat/` and the keyfile `/root/.jeenat-luks.key` → `/root/.gynat-luks.key` (with `/etc/crypttab` updated accordingly). The LUKS mapper name `jeenat-encrypted` and fs label `jeenat` were kept as-is — they're internal identifiers and renaming them would require `umount` + `luksClose` + fstab surgery for zero functional gain.
 
 ## Commands executed
 
@@ -35,26 +35,26 @@ chmod 600 /root/.gynat-luks.key
 cryptsetup luksFormat --type luks2 --batch-mode \
   --key-file /root/.gynat-luks.key /dev/sdb
 
-# 3. Open LUKS volume
+# 3. Open LUKS volume (mapper name is internal; we kept the original "jeenat-encrypted")
 cryptsetup luksOpen --key-file /root/.gynat-luks.key \
-  /dev/sdb gynat-encrypted
+  /dev/sdb jeenat-encrypted
 
 # 4. Create filesystem
-mkfs.ext4 -L gynat /dev/mapper/gynat-encrypted
+mkfs.ext4 -L jeenat /dev/mapper/jeenat-encrypted
 
 # 5. Mount
 mkdir -p /mnt/encrypted
-mount /dev/mapper/gynat-encrypted /mnt/encrypted
+mount /dev/mapper/jeenat-encrypted /mnt/encrypted
 
 # 6. Directory skeleton
 mkdir -p /mnt/encrypted/gynat/{app,pm2,postgres,backups}
 
 # 7. Auto-unlock on boot (/etc/crypttab)
 #    <name>  <source>  <keyfile>  <options>
-gynat-encrypted UUID=d990223d-1c3d-4d7b-b5fe-f99d2a17d172 /root/.gynat-luks.key luks,discard
+jeenat-encrypted UUID=d990223d-1c3d-4d7b-b5fe-f99d2a17d172 /root/.gynat-luks.key luks,discard
 
 # 8. Auto-mount on boot (/etc/fstab)
-/dev/mapper/gynat-encrypted /mnt/encrypted ext4 defaults,nofail 0 2
+/dev/mapper/jeenat-encrypted /mnt/encrypted ext4 defaults,nofail 0 2
 
 # 9. Reload and verify
 systemctl daemon-reload
@@ -65,7 +65,7 @@ systemctl daemon-reload
 If auto-unlock ever fails, unlock manually:
 
 ```bash
-cryptsetup luksOpen --key-file /root/.gynat-luks.key /dev/sdb gynat-encrypted
+cryptsetup luksOpen --key-file /root/.gynat-luks.key /dev/sdb jeenat-encrypted
 mount /mnt/encrypted
 ```
 

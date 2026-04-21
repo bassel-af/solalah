@@ -3,7 +3,7 @@
  * Gender-tinted (male: emerald/gold, female: rose/gold).
  */
 
-type Sex = 'M' | 'F' | '' | string | undefined;
+type Sex = 'M' | 'F' | '' | string | null | undefined;
 
 export function NodeSilhouette({
   sex,

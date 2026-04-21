@@ -105,13 +105,13 @@ This applies all migrations in `prisma/migrations/` to create the 20-table schem
 
 ## Step 5: Create Admin User
 
-The seed script expects a user with email **`bassel@autoflowa.com`** to exist in the database. This user is created via the app's signup flow — it is NOT created by the seed.
+The seed script expects a user with email **`bassel@gynat.com`** to exist in the database. This user is created via the app's signup flow — it is NOT created by the seed.
 
 **Option A — via the browser (recommended for local dev):**
 
 1. Start the dev server: `pnpm dev`
 2. Go to `http://localhost:3000/auth/signup`
-3. Sign up with `bassel@autoflowa.com` and a password
+3. Sign up with `bassel@gynat.com` and a password
 4. The callback route automatically syncs the user to `public.users`
 5. Stop the dev server
 
@@ -121,7 +121,7 @@ The seed script expects a user with email **`bassel@autoflowa.com`** to exist in
 curl -X POST http://localhost:8000/auth/v1/signup \
   -H "Content-Type: application/json" \
   -H "apikey: <ANON_KEY>" \
-  -d '{"email": "bassel@autoflowa.com", "password": "your-password"}'
+  -d '{"email": "bassel@gynat.com", "password": "your-password"}'
 ```
 
 Verify the user exists in `public.users`:
@@ -139,12 +139,12 @@ npx prisma studio
 pnpm seed
 ```
 
-This creates workspace records for all family configs in `src/config/families.ts` (excluding `test`) and assigns `bassel@autoflowa.com` as `workspace_admin` on each.
+This creates workspace records for all family configs in `src/config/families.ts` (excluding `test`) and assigns `bassel@gynat.com` as `workspace_admin` on each.
 
 Expected output:
 
 ```
-Seeding 4 workspaces for admin user bassel@autoflowa.com (...)
+Seeding 4 workspaces for admin user bassel@gynat.com (...)
   Seeded workspace: saeed (آل سعيّد)
   Seeded workspace: al-dabbagh (آل الدباغ)
   Seeded workspace: al-dalati (آل الدالاتي)
@@ -162,7 +162,7 @@ The seed is idempotent — safe to run again, it will upsert without duplicating
 pnpm dev
 ```
 
-Go to `http://localhost:3000`. Login with `bassel@autoflowa.com` and you should land on the dashboard showing the seeded workspaces.
+Go to `http://localhost:3000`. Login with `bassel@gynat.com` and you should land on the dashboard showing the seeded workspaces.
 
 ---
 

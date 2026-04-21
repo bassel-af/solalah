@@ -98,7 +98,7 @@ export default function Home() {
 
         <footer className={styles.footer}>
           <div>
-            <a href="mailto:contact@autoflowa.com">contact@autoflowa.com</a>
+            <a href="mailto:contact@gynat.com">contact@gynat.com</a>
           </div>
           <div className={styles.footerAyah}>﴾ وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا ﴿</div>
         </footer>

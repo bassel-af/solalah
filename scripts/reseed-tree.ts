@@ -15,7 +15,7 @@ import { extractSubtree, expandGraftFamilies } from '../src/lib/gedcom/graph';
 import { seedTreeFromGedcomData } from '../src/lib/tree/seed-helpers';
 import { resolveGedcomPlaces } from '../src/lib/tree/seed-place-mapping';
 
-const ADMIN_EMAIL = 'bassel@autoflowa.com';
+const ADMIN_EMAIL = 'bassel@gynat.com';
 
 async function buildPlaceNameToIdMap(prisma: PrismaClient): Promise<Map<string, string>> {
   const places = await prisma.place.findMany({
