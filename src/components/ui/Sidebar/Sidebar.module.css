@@ -654,10 +654,11 @@
   }
 
   .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-9) var(--space-7);
+    padding-top: var(--space-9);
+  }
+
+  .headerTop {
+    padding: 0 var(--space-7) var(--space-7);
   }
 
   .header h2 {
@@ -725,7 +726,11 @@
   }
 
   .header {
-    padding: var(--space-7) var(--space-6);
+    padding-top: var(--space-7);
+  }
+
+  .headerTop {
+    padding: 0 var(--space-6) var(--space-6);
   }
 
   .header h2 {
