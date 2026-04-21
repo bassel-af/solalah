@@ -423,7 +423,7 @@ export default function WorkspaceDetailPage() {
         {/* Feature Toggles */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>الميزات</h3>
+            <h3 className={styles.sectionTitle}>المميزات</h3>
           </div>
 
           <div className={styles.featureList}>
