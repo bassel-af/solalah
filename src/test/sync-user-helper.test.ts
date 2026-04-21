@@ -44,8 +44,6 @@ describe('syncUserToDb', () => {
       where: { id: gotrueUser.id },
       update: {
         email: gotrueUser.email,
-        displayName: 'Test User',
-        avatarUrl: 'https://example.com/avatar.jpg',
         phone: '+1234567890',
       },
       create: {
@@ -56,6 +54,26 @@ describe('syncUserToDb', () => {
         phone: '+1234567890',
       },
     });
+  });
+
+  test('does not overwrite displayName or avatarUrl on update (profile is user-owned)', async () => {
+    const gotrueUser = {
+      id: 'user-uuid-existing',
+      email: 'existing@example.com',
+      phone: null,
+      user_metadata: {
+        display_name: 'Stale Name From GoTrue',
+        avatar_url: 'https://stale.example.com/avatar.jpg',
+      },
+    };
+
+    mockUpsert.mockResolvedValue({ id: gotrueUser.id });
+
+    await syncUserToDb(gotrueUser);
+
+    const call = mockUpsert.mock.calls[0][0];
+    expect(call.update).not.toHaveProperty('displayName');
+    expect(call.update).not.toHaveProperty('avatarUrl');
   });
 
   test('falls back to email prefix for displayName when metadata is absent', async () => {

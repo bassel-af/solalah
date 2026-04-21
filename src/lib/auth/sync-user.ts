@@ -19,7 +19,7 @@ export async function syncUserToDb(user: GoTrueUser) {
 
   return prisma.user.upsert({
     where: { id: user.id },
-    update: { email, displayName, avatarUrl, phone },
+    update: { email, phone },
     create: { id: user.id, email, displayName, avatarUrl, phone },
   });
 }
