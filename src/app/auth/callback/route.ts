@@ -10,8 +10,13 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const next = validateRedirectPath(searchParams.get('next'));
 
+  // Behind a reverse proxy Next.js's request.url uses the upstream listen
+  // address (e.g. http://localhost:4000), so redirects built from it point
+  // users to localhost. Anchor redirects to NEXT_PUBLIC_SITE_URL instead.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+
   if (code) {
-    const response = NextResponse.redirect(new URL(next, request.url));
+    const response = NextResponse.redirect(new URL(next, origin));
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,5 +51,5 @@ export async function GET(request: NextRequest) {
   }
 
   // If no code or exchange failed, redirect to login
-  return NextResponse.redirect(new URL('/auth/login', request.url));
+  return NextResponse.redirect(new URL('/auth/login', origin));
 }

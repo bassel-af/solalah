@@ -56,7 +56,11 @@ export async function middleware(request: NextRequest) {
   const { user, supabaseResponse } = await updateSession(request);
 
   if (!user) {
-    const loginUrl = new URL('/auth/login', request.url);
+    // Anchor redirect to NEXT_PUBLIC_SITE_URL — behind a proxy Next.js's
+    // request.url uses the upstream listen address (localhost:4000), which
+    // would send users to a non-reachable URL.
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+    const loginUrl = new URL('/auth/login', origin);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
