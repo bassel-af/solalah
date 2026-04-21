@@ -14,6 +14,7 @@ The tree reads from the database via `GET /api/workspaces/[id]/tree`; static GED
 - **How each subsystem works today**: `docs/implementation.md`
 - **Auth architecture decisions**: `docs/auth-provider-decisions.md`
 - **Encryption operator runbook**: `docs/encryption.md`
+- **Production runbook** (deploy/restore/troubleshooting): `docs/deployment/runbook.md`
 - **Testing modes & query params**: `docs/testing.md`
 - **Local setup**: `docs/setup.md`
 
