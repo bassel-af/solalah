@@ -250,6 +250,7 @@
 
 .heroShowcase {
   position: relative;
+  width: 100%;
   aspect-ratio: 1 / 1.05;
   max-width: 460px;
   justify-self: end;

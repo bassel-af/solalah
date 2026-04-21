@@ -83,7 +83,7 @@ export default function Home() {
               <div className={styles.figures}>
                 <FigureCluster variant="medallion" />
               </div>
-              <div className={styles.medallionLabel}>ثلاثة أجيال · بيتٌ واحد</div>
+              <div className={styles.medallionLabel}>جذورٌ راسخة · فروعٌ ممتدّة</div>
             </div>
             <div className={`${styles.chip} ${styles.chipTop}`}>
               <div className={styles.chipLabel}>حفظٌ آمن</div>

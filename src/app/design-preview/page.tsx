@@ -1,120 +1,7 @@
 'use client';
 
+import { FigureCluster, FigureMan, FigureWoman, NodeFigure } from '@/components/heritage/FigureCluster';
 import styles from './page.module.css';
-
-// ---------- SVG primitives ---------------------------------------------
-
-function FigureMan({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden>
-      <defs>
-        <linearGradient id="manGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#e6cf9e" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#8c7441" stopOpacity="0.4" />
-        </linearGradient>
-      </defs>
-      <circle cx="24" cy="15" r="7" fill="url(#manGrad)" />
-      <path
-        d="M 10 42 Q 10 27 24 27 Q 38 27 38 42 Z"
-        fill="url(#manGrad)"
-      />
-    </svg>
-  );
-}
-
-function FigureWoman({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden>
-      <defs>
-        <linearGradient id="womanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#f4d9c0" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#7b4b55" stopOpacity="0.4" />
-        </linearGradient>
-      </defs>
-      <circle cx="24" cy="14" r="7" fill="url(#womanGrad)" />
-      <path
-        d="M 8 44 Q 12 28 24 26 Q 36 28 40 44 Z"
-        fill="url(#womanGrad)"
-      />
-      {/* hair veil silhouette */}
-      <path
-        d="M 16 9 Q 24 4 32 9 L 32 16 Q 28 14 24 14 Q 20 14 16 16 Z"
-        fill="#0f1528"
-        opacity="0.55"
-      />
-    </svg>
-  );
-}
-
-/** Decorative cluster of silhouettes used in hero medallion and card corners */
-function FigureCluster({ variant = 'medallion' }: { variant?: 'medallion' | 'corner' }) {
-  if (variant === 'corner') {
-    return (
-      <svg viewBox="0 0 140 120" aria-hidden>
-        <defs>
-          <linearGradient id="clusterC" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#c8a865" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#1a5d4a" stopOpacity="0.15" />
-          </linearGradient>
-        </defs>
-        {/* 3 overlapping figures */}
-        <g fill="url(#clusterC)">
-          <circle cx="35" cy="48" r="10" />
-          <path d="M 15 100 Q 15 70 35 70 Q 55 70 55 100 Z" />
-          <circle cx="70" cy="40" r="11" />
-          <path d="M 48 105 Q 48 68 70 68 Q 92 68 92 105 Z" />
-          <circle cx="105" cy="50" r="9" />
-          <path d="M 88 100 Q 88 72 105 72 Q 122 72 122 100 Z" />
-        </g>
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 320 340" aria-hidden>
-      <defs>
-        <linearGradient id="heroFigGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#e6cf9e" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#1a5d4a" stopOpacity="0.3" />
-        </linearGradient>
-        <linearGradient id="heroFigGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#f4d9c0" stopOpacity="0.85" />
-          <stop offset="100%" stopColor="#7b4b55" stopOpacity="0.3" />
-        </linearGradient>
-      </defs>
-      {/* patriarch center back */}
-      <g fill="url(#heroFigGrad)">
-        <circle cx="160" cy="78" r="26" />
-        <path d="M 112 230 Q 112 125 160 125 Q 208 125 208 230 Z" />
-      </g>
-      {/* woman left front */}
-      <g fill="url(#heroFigGrad2)">
-        <circle cx="95" cy="148" r="22" />
-        <path d="M 52 280 Q 52 188 95 188 Q 138 188 138 280 Z" />
-        <path
-          d="M 75 140 Q 95 128 115 140 L 115 155 Q 105 150 95 150 Q 85 150 75 155 Z"
-          fill="#0b1222"
-          opacity="0.5"
-        />
-      </g>
-      {/* man right front */}
-      <g fill="url(#heroFigGrad)">
-        <circle cx="228" cy="152" r="22" />
-        <path d="M 186 284 Q 186 192 228 192 Q 270 192 270 284 Z" />
-      </g>
-      {/* child tiny in front */}
-      <g fill="url(#heroFigGrad2)">
-        <circle cx="160" cy="212" r="14" />
-        <path d="M 138 300 Q 138 240 160 240 Q 182 240 182 300 Z" />
-      </g>
-    </svg>
-  );
-}
-
-/** Avatar-sized silhouette for tree nodes */
-function NodeFigure({ gender }: { gender: 'male' | 'female' }) {
-  if (gender === 'female') return <FigureWoman />;
-  return <FigureMan />;
-}
 
 // ---------- Tree node positions (tuned for 3D canvas) ------------------
 
@@ -240,7 +127,7 @@ export default function DesignPreviewPage() {
               <div className={styles.figureCluster}>
                 <FigureCluster variant="medallion" />
               </div>
-              <div className={styles.medallionLabel}>ثلاثة أجيال · بيتٌ واحد</div>
+              <div className={styles.medallionLabel}>جذورٌ راسخة · فروعٌ ممتدّة</div>
             </div>
             <div className={`${styles.statChip} ${styles.statChipTop}`}>
               <div className={styles.statChipLabel}>أفراد موثَّقون</div>

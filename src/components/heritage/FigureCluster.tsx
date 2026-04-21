@@ -1,11 +1,51 @@
 /**
- * Hand-drawn silhouette cluster used across heritage-styled surfaces.
- * - medallion variant: 4 figures (patriarch, couple, child) for hero
- * - corner variant: 3 figures for card bottom corners
- * - trio variant: 3 figures for workspace card header accent
+ * Hand-drawn silhouette primitives used across heritage-styled surfaces.
+ * - FigureCluster: grouped silhouettes for hero medallion / card corners / trios
+ * - FigureMan / FigureWoman: avatar-sized single silhouettes for tree nodes
+ * - NodeFigure: gender-driven wrapper around FigureMan / FigureWoman
  */
 
 type Variant = 'medallion' | 'corner' | 'trio';
+
+export function FigureMan({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="heritageFigureMan" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#e6cf9e" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#8c7441" stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      <circle cx="24" cy="15" r="7" fill="url(#heritageFigureMan)" />
+      <path
+        d="M 10 42 Q 10 27 24 27 Q 38 27 38 42 Z"
+        fill="url(#heritageFigureMan)"
+      />
+    </svg>
+  );
+}
+
+export function FigureWoman({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="heritageFigureWoman" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#f4d9c0" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#7b4b55" stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      <circle cx="24" cy="14" r="7" fill="url(#heritageFigureWoman)" />
+      <path
+        d="M 8 44 Q 12 28 24 26 Q 36 28 40 44 Z"
+        fill="url(#heritageFigureWoman)"
+      />
+    </svg>
+  );
+}
+
+export function NodeFigure({ gender, className }: { gender: 'male' | 'female'; className?: string }) {
+  return gender === 'female' ? <FigureWoman className={className} /> : <FigureMan className={className} />;
+}
 
 export function FigureCluster({
   variant = 'medallion',
@@ -77,11 +117,6 @@ export function FigureCluster({
       <g fill="url(#fcMedWoman)">
         <circle cx="95" cy="148" r="22" />
         <path d="M 52 280 Q 52 188 95 188 Q 138 188 138 280 Z" />
-        <path
-          d="M 75 140 Q 95 128 115 140 L 115 155 Q 105 150 95 150 Q 85 150 75 155 Z"
-          fill="#0b1222"
-          opacity="0.5"
-        />
       </g>
       {/* man right */}
       <g fill="url(#fcMedMan)">
