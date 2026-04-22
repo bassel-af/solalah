@@ -140,12 +140,7 @@
 
 /* ---------- Dropdown ---------- */
 .dropdown {
-  position: absolute;
-  top: 100%;
-  inset-inline-start: 0;
-  inset-inline-end: 0;
-  z-index: 50;
-  margin-top: var(--space-2);
+  z-index: 3100;
   padding: var(--space-2);
   background: linear-gradient(180deg, rgba(15, 21, 40, 0.95), rgba(7, 11, 24, 0.98));
   border: 1px solid var(--heritage-glass-border-strong);

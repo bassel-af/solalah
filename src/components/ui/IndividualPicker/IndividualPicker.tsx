@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo, useId } from 'react';
+import { useState, useRef, useCallback, useMemo, useId, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { GedcomData, Individual } from '@/lib/gedcom/types';
 import { getDisplayNameWithNasab, DEFAULT_NASAB_DEPTH } from '@/lib/gedcom/display';
 import { matchesSearch, searchRelevance } from '@/lib/utils/search';
@@ -37,8 +38,15 @@ export function IndividualPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listboxId = useId();
+  const [mounted, setMounted] = useState(false);
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -139,6 +147,26 @@ export function IndividualPicker({
 
   const showDropdown = isOpen && query.trim().length > 0;
 
+  useEffect(() => {
+    if (!showDropdown || !inputWrapperRef.current) return;
+    const wrapper = inputWrapperRef.current;
+    const update = () => {
+      const rect = wrapper.getBoundingClientRect();
+      setDropdownRect({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [showDropdown]);
+
   if (selectedPerson) {
     const name = getDisplayNameWithNasab(data, selectedPerson, DEFAULT_NASAB_DEPTH);
     const birthYear = getBirthYear(selectedPerson);
@@ -186,7 +214,7 @@ export function IndividualPicker({
           {label}
         </label>
       )}
-      <div className={styles.inputWrapper}>
+      <div className={styles.inputWrapper} ref={inputWrapperRef}>
         <input
           id={`${listboxId}-input`}
           ref={inputRef}
@@ -229,8 +257,16 @@ export function IndividualPicker({
         </svg>
       </div>
 
-      {showDropdown && (
-        <div className={styles.dropdown}>
+      {showDropdown && mounted && dropdownRect && createPortal(
+        <div
+          className={styles.dropdown}
+          style={{
+            position: 'fixed',
+            top: dropdownRect.top,
+            left: dropdownRect.left,
+            width: dropdownRect.width,
+          }}
+        >
           <ul
             id={listboxId}
             role="listbox"
@@ -278,7 +314,8 @@ export function IndividualPicker({
               );
             })}
           </ul>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
