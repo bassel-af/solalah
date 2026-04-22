@@ -1,8 +1,14 @@
-- Test mobile.
-- Data backup.
-- .env file.
+- Non admin users shall not see workspace page.
+- See person full Nasab.
+- Search for families and ask to join (maybe through public family description). Also user can
+describe himself for the admins.
 
-Test with non admin role (edit etc)
+
+
+- Data backup.
+- .env file backup
+
+
 
 
 Think about business model.
@@ -12,7 +18,6 @@ Low priority now:
 Check other inputs in MacFamilyTree.
 Version control
 إصدار نعوة
-UI latest touches.
 
 
 MCP (Model Context Protocol):

@@ -437,7 +437,7 @@ export default function WorkspaceDetailPage() {
                   )}
                 </div>
                 <p className={styles.featureDescription}>
-                  توثيق علاقات الرضاعة بين الأفراد — الأمّ والأب والأخوة
+                  توثيق علاقات الرضاعة بين الأفراد — الأمّ والأب والإخوة
                   من الرضاعة
                 </p>
                 <a
