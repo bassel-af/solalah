@@ -852,17 +852,19 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
       momentumRafRef.current = requestAnimationFrame(step);
     };
 
-    container.addEventListener('touchstart', onTouchStart, { passive: true });
-    container.addEventListener('touchmove', onTouchMove, { passive: true });
-    container.addEventListener('touchend', onTouchEnd, { passive: true });
-    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    // Capture phase so React Flow / @use-gesture can't stopPropagation on us
+    const opts = { passive: true, capture: true } as const;
+    container.addEventListener('touchstart', onTouchStart, opts);
+    container.addEventListener('touchmove', onTouchMove, opts);
+    container.addEventListener('touchend', onTouchEnd, opts);
+    container.addEventListener('touchcancel', onTouchEnd, opts);
 
     return () => {
       cancelMomentum();
-      container.removeEventListener('touchstart', onTouchStart);
-      container.removeEventListener('touchmove', onTouchMove);
-      container.removeEventListener('touchend', onTouchEnd);
-      container.removeEventListener('touchcancel', onTouchEnd);
+      container.removeEventListener('touchstart', onTouchStart, opts);
+      container.removeEventListener('touchmove', onTouchMove, opts);
+      container.removeEventListener('touchend', onTouchEnd, opts);
+      container.removeEventListener('touchcancel', onTouchEnd, opts);
     };
   }, [isMobile, getViewport, setViewport]);
 
