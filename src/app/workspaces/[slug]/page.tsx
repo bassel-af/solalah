@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
@@ -71,7 +71,9 @@ export default function WorkspaceDetailPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [inviteSent, setInviteSent] = useState(false);
+  const inviteEmailInputRef = useRef<HTMLInputElement>(null);
+  const inviteDoneButtonRef = useRef<HTMLButtonElement>(null);
 
   // Edit workspace modal state
   const [showEdit, setShowEdit] = useState(false);
@@ -195,11 +197,30 @@ export default function WorkspaceDetailPage() {
     }
   }
 
+  const resetInviteState = useCallback(() => {
+    setInviteEmail('');
+    setInviteError('');
+    setInviteSent(false);
+    setInviteLoading(false);
+  }, []);
+
+  function closeInviteModal() {
+    if (inviteLoading) return;
+    setShowInvite(false);
+    resetInviteState();
+  }
+
+  function handleInviteAnother() {
+    setInviteEmail('');
+    setInviteError('');
+    setInviteSent(false);
+    // Focus handled in effect that watches inviteSent
+  }
+
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!workspace) return;
     setInviteError('');
-    setInviteSuccess('');
     setInviteLoading(true);
 
     try {
@@ -216,14 +237,38 @@ export default function WorkspaceDetailPage() {
         return;
       }
 
-      setInviteSuccess(`تم إرسال دعوة إلى ${inviteEmail}`);
-      setInviteEmail('');
+      setInviteSent(true);
+      setInviteError('');
+      // Keep inviteEmail populated — success panel displays it
     } catch {
       setInviteError('فشل في إرسال الدعوة');
     } finally {
       setInviteLoading(false);
     }
   }
+
+  // Escape key handling for invite modal only
+  useEffect(() => {
+    if (!showInvite) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      if (inviteLoading) return;
+      closeInviteModal();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showInvite, inviteLoading]);
+
+  // Focus management: success → "تم" button; form → email input
+  useEffect(() => {
+    if (!showInvite) return;
+    if (inviteSent) {
+      inviteDoneButtonRef.current?.focus();
+    } else {
+      inviteEmailInputRef.current?.focus();
+    }
+  }, [showInvite, inviteSent]);
 
   async function handleRemoveMember() {
     if (!workspace || !confirmRemove) return;
@@ -791,40 +836,92 @@ export default function WorkspaceDetailPage() {
 
       {/* Invite Modal */}
       {showInvite && (
-        <div className={styles.modalOverlay} onClick={() => setShowInvite(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>دعوة عضو جديد</h3>
-            <form onSubmit={handleInvite} className={styles.modalForm}>
-              {inviteError && <div className={styles.error}>{inviteError}</div>}
-              {inviteSuccess && (
-                <div className={styles.successMessage}>{inviteSuccess}</div>
-              )}
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className={styles.modalInput}
-                placeholder="البريد الإلكتروني"
-                dir="ltr"
-                required
-              />
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowInvite(false)}
-                  className={styles.modalCancel}
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  className={styles.modalSubmit}
-                  disabled={inviteLoading}
-                >
-                  {inviteLoading ? 'جاري الإرسال...' : 'إرسال الدعوة'}
-                </button>
+        <div
+          className={styles.modalOverlay}
+          onClick={() => {
+            if (inviteLoading) return;
+            closeInviteModal();
+          }}
+        >
+          <div
+            className={`${styles.modal} ${styles.inviteModal}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className={styles.modalTitle}>
+              {inviteSent ? 'تمّت الدعوة' : 'دعوة عضو جديد'}
+            </h3>
+            {inviteSent ? (
+              <div
+                className={styles.inviteSuccess}
+                role="status"
+                aria-live="polite"
+              >
+                <div className={styles.inviteSuccessIcon} aria-hidden="true">
+                  <iconify-icon
+                    icon="material-symbols:check-circle-rounded"
+                    width="48"
+                    height="48"
+                    style={{ color: 'var(--heritage-emerald-glow)' }}
+                  />
+                </div>
+                <h4 className={styles.inviteSuccessTitle}>تم إرسال الدعوة</h4>
+                <p className={styles.inviteSuccessEmail} dir="ltr">
+                  {inviteEmail}
+                </p>
+                <p className={styles.inviteSuccessHelper}>
+                  سنُعلمك عندما ينضم العضو.
+                </p>
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    onClick={handleInviteAnother}
+                    className={styles.modalCancel}
+                  >
+                    دعوة عضو آخر
+                  </button>
+                  <button
+                    type="button"
+                    ref={inviteDoneButtonRef}
+                    onClick={closeInviteModal}
+                    className={styles.modalSubmit}
+                  >
+                    تم
+                  </button>
+                </div>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleInvite} className={styles.modalForm}>
+                {inviteError && <div className={styles.error}>{inviteError}</div>}
+                <input
+                  type="email"
+                  ref={inviteEmailInputRef}
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className={styles.modalInput}
+                  placeholder="البريد الإلكتروني"
+                  dir="ltr"
+                  required
+                  disabled={inviteLoading}
+                />
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    onClick={closeInviteModal}
+                    className={styles.modalCancel}
+                    disabled={inviteLoading}
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className={styles.modalSubmit}
+                    disabled={inviteLoading}
+                  >
+                    {inviteLoading ? 'جاري الإرسال...' : 'إرسال الدعوة'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
