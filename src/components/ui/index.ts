@@ -11,3 +11,4 @@ export { Spinner } from './Spinner';
 export { PlaceComboBox } from './PlaceComboBox';
 export { ToastContainer } from './Toast';
 export { ToggleSwitch } from './ToggleSwitch';
+export { CollapsibleSection } from './CollapsibleSection';

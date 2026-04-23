@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { UserNav } from '@/components/ui/UserNav';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import {
   segmentFromFlags,
   flagsFromSegment,
@@ -90,9 +91,6 @@ export default function WorkspaceDetailPage() {
 
   // Feature toggle loading state
   const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
-
-  // Advanced options disclosure (collapsed by default, no persistence)
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Branch sharing state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -466,11 +464,7 @@ export default function WorkspaceDetailPage() {
         </Link>
 
         {/* Feature Toggles */}
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>المميزات</h3>
-          </div>
-
+        <CollapsibleSection title="المميزات">
           <div className={styles.featureList}>
             {/* Rada'a */}
             <div className={styles.featureCard}>
@@ -596,14 +590,10 @@ export default function WorkspaceDetailPage() {
             */}
 
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Privacy Settings */}
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>الخصوصية</h3>
-          </div>
-
+        <CollapsibleSection title="الخصوصية">
           <div className={styles.featureList}>
             {/* Hide birth date for women */}
             <div className={styles.featureCard}>
@@ -641,32 +631,11 @@ export default function WorkspaceDetailPage() {
               />
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Advanced Options (collapsed by default) */}
-        <div className={styles.section}>
-          <button
-            type="button"
-            className={styles.advancedHeader}
-            onClick={() => setAdvancedOpen((v) => !v)}
-            aria-expanded={advancedOpen}
-            aria-controls="advanced-options-content"
-          >
-            <h3 className={styles.sectionTitle}>خيارات متقدمة</h3>
-            <span
-              className={`${styles.advancedChevron} ${advancedOpen ? styles.advancedChevronOpen : ''}`}
-              aria-hidden="true"
-            >
-              <iconify-icon icon="material-symbols:expand-more" width="20" height="20" />
-            </span>
-          </button>
-
-          <div
-            id="advanced-options-content"
-            className={`${styles.advancedContent} ${advancedOpen ? styles.advancedContentOpen : ''}`}
-          >
-            <div className={styles.advancedContentInner}>
-              <div className={styles.featureList}>
+        <CollapsibleSection title="خيارات متقدمة" defaultOpen={false}>
+          <div className={styles.featureList}>
                 {/* Umm Walad */}
                 <div className={styles.featureCard}>
                   <div className={styles.featureContent}>
@@ -723,24 +692,22 @@ export default function WorkspaceDetailPage() {
                   />
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Members section */}
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>الأعضاء</h3>
-            {isAdmin && (
+        <CollapsibleSection
+          title="الأعضاء"
+          headerRight={
+            isAdmin ? (
               <button
                 onClick={() => setShowInvite(true)}
                 className={styles.inviteButton}
               >
                 دعوة عضو
               </button>
-            )}
-          </div>
-
+            ) : undefined
+          }
+        >
           {memberActionError && (
             <div className={styles.error} style={{ marginBottom: 'var(--space-3)' }}>
               {memberActionError}
@@ -790,13 +757,13 @@ export default function WorkspaceDetailPage() {
               </div>
             ))}
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Branch Sharing Section (admin only) */}
         {isAdmin && (
-          <div className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}>مشاركة الفروع</h3>
+          <CollapsibleSection
+            title="مشاركة الفروع"
+            headerRight={
               <button
                 onClick={handleOpenShareModal}
                 className={styles.inviteButton}
@@ -804,23 +771,21 @@ export default function WorkspaceDetailPage() {
               >
                 إنشاء رمز مشاركة
               </button>
-            </div>
+            }
+          >
             <ShareTokenList
               workspaceId={workspace.id}
               refreshTrigger={shareTokenRefresh}
             />
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Incoming Pointers Section */}
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>الفروع المرتبطة</h3>
-          </div>
+        <CollapsibleSection title="الفروع المرتبطة">
           <IncomingPointerList
             workspaceId={workspace.id}
           />
-        </div>
+        </CollapsibleSection>
       </div>
 
       {/* Share Branch Modal */}
