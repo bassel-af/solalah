@@ -391,7 +391,7 @@ Admin-driven single-entity restore from `TreeEditLog` snapshots, gated by the ex
 
 ### Phase 16 — Platform Owner Dashboard
 
-Cross-workspace, owner-only view of growth / engagement / platform health. Gating scaffold shipped (`/admin` route, `User.isPlatformOwner` flag, middleware + layout + route-handler defense in depth). Metrics, queries, and UI are designed in a dedicated PRD: **`docs/prd-admin-dashboard.md`**. That doc also captures a Phase-0 auth prerequisite: reconcile the cookie/Bearer asymmetry between the middleware gate and the route-handler gate before the first real admin API route ships.
+Cross-workspace, owner-only view of growth / engagement / platform health. Gating scaffold shipped (`/admin` route, `User.isPlatformOwner` flag, middleware + layout + route-handler defense in depth). Phase 0 dual-auth gate shipped (`requirePlatformOwner` now accepts either Bearer header or Supabase session cookie). Metrics, queries, and UI are designed in a dedicated PRD: **`docs/prd-admin-dashboard.md`**. Phase 1 (the three metric cards and their API routes) is next.
 
 ---
 

@@ -1,6 +1,6 @@
 # Product Requirements Document — Platform Owner Dashboard
 
-**Status**: Draft (2026-04-23) — scaffold shipped, metrics pending
+**Status**: Draft (2026-04-23) — scaffold shipped, Phase 0 (dual-auth gate) shipped, Phase 1 metrics pending
 **Audience**: Human developers, AI coding assistants
 **Parent PRD**: `docs/prd.md` (see Roadmap phase link)
 
