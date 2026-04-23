@@ -35,6 +35,12 @@ const ENDPOINTS: Endpoint[] = [
   // Admin gate — anon hitting /api/admin/* must return 401, NOT 200 / 500.
   // The middleware enforces this before any handler runs.
   { method: 'GET', path: '/api/admin/healthcheck', label: 'Admin healthcheck (anon → 401)', allowUnauth: true },
+
+  // Phase 1 admin metrics — anon must be rejected with 401 at the middleware.
+  // If any of these returned 200 or 500, the route is misconfigured.
+  { method: 'GET', path: '/api/admin/metrics/growth', label: 'Admin metrics growth (anon → 401)', allowUnauth: true },
+  { method: 'GET', path: '/api/admin/metrics/engagement', label: 'Admin metrics engagement (anon → 401)', allowUnauth: true },
+  { method: 'GET', path: '/api/admin/metrics/health', label: 'Admin metrics health (anon → 401)', allowUnauth: true },
 ];
 
 async function runSmokeTest() {

@@ -1,6 +1,6 @@
 # Product Requirements Document — Platform Owner Dashboard
 
-**Status**: Draft (2026-04-23) — scaffold shipped, Phase 0 (dual-auth gate) shipped, Phase 1 metrics pending
+**Status**: Draft (2026-04-23) — scaffold shipped, Phase 0 (dual-auth gate) shipped, Phase 1 (growth/engagement/health cards) shipped
 **Audience**: Human developers, AI coding assistants
 **Parent PRD**: `docs/prd.md` (see Roadmap phase link)
 
@@ -70,7 +70,7 @@ Three horizontal sections on one page, Arabic labels, RTL:
 | Metric | Source | Notes |
 |---|---|---|
 | Weekly active workspaces | `FamilyTree.lastModifiedAt` within last 7d | The north-star metric |
-| Total tree edits (7d / 30d) | `TreeEditLog.createdAt` count | Excludes private content |
+| Total tree edits (7d / 30d) | `TreeEditLog.timestamp` count | Excludes private content |
 | Avg edits per active workspace | edits ÷ active workspaces | |
 | Workspaces with ≥1 member besides creator | `WorkspaceMembership` groupBy | "Real" family workspaces |
 | Top 10 active workspaces (7d) | `TreeEditLog` group by workspaceId | Workspace name + count only; no user info |
@@ -85,7 +85,7 @@ Three horizontal sections on one page, Arabic labels, RTL:
 | Mail transport | `nodemailer.verify()` result | |
 | Encryption master key loaded | `process.env.WORKSPACE_MASTER_KEY` present + valid length | Boolean |
 | Workspaces with encryption failures (24h) | future `TreeEditLog` error bucket | Placeholder until error logging exists |
-| Total storage used (approx) | sum of media row sizes or disk-usage shell call | Single number, not per-workspace |
+| Total storage used (approx) | sum of `AlbumMedia.fileSizeBytes` or disk-usage shell call | Single number, not per-workspace |
 | Recent 5xx rate | Out of scope v1 (no central error log yet) | Note as gap |
 
 ### 4.4 Non-metrics

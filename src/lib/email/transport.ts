@@ -35,6 +35,17 @@ interface SendEmailParams {
   text: string;
 }
 
+/**
+ * Admin-dashboard health probe. Thin wrapper around the transport's
+ * `.verify()` method — nodemailer opens a connection, issues EHLO / STARTTLS
+ * negotiation, and returns true if the server is reachable and willing to
+ * accept mail. Any failure throws (caller must wrap in try/catch).
+ */
+export async function verifyMailTransport(): Promise<true> {
+  await emailTransport.verify();
+  return true;
+}
+
 export async function sendEmail({ to, subject, html, text }: SendEmailParams) {
   // Runtime guard: refuse to deliver if prod env is paired with a mail-trap host.
   // Checked per-send (not just at transport creation) so env drift can't slip past.

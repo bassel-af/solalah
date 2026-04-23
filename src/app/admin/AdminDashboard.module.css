@@ -1,0 +1,202 @@
+/* Admin dashboard — platform owner view.
+   RTL, Arabic-first. Uses existing design tokens from src/styles/tokens. */
+
+.main {
+  padding: var(--spacing-xl, 2rem);
+  max-width: 1200px;
+  margin: 0 auto;
+  direction: rtl;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 1rem);
+  margin-bottom: var(--spacing-xl, 2rem);
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+  color: var(--color-text-primary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 1rem);
+}
+
+.lastRefresh {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.refreshButton {
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background var(--transition-fast, 120ms) ease;
+}
+
+.refreshButton:hover {
+  background: var(--color-primary-dark);
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.section {
+  margin-bottom: var(--spacing-xl, 2rem);
+  background: var(--color-light-100);
+  border: 1px solid var(--color-light-400);
+  border-radius: 12px;
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--spacing-md, 1rem) 0;
+  font-size: 1.25rem;
+  color: var(--color-dark-900);
+  border-bottom: 2px solid var(--color-primary);
+  padding-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-md, 1rem);
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-light-400);
+  border-radius: 8px;
+  padding: var(--spacing-md, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cardLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.cardValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-dark-900);
+  line-height: 1.1;
+}
+
+.cardSecondary {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.loading {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  background: rgba(229, 62, 62, 0.08);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(229, 62, 62, 0.25);
+}
+
+/* Health row */
+.healthRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+}
+
+.healthRow + .healthRow {
+  border-top: 1px solid var(--color-light-400);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotOk {
+  background: #38a169; /* green */
+  box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.15);
+}
+
+.dotBad {
+  background: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+}
+
+.dotUnknown {
+  background: var(--color-light-600);
+}
+
+.healthLabel {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+.healthStatus {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.healthStatusBad {
+  color: var(--color-error);
+}
+
+/* Top-N table */
+.topTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-md, 1rem);
+}
+
+.topTable caption {
+  caption-side: top;
+  text-align: start;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  padding-bottom: 0.5rem;
+}
+
+.topTable th,
+.topTable td {
+  padding: 0.5rem 0.75rem;
+  text-align: start;
+  border-bottom: 1px solid var(--color-light-400);
+  font-size: 0.9375rem;
+}
+
+.topTable th {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 0.75rem 0;
+}

@@ -168,6 +168,85 @@ test.describe('Admin gate — page route (/admin)', () => {
     expect(page.url()).toMatch(/\/admin\/?$/);
     await ctx.close();
   });
+
+  test('authed owner → renders the 3 metric section headings (النمو / الاستخدام / الصحة)', async ({ browser }) => {
+    const ctx = await browser.newContext();
+    await loginViaUI(ctx, owner.email);
+    const page = await ctx.newPage();
+    await page.goto('/admin');
+    // Each section renders its own <h2>. We wait for hydration via the
+    // auto-retrying toHaveText assertion — no manual sleep needed.
+    await expect(page.getByRole('heading', { level: 2, name: 'النمو' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'الاستخدام' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'الصحة' })).toBeVisible();
+    await ctx.close();
+  });
+});
+
+test.describe('Admin metrics — /api/admin/metrics/* (Phase 1)', () => {
+  const endpoints = [
+    {
+      path: '/api/admin/metrics/growth',
+      keys: [
+        'totalWorkspaces',
+        'workspacesCreatedLast7d',
+        'workspacesCreatedLast30d',
+        'totalUsers',
+        'usersCreatedLast7d',
+        'usersCreatedLast30d',
+        'pendingInvitations',
+        'inviteAcceptanceRate30d',
+      ],
+    },
+    {
+      path: '/api/admin/metrics/engagement',
+      keys: [
+        'weeklyActiveWorkspaces',
+        'editsLast7d',
+        'editsLast30d',
+        'avgEditsPerActiveWorkspace',
+        'workspacesWithMultipleMembers',
+        'topActiveWorkspaces7d',
+        'branchPointers',
+      ],
+    },
+    {
+      path: '/api/admin/metrics/health',
+      keys: ['db', 'gotrue', 'mail', 'encryption', 'storage', 'adminReadsLast24h'],
+    },
+  ];
+
+  for (const endpoint of endpoints) {
+    test(`owner via browser+bearer → 200 with expected keys for ${endpoint.path}`, async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext();
+      await loginViaUI(ctx, owner.email);
+      const token = await getAccessToken(owner.email);
+      const resp = await ctx.request.get(endpoint.path, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(resp.status()).toBe(200);
+      const body = await resp.json();
+      for (const key of endpoint.keys) {
+        expect(body).toHaveProperty(key);
+      }
+      await ctx.close();
+    });
+
+    test(`non-owner via browser+bearer → 403 for ${endpoint.path}`, async ({
+      browser,
+    }) => {
+      const ctx = await browser.newContext();
+      await loginViaUI(ctx, nonOwner.email);
+      const token = await getAccessToken(nonOwner.email);
+      const resp = await ctx.request.get(endpoint.path, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      expect(resp.status()).toBe(403);
+      await ctx.close();
+    });
+  }
 });
 
 test.describe('Admin gate — API route (/api/admin/healthcheck)', () => {
