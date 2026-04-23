@@ -765,13 +765,106 @@ function FamilyTreeInner({ hideMiniMap, hideControls }: FamilyTreeProps) {
     );
   }
 
+  const momentumRafRef = useRef<number | null>(null);
+
   const handleMoveStart = useCallback(() => {
     containerRef.current?.classList.add('is-panning');
   }, []);
 
   const handleMoveEnd = useCallback(() => {
-    containerRef.current?.classList.remove('is-panning');
+    // Keep the is-panning class on while momentum is still animating
+    if (momentumRafRef.current === null) {
+      containerRef.current?.classList.remove('is-panning');
+    }
   }, []);
+
+  // Mobile-only momentum pan: native touch has no inertia by default, so after
+  // the user flicks, we continue panning with exponential velocity decay until
+  // it falls below a threshold or the user touches again.
+  useEffect(() => {
+    if (!isMobile) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    type Sample = { x: number; y: number; t: number };
+    const samples: Sample[] = [];
+    let isPinch = false;
+
+    const cancelMomentum = () => {
+      if (momentumRafRef.current !== null) {
+        cancelAnimationFrame(momentumRafRef.current);
+        momentumRafRef.current = null;
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      cancelMomentum();
+      samples.length = 0;
+      isPinch = e.touches.length > 1;
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        samples.push({ x: t.clientX, y: t.clientY, t: performance.now() });
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 1) { isPinch = true; return; }
+      const t = e.touches[0];
+      const now = performance.now();
+      samples.push({ x: t.clientX, y: t.clientY, t: now });
+      while (samples.length > 2 && now - samples[0].t > 120) samples.shift();
+    };
+
+    const onTouchEnd = () => {
+      if (isPinch || samples.length < 2) return;
+      const first = samples[0];
+      const last = samples[samples.length - 1];
+      const dt = last.t - first.t;
+      if (dt < 16) return;
+      let vx = (last.x - first.x) / dt; // px/ms
+      let vy = (last.y - first.y) / dt;
+      const speed = Math.hypot(vx, vy);
+      if (speed < 0.2) return; // below this it's a tap, not a flick
+      const maxV = 3.5;
+      if (speed > maxV) {
+        vx *= maxV / speed;
+        vy *= maxV / speed;
+      }
+
+      container.classList.add('is-panning');
+      let lastFrame = performance.now();
+      const step = (now: number) => {
+        const frameDt = Math.min(now - lastFrame, 32);
+        lastFrame = now;
+        const vp = getViewport();
+        setViewport({ x: vp.x + vx * frameDt, y: vp.y + vy * frameDt, zoom: vp.zoom });
+        // ~7% friction per 16ms frame
+        const decay = Math.pow(0.93, frameDt / 16);
+        vx *= decay;
+        vy *= decay;
+        if (Math.hypot(vx, vy) > 0.02) {
+          momentumRafRef.current = requestAnimationFrame(step);
+        } else {
+          momentumRafRef.current = null;
+          container.classList.remove('is-panning');
+        }
+      };
+      momentumRafRef.current = requestAnimationFrame(step);
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      cancelMomentum();
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [isMobile, getViewport, setViewport]);
 
   return (
     <div id="tree-container" ref={containerRef} style={{ opacity: isReady ? 1 : 0 }}>
