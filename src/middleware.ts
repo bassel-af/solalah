@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { prisma } from '@/lib/db';
 
 // Public paths that don't require authentication
 const PUBLIC_PATHS = [
@@ -30,6 +31,14 @@ function isApiRoute(pathname: string): boolean {
   return pathname.startsWith('/api');
 }
 
+function isAdminApiRoute(pathname: string): boolean {
+  return pathname === '/api/admin' || pathname.startsWith('/api/admin/');
+}
+
+function isAdminPageRoute(pathname: string): boolean {
+  return pathname === '/admin' || pathname.startsWith('/admin/');
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -43,7 +52,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For API routes, skip session refresh entirely.
+  // /api/admin/* — defense-in-depth gate. Must be checked BEFORE the
+  // generic /api/* skip below; otherwise any forgotten guard inside an
+  // admin handler would be reachable. Returns JSON (not a redirect).
+  if (isAdminApiRoute(pathname)) {
+    const { user } = await updateSession(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { isPlatformOwner: true },
+    });
+    if (!dbUser?.isPlatformOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
+
+  // For all other API routes, skip session refresh entirely.
   // API route handlers verify auth themselves via getAuthenticatedUser() which calls
   // GoTrue directly with the Bearer token. Running updateSession() here would double
   // the GoTrue calls (one in middleware + one in handler), wasting Kong rate-limit budget.
@@ -65,10 +92,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // /admin/* — defense-in-depth gate for the page routes. The /admin layout
+  // also re-checks server-side, but bouncing here saves the wasted render.
+  if (isAdminPageRoute(pathname)) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { isPlatformOwner: true },
+    });
+    if (!dbUser?.isPlatformOwner) {
+      const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+      return NextResponse.redirect(new URL('/workspaces', origin));
+    }
+  }
+
   return supabaseResponse;
 }
 
 export const config = {
+  // Next 15 supports the Node.js runtime for middleware. We need it because
+  // the admin gate calls into Prisma (`@/lib/db`), which transitively pulls
+  // in `node:crypto` via the workspace master-key validator — both of which
+  // are unsupported in the edge runtime.
+  runtime: 'nodejs',
   matcher: [
     // Match all paths except static files and Next.js internals
     '/((?!_next/static|_next/image|favicon.ico).*)',

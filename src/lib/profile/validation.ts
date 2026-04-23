@@ -66,6 +66,11 @@ export const treeColorSettingsSchema = z.object({
   femaleNodeColor: hexColorSchema,
 });
 
-export const updateProfileSchema = z.object({
-  displayName: displayNameSchema,
-});
+export const updateProfileSchema = z
+  .object({
+    displayName: displayNameSchema,
+  })
+  // SECURITY: reject unknown keys so an attacker can't smuggle privileged
+  // fields (e.g. isPlatformOwner) into the request body. The PATCH route
+  // also explicitly whitelists fields, but defense in depth.
+  .strict();

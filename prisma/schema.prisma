@@ -18,6 +18,8 @@ model User {
   avatarUrl  String?  @map("avatar_url")
   phone      String?
   calendarPreference String @default("hijri") @map("calendar_preference")
+  // SECURITY: never write from request bodies. See src/lib/api/admin-auth.ts.
+  isPlatformOwner Boolean @default(false) @map("is_platform_owner")
   createdAt  DateTime @default(now()) @map("created_at")
 
   // Relations

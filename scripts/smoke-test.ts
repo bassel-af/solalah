@@ -31,6 +31,10 @@ const ENDPOINTS: Endpoint[] = [
 
   // API endpoints (will return 401 without auth — that's OK, it means the route loaded)
   { method: 'GET', path: '/api/workspaces', label: 'Workspaces API', allowUnauth: true },
+
+  // Admin gate — anon hitting /api/admin/* must return 401, NOT 200 / 500.
+  // The middleware enforces this before any handler runs.
+  { method: 'GET', path: '/api/admin/healthcheck', label: 'Admin healthcheck (anon → 401)', allowUnauth: true },
 ];
 
 async function runSmokeTest() {
