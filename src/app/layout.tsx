@@ -34,7 +34,8 @@ const arefRuqaa = Aref_Ruqaa({
 
 export const metadata: Metadata = {
   title: 'جينات',
-  description: 'Family genealogy web application',
+  description:
+    'جينات — منصّة عربية لتوثيق شجرة العائلة والأنساب عبر الأجيال، بدعم التقويم الهجري وتسجيل الرَضاعة، مع تشفير مزدوج يحفظ خصوصية بيانات عائلتك.',
 };
 
 export default function RootLayout({
