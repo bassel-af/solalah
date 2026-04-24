@@ -3,7 +3,7 @@ import { PublicNav } from '@/components/heritage/PublicNav';
 import styles from './islamic-gedcom.module.css';
 
 export const metadata: Metadata = {
-  title: 'مرجع GEDCOM الإسلامي | Islamic GEDCOM Reference',
+  title: 'مرجع GEDCOM الإسلامي',
   description:
     'مرجع شامل لتوثيق الأنساب الإسلامية في صيغة GEDCOM — التاريخ الهجري، عقد القران، الزفاف، الطلاق، الرضاعة، والكنية. A comprehensive reference for documenting Islamic genealogy in GEDCOM format — Hijri dates, Nikah, marriage events, divorce, Rada\'a (milk kinship), and Kunya.',
   keywords: [

@@ -1,9 +1,9 @@
+- Complete SEO improvements
 - مرجع gedcom الإسلامي button doesn't appear in mobile in the landing page.
 - Non admin users shall not see workspace page.
 - A way to list users and support them like reset password or change email.
 - A way to list workspaces and view their numbers.
-- Perhaps ask AI that we need to create dashboard that allow us to
-understand what is going on. Get insights and be able to take decisions.
+- List how many online users other than bassel@gynat.com or bassel.saeed9@gmail.com
 
 - See person full Nasab.
 - Search for families and ask to join (maybe through public family description). Also user can

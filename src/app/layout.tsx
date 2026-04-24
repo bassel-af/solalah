@@ -32,10 +32,64 @@ const arefRuqaa = Aref_Ruqaa({
   variable: '--font-aref-ruqaa',
 });
 
+const SITE_URL = 'https://gynat.com';
+const SITE_NAME = 'جينات';
+const DEFAULT_TITLE = 'جينات — شجرة العائلة وتوثيق الأنساب';
+const DEFAULT_DESCRIPTION =
+  'جينات — منصّة عربية لتوثيق شجرة العائلة والأنساب عبر الأجيال، بدعم التقويم الهجري وتسجيل الرَضاعة، مع تشفير مزدوج يحفظ خصوصية بيانات عائلتك.';
+
 export const metadata: Metadata = {
-  title: 'جينات',
-  description:
-    'جينات — منصّة عربية لتوثيق شجرة العائلة والأنساب عبر الأجيال، بدعم التقويم الهجري وتسجيل الرَضاعة، مع تشفير مزدوج يحفظ خصوصية بيانات عائلتك.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: DEFAULT_TITLE, template: '%s · جينات' },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  keywords: [
+    'شجرة العائلة',
+    'توثيق الأنساب',
+    'برنامج أنساب',
+    'شجرة نسب',
+    'تقويم هجري',
+    'الرَضاعة',
+    'رضاع نسب',
+    'جينات',
+    'جيناتي',
+    'Arabic family tree',
+    'Islamic genealogy',
+    'Hijri calendar family tree',
+    'GEDCOM Arabic',
+  ],
+  alternates: {
+    canonical: '/',
+    languages: { ar: '/' },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ar_SA',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+  twitter: {
+    card: 'summary',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  formatDetection: { telephone: false, email: false, address: false },
 };
 
 export default function RootLayout({

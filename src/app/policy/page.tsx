@@ -3,8 +3,18 @@ import { PublicNav } from '@/components/heritage/PublicNav';
 import styles from './policy.module.css';
 
 export const metadata: Metadata = {
-  title: 'السياسات والشروط | Policies',
-  description: 'سياسة الاستخدام والخصوصية لمنصة جينات',
+  title: 'السياسات والشروط',
+  description:
+    'سياسة الاستخدام والخصوصية لمنصة جينات — كيف نحفظ بيانات عائلتك، حقوق المستخدمين، وضوابط مشاركة شجرة الأنساب.',
+  alternates: { canonical: '/policy' },
+  openGraph: {
+    type: 'article',
+    locale: 'ar_SA',
+    url: 'https://gynat.com/policy',
+    siteName: 'جينات',
+    title: 'السياسات والشروط · جينات',
+    description: 'سياسة الاستخدام والخصوصية لمنصة جينات.',
+  },
 };
 
 export default function PolicyPage() {
