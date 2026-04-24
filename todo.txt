@@ -9,6 +9,10 @@ understand what is going on. Get insights and be able to take decisions.
 - Search for families and ask to join (maybe through public family description). Also user can
 describe himself for the admins.
 - SSO for the landing page.
+- when the person is selected glass (blur) is stopped on scroll. i do not like this.
+- when searching for person to share branch pointer, put date as well. this shall be
+reusable component.
+- Woman in the tree hijab or niqab is not needed, just make the shape as men it's okay 
 
 
 

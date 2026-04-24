@@ -47,6 +47,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Phase 0 SEO split: `/` is public (crawlers + anonymous visitors must
+  // render the server-side hero), but authenticated humans should bounce
+  // straight to `/workspaces`. We refresh the session here so the redirect
+  // reflects the current auth state; anonymous visitors fall through with
+  // the refreshed cookies attached.
+  if (pathname === '/') {
+    const { user, supabaseResponse } = await updateSession(request);
+    if (user) {
+      const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+      return NextResponse.redirect(new URL('/workspaces', origin));
+    }
+    return supabaseResponse;
+  }
+
   // Allow public paths without session refresh
   if (isPublicPath(pathname)) {
     return NextResponse.next();
