@@ -20,9 +20,16 @@ model User {
   calendarPreference String @default("hijri") @map("calendar_preference")
   // SECURITY: never write from request bodies. See src/lib/api/admin-auth.ts.
   isPlatformOwner Boolean @default(false) @map("is_platform_owner")
+  // Phase 2 Live Presence — best-effort heartbeat columns.
+  // Writes are throttled in-process; see src/lib/admin/presence-tracker.ts.
+  // SECURITY: only the three lastActive* columns are touched by trackPresence().
+  lastActiveAt          DateTime? @map("last_active_at")
+  lastActiveRoute       String?   @map("last_active_route") @db.VarChar(200)
+  lastActiveWorkspaceId String?   @map("last_active_workspace_id") @db.Uuid
   createdAt  DateTime @default(now()) @map("created_at")
 
   // Relations
+  lastActiveWorkspace  Workspace?  @relation("UserLastActiveWorkspace", fields: [lastActiveWorkspaceId], references: [id], onDelete: SetNull)
   workspaceMemberships WorkspaceMembership[]
   createdWorkspaces    Workspace[]           @relation("WorkspaceCreator")
   sentWorkspaceInvites WorkspaceInvitation[] @relation("InviteSender")
@@ -39,6 +46,7 @@ model User {
   createdShareTokens   BranchShareToken[]
   createdPointers      BranchPointer[]
 
+  @@index([lastActiveAt])
   @@map("users")
 }
 
@@ -91,6 +99,7 @@ model Workspace {
   outgoingPointers        BranchPointer[]       @relation("PointerSource")
   incomingPointers        BranchPointer[]       @relation("PointerTarget")
   adminAccessLogs         AdminAccessLog[]
+  lastActiveUsers         User[]                @relation("UserLastActiveWorkspace")
 
   @@map("workspaces")
 }
@@ -676,4 +685,17 @@ model AdminAccessLog {
   @@index([workspaceId, createdAt])
   @@index([action, createdAt])
   @@map("admin_access_logs")
+}
+
+// =============================================================================
+// Platform Stat — singleton row for cross-cutting counters (peak concurrency).
+// Phase 2 Live Presence.
+// =============================================================================
+
+model PlatformStat {
+  id                  Int       @id @default(1)
+  peakConcurrentUsers Int       @default(0) @map("peak_concurrent_users")
+  peakRecordedAt      DateTime? @map("peak_recorded_at")
+
+  @@map("platform_stats")
 }

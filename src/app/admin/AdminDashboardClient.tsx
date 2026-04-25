@@ -8,6 +8,7 @@ import type {
   EngagementMetrics,
   HealthMetrics,
 } from '@/lib/admin/queries';
+import { PresenceSection, type PresencePayload } from './PresenceSection';
 
 /**
  * Client dashboard — fetches all three metric endpoints in parallel and
@@ -64,6 +65,9 @@ export default function AdminDashboardClient() {
   const [health, setHealth] = useState<SectionState<HealthMetrics>>({
     status: 'idle',
   });
+  const [presence, setPresence] = useState<SectionState<PresencePayload>>({
+    status: 'idle',
+  });
   const [lastRefresh, setLastRefresh] = useState<number | null>(null);
 
   const loadSection = useCallback(
@@ -104,6 +108,7 @@ export default function AdminDashboardClient() {
 
   const refreshAll = useCallback(() => {
     void Promise.all([
+      loadSection<PresencePayload>('/api/admin/metrics/presence', setPresence),
       loadSection<GrowthMetrics>('/api/admin/metrics/growth', setGrowth),
       loadSection<EngagementMetrics>(
         '/api/admin/metrics/engagement',
@@ -122,7 +127,8 @@ export default function AdminDashboardClient() {
   const isLoading =
     growth.status === 'loading' ||
     engagement.status === 'loading' ||
-    health.status === 'loading';
+    health.status === 'loading' ||
+    presence.status === 'loading';
 
   return (
     <>
@@ -143,6 +149,7 @@ export default function AdminDashboardClient() {
         </div>
       </div>
 
+      <PresenceSection state={presence} />
       <GrowthSection state={growth} />
       <EngagementSection state={engagement} />
       <HealthSection state={health} />

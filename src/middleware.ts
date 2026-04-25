@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { prisma } from '@/lib/db';
+import { trackPresence } from '@/lib/admin/presence-tracker';
 
 // Public paths that don't require authentication
 const PUBLIC_PATHS = [
@@ -117,6 +118,21 @@ export async function middleware(request: NextRequest) {
       const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
       return NextResponse.redirect(new URL('/workspaces', origin));
     }
+    return supabaseResponse;
+  }
+
+  // Phase 2 Live Presence — fire-and-forget tracker. Skipped for /admin/*
+  // (handled above with its own return) and for unauth (we already
+  // returned a redirect). Errors and slow promises must not affect the
+  // request response.
+  try {
+    void trackPresence({
+      userId: user.id,
+      pathname,
+      method: request.method,
+    });
+  } catch {
+    // Synchronous throws from a fire-and-forget call must not propagate.
   }
 
   return supabaseResponse;

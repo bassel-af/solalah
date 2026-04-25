@@ -41,6 +41,7 @@ const ENDPOINTS: Endpoint[] = [
   { method: 'GET', path: '/api/admin/metrics/growth', label: 'Admin metrics growth (anon → 401)', allowUnauth: true },
   { method: 'GET', path: '/api/admin/metrics/engagement', label: 'Admin metrics engagement (anon → 401)', allowUnauth: true },
   { method: 'GET', path: '/api/admin/metrics/health', label: 'Admin metrics health (anon → 401)', allowUnauth: true },
+  { method: 'GET', path: '/api/admin/metrics/presence', label: 'Admin metrics presence (anon → 401)', allowUnauth: true },
 ];
 
 async function runSmokeTest() {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { User } from '@supabase/supabase-js';
+import { trackPresence } from '@/lib/admin/presence-tracker';
 
 interface AuthResult {
   user: User | null;
@@ -10,6 +11,10 @@ interface AuthResult {
 /**
  * Extracts and validates the Bearer token from a NextRequest.
  * Returns the authenticated Supabase user or an error message.
+ *
+ * Phase 2 Live Presence: on successful auth we kick off a fire-and-forget
+ * presence write. The tracker is throttled and self-contained; errors and
+ * hangs MUST NOT propagate up.
  */
 export async function getAuthenticatedUser(request: NextRequest): Promise<AuthResult> {
   const authHeader = request.headers.get('authorization');
@@ -32,6 +37,16 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<AuthRe
 
   if (!user) {
     return { user: null, error: 'User not found' };
+  }
+
+  try {
+    void trackPresence({
+      userId: user.id,
+      pathname: request.nextUrl.pathname,
+      method: request.method,
+    });
+  } catch {
+    // Synchronous throws from a fire-and-forget call must not propagate.
   }
 
   return { user, error: null };

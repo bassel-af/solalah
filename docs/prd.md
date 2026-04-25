@@ -391,7 +391,7 @@ Admin-driven single-entity restore from `TreeEditLog` snapshots, gated by the ex
 
 ### Phase 16 — Platform Owner Dashboard
 
-Cross-workspace, owner-only view of growth / engagement / platform health. Gating scaffold shipped (`/admin` route, `User.isPlatformOwner` flag, middleware + layout + route-handler defense in depth). Phase 0 dual-auth gate shipped (`requirePlatformOwner` now accepts either Bearer header or Supabase session cookie). Phase 1 shipped: `/admin` renders growth/engagement/health cards (Arabic RTL) backed by `/api/admin/metrics/{growth,engagement,health}`, each gated and audit-logged. Metrics, queries, and UI are designed in a dedicated PRD: **`docs/prd-admin-dashboard.md`**. Phase 2 (time series / sparklines) is next.
+Cross-workspace, owner-only view of growth / engagement / platform health / live presence. Gating scaffold shipped (`/admin` route, `User.isPlatformOwner` flag, middleware + layout + route-handler defense in depth). Phase 0 dual-auth gate shipped (`requirePlatformOwner` now accepts either Bearer header or Supabase session cookie). Phase 1 shipped: `/admin` renders growth/engagement/health cards (Arabic RTL) backed by `/api/admin/metrics/{growth,engagement,health}`, each gated and audit-logged. Metrics, queries, and UI are designed in a dedicated PRD: **`docs/prd-admin-dashboard.md`**. Phase 2 (live presence — 1-min/5-min active users, per-workspace breakdown, quiet-window heatmap, peak-concurrency record) is next; introduces `User.lastActive*` columns and the `PlatformStat` table. Time series & sparklines moved to Phase 3.
 
 ---
 

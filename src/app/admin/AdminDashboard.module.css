@@ -200,3 +200,92 @@
   font-size: 0.875rem;
   padding: 0.75rem 0;
 }
+
+/* -----------------------------------------------------------------
+   Phase 2 Live Presence
+----------------------------------------------------------------- */
+
+.presenceHero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md, 1rem);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.presenceCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-light-400);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+.presenceLabel {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.presenceValue {
+  font-size: 2.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+}
+
+.presenceValueSubtle {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+
+.presenceRollup {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-sm, 0.5rem);
+}
+
+.heatmap {
+  display: grid;
+  grid-template-columns: 50px repeat(24, 1fr);
+  gap: 2px;
+  margin-top: var(--spacing-md, 1rem);
+}
+
+.heatmapHeader {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2px 0;
+}
+
+.heatmapDayLabel {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-align: end;
+  padding: 0 4px;
+}
+
+.heatmapCell {
+  height: 18px;
+  border-radius: 2px;
+  background: rgba(56, 161, 105, var(--cell-opacity, 0));
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.peakLine {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-md, 1rem);
+}
+
+.maintenanceButton {
+  margin-top: var(--spacing-md, 1rem);
+  padding: 0.5rem 1rem;
+  background: var(--color-light-400);
+  color: var(--color-text-muted);
+  border: 0;
+  border-radius: 6px;
+  cursor: not-allowed;
+  font-size: 0.875rem;
+}
