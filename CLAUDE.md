@@ -234,11 +234,12 @@ The GEDCOM file (`public/saeed-family.ged`):
 - Secrets in `docker/.env` (gitignored) — all security-sensitive vars use `:?` syntax (Docker fails to start if missing)
 
 **Prisma** (`prisma/schema.prisma`):
-- 21 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, RadaFamily, RadaFamilyChild, TreeEditLog, BranchShareToken, BranchPointer, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place
+- 22 models: User, Workspace, WorkspaceMembership, WorkspaceInvitation, UserTreeLink, FamilyTree, Individual, Family, FamilyChild, RadaFamily, RadaFamilyChild, TreeEditLog, BranchShareToken, BranchPointer, Post, Album, AlbumMedia, Event, EventRsvp, Notification, Place, PlatformStat
 - `BranchShareToken` — SHA-256 hashed token with root individual, depth limit, target workspace scope, revoke flag
 - `BranchPointer` — links source subtree to target workspace anchor; status (`active`/`revoked`/`broken`), relationship type, `linkChildrenToAnchor` flag, `shareTokenId` FK
 - `FamilyTree` has `lastModifiedAt` timestamp (updated on every tree mutation, used for ETag caching)
-- `User` has `calendarPreference` field (default: `'hijri'`)
+- `User` has `calendarPreference` field (default: `'hijri'`), `isPlatformOwner` (Boolean, manual SQL flip only — never written from API), and live-presence heartbeat columns `lastActiveAt`, `lastActiveRoute` (VarChar 200, route pattern only — never raw URLs), `lastActiveWorkspaceId` (FK, `ON DELETE SET NULL`); indexed on `lastActiveAt`
+- `PlatformStat` is a single-row settings table (`CHECK (id = 1)`) holding `peakConcurrentUsers` + `peakRecordedAt` for live-presence peak record
 - `Individual` has `birthHijriDate`, `deathHijriDate`, `birthNotes`, `deathNotes`, `birthDescription`, `deathDescription`, `kunya`
 - `Family` has marriage contract (MARC), marriage (MARR), and divorce (DIV) event fields: `{type}Date`, `{type}HijriDate`, `{type}Place`, `{type}Description`, `{type}Notes`, plus `isDivorced`
 - `Workspace` has `enableAuditLog` (Boolean, default false) and `enableVersionControl` (Boolean, default false) toggles
@@ -333,6 +334,27 @@ The GEDCOM file (`public/saeed-family.ged`):
 - `PATCH /api/workspaces/[id]/share-tokens/[tokenId]` — disable/re-enable token (toggles `isRevoked` without touching pointers)
 - `DELETE /api/workspaces/[id]/share-tokens/[tokenId]` — revoke token + auto deep-copy all active pointers into target workspaces
 - `POST /api/workspaces/[id]/share-tokens/preview` — preview a token's subtree before redeeming
+
+**Admin API Routes** (`src/app/api/admin/`) — platform-owner only, defense-in-depth gated by `isPlatformOwner` flag in middleware + route handler + page layout. Every read writes one `AdminAccessLog` row via `logAdminAccess()`.
+- `GET /api/admin/healthcheck` — liveness probe
+- `GET /api/admin/metrics/growth` — workspace + user counts, invite acceptance (60s response cache via `withUserCache`)
+- `GET /api/admin/metrics/engagement` — weekly active workspaces, edits, top-N (60s cache)
+- `GET /api/admin/metrics/health` — DB / GoTrue / mail / encryption / storage probes (60s cache)
+- `GET /api/admin/metrics/presence` — live presence: 1m / 5m active users (owners excluded), per-workspace breakdown (k-anonymity gated by membership ≥5), 7×24 UTC heatmap, peak-concurrency record. **5s cache** (presence is "right-now" data). Lazy peak update fires fire-and-forget after the response.
+
+**Admin Library** (`src/lib/admin/`):
+- `queries.ts` — growth / engagement / health aggregations; every cross-workspace read goes through this single file
+- `cache.ts` — `withUserCache(userId, key, fn, ttlMs)` per-user in-memory response cache for admin reads; HMR-safe via `globalThis`
+- `presence.ts` — pure helpers (`normalizeRoutePattern` allow-list, `classifyRoute`) + presence query functions (`getActiveUserCount`, `getActiveWorkspaceBreakdown`, `getQuietWindowHeatmap`, `updatePeakConcurrency`, `getPresenceMetrics`). Normalizer drops UUIDs/slugs/control chars/traversal/queries to `null` — concrete URLs never reach the DB.
+- `presence-tracker.ts` — middleware-facing in-memory throttle: LRU 50k cap, 5-min TTL, 60s sweep; `trackPresence({ userId, pathname, method })` is fire-and-forget. Writes only when workspace changes, category changes, or 60s have elapsed. Slug→id memo cache for `/workspaces/[slug]/*` paths.
+
+**Audit utilities** (`src/lib/audit/`):
+- `admin-access.ts` — `logAdminAccess({ userId, action, ipAddress, userAgent })` writes to `AdminAccessLog`; never throws (best-effort)
+
+**Live presence integration points**:
+- `src/middleware.ts` — calls `trackPresence` after `if (!user) redirect`, skipping `/admin/*` (owner self-exclusion)
+- `src/lib/api/auth.ts` — `getAuthenticatedUser` calls `trackPresence` after successful Bearer auth (covers API-only callers that bypass middleware's `updateSession`)
+- Both call sites are `void trackPresence(...)` — fire-and-forget, never block the response
 
 **Tree Library** (`src/lib/tree/`):
 - `queries.ts` — database query helpers for tree CRUD; `touchTreeTimestamp(treeId)` updates `FamilyTree.lastModifiedAt` (called by all mutation routes for ETag invalidation)

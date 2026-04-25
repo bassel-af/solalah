@@ -1,6 +1,6 @@
 # Product Requirements Document — Platform Owner Dashboard
 
-**Status**: Draft (2026-04-23) — scaffold shipped, Phase 0 (dual-auth gate) shipped, Phase 1 (growth/engagement/health cards) shipped
+**Status**: Draft (2026-04-23) — scaffold shipped, Phase 0 (dual-auth gate) shipped, Phase 1 (growth/engagement/health cards) shipped, Phase 2 (live presence) shipped 2026-04-25
 **Audience**: Human developers, AI coding assistants
 **Parent PRD**: `docs/prd.md` (see Roadmap phase link)
 
@@ -239,16 +239,27 @@ This is a load-bearing coincidence, not a design. Two options:
 - Arabic labels, RTL layout, existing design tokens.
 - Unit tests for query helpers (with seeded data), Playwright e2e for owner vs non-owner rendering.
 
-### Phase 2 — Live Presence
+### Phase 2 — Live Presence (shipped 2026-04-25)
 
-Adds the "who's using it right now?" question (§4.4) — first phase that introduces schema changes.
+Added the "who's using it right now?" question (§4.4) — first phase that introduced schema changes.
 
-- **Migration**: add `User.lastActiveAt`, `User.lastActiveRoute`, `User.lastActiveWorkspaceId` (FK, `ON DELETE SET NULL`); index on `User(lastActiveAt)`. Add `PlatformStat` table with `peakConcurrentUsers`, `peakRecordedAt`. Backfill: set `isPlatformOwner = true` for `bassel.saeed9@gmail.com` and `bassel@gynat.com` in the same migration if not already set.
-- **Activity tracking**: extend `src/middleware.ts` (auth path only) to update the three `lastActive*` columns. Throttle via in-memory cache per §4.4.3 — write only when 60s have passed AND nothing relevant changed; write immediately on workspace/route-category transitions.
-- **Queries** in `src/lib/admin/presence.ts` (separate from `queries.ts` because the route categorization rules live here): `getActiveUserCount(windowSeconds)`, `getActiveWorkspaceBreakdown(windowSeconds)`, `getQuietWindowHeatmap()`, `updatePeakConcurrency(currentCount)`. All exclude `isPlatformOwner = true`.
-- **API**: `GET /api/admin/metrics/presence`, gated by `requirePlatformOwner` and audit-logged via `logAdminAccess`. Lazily updates `PlatformStat` peak when read.
-- **UI**: a new "Live Presence" section as the first card on `/admin` (above Growth) — two large numbers (1-min, 5-min), workspace breakdown table, 7×24 heatmap rendered as a CSS grid with opacity scale (no chart library), peak record line. "Schedule maintenance" button is rendered but disabled until Phase 5.
-- **Tests**: unit tests with seeded `lastActiveAt` values covering window edges, owner exclusion, throttle behavior; e2e verifies the owner's own browsing of `/admin` does not bump the active count.
+- **Migration** (`prisma/migrations/20260425043800_add_live_presence`): adds `User.lastActiveAt`, `User.lastActiveRoute (VARCHAR(200))`, `User.lastActiveWorkspaceId (FK, ON DELETE SET NULL)`; index on `User(lastActiveAt)`. Adds `PlatformStat` (singleton row, `id INT PRIMARY KEY DEFAULT 1` + `CHECK (id = 1)`). Idempotent backfill of `is_platform_owner = true` for `bassel.saeed9@gmail.com` / `bassel@gynat.com` (case-insensitive); migration aborts via `RAISE EXCEPTION` if fewer than 2 owners exist post-commit.
+- **Activity tracking**: dual placement (decided by team-lead spec, not in original §4.4) — `src/middleware.ts` (cookie path, page routes only, skips `/admin/*`) AND inside `src/lib/api/auth.ts` `getAuthenticatedUser` (Bearer path). Same throttle cache de-dupes across both entry points so Bearer-only API callers don't go dark. Both fire-and-forget (`void trackPresence(...)`).
+- **Throttle cache** (`src/lib/admin/presence-tracker.ts`): in-memory LRU, hard cap 50,000 entries, 5-min TTL with 60s sweep (`.unref()`). Write conditions: workspace change, category change, OR `elapsed >= 60_000ms`. Slug→id memo bounded by workspace count.
+- **Route normalizer** (`src/lib/admin/presence.ts`): regex-array allow-list — concrete UUIDs and slugs are templated to `[id]`/`[slug]` before persistence; unknown shapes / control chars / traversal / query strings return `null` and the write is skipped. CRIT-1 from the security audit.
+- **Queries** (`src/lib/admin/presence.ts`): `getActiveUserCount(windowSeconds)`, `getActiveWorkspaceBreakdown(windowSeconds)`, `getQuietWindowHeatmap()`, `updatePeakConcurrency(count)`, `getPresenceMetrics()`. All exclude `isPlatformOwner = true`. **k-anonymity carve-out**: per-workspace breakdown filters by workspace **membership size ≥ 5** (not by active count); smaller workspaces aggregate into `smallWorkspacesRollup`. Peak update is a single-statement conditional `UPDATE platform_stats SET peak = $1 WHERE peak < $1` — atomic, no TOCTOU.
+- **API**: `GET /api/admin/metrics/presence`, gated by `requirePlatformOwner` and audit-logged via `logAdminAccess`. Response cached **5 seconds** (not 60s like other admin metrics — presence is "right-now" data). Heatmap reuses the same response cache. Peak update fires fire-and-forget after the response.
+- **UI** (`src/app/admin/PresenceSection.tsx`, `PresenceHeatmap.tsx`): top card on `/admin` above Growth. Three large numbers (1-min, 5-min, active workspaces), per-workspace breakdown table, small-workspaces roll-up line, 7×24 heatmap as a CSS grid with opacity scale (no chart library), peak record line, disabled "جدولة صيانة (قريبًا)" button reserved for Phase 5.
+- **Tests** (109 unit tests across 7 files): normalizer adversarial cases, classifier table, throttle boundaries (59_999 / 60_000 / 60_001 ms), LRU eviction at cap + MRU re-touch, deletion race (`updateMany` swallows P2025), owner exclusion, k-anonymity rollup, heatmap UTC bucketing, peak conditional, route auth + audit log + fire-and-forget peak, middleware/auth fire-and-forget.
+- **Smoke**: `scripts/smoke-test.ts` extended with the presence endpoint (anon → 401).
+- **Operational**: deploy requires `prisma migrate deploy` to run before `pnpm build` — `.claude/agents/deployer.md` updated with that step. Without it, new code references columns the prod DB doesn't have yet.
+
+### Known follow-ups (deferred)
+
+- Nightly TTL sweep that NULLs `lastActiveWorkspaceId` / `lastActiveRoute` for users idle > 7 days (HIGH-1 PII bound from the security audit).
+- Audit-log retention policy for `admin_metrics_*_read` actions (MED-3).
+- Postgres trigger on `users.is_platform_owner` writing to `AdminAccessLog` on every change (MED-1 alternative — detection over allowlist rigidity).
+- Real-server smoke probe with an authed owner cookie (current smoke catches 401-vs-route-loaded but not actual query failures — bit us once during this phase before refactor).
 
 ### Phase 3 — Time series & sparklines
 
