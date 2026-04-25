@@ -9,16 +9,16 @@ import AdminDashboardClient from './AdminDashboardClient';
  * metrics live in a client component because they're fetched via the
  * browser's Supabase session (Bearer attached through `apiFetch`).
  *
- * We still render the <h1> heading server-side for two reasons:
- *   1. It's the first paint — users see the page heading immediately
- *      instead of a flash of empty content.
- *   2. Playwright gate tests (e2e-browser/admin-gate.spec.ts) look for
- *      this exact heading to confirm a rendered dashboard, not a redirect.
+ * The h1 heading is rendered by the client (it depends on the live
+ * "last refreshed" timestamp), but Playwright gate tests still find it
+ * by accessible name.
  */
 export default function AdminDashboardPage() {
   return (
-    <main className={styles.main}>
-      <AdminDashboardClient />
+    <main className={styles.surface}>
+      <div className={styles.main}>
+        <AdminDashboardClient />
+      </div>
     </main>
   );
 }

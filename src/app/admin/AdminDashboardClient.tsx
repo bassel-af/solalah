@@ -11,10 +11,10 @@ import type {
 import { PresenceSection, type PresencePayload } from './PresenceSection';
 
 /**
- * Client dashboard — fetches all three metric endpoints in parallel and
- * renders three stacked sections (Growth, Engagement, Health). Each section
- * can fail independently without blowing up the page (PRD §11 non-functional
- * requirement: dashboard reads never 500).
+ * Client dashboard — fetches all four metric endpoints in parallel and
+ * renders four stacked sections (Presence, Growth, Engagement, Health).
+ * Each section can fail independently without blowing up the page (PRD §11
+ * non-functional requirement: dashboard reads never 500).
  *
  * The refresh button simply re-fetches. There's no polling — the PRD
  * explicitly rules it out ("refreshes on demand").
@@ -132,8 +132,15 @@ export default function AdminDashboardClient() {
 
   return (
     <>
-      <div className={styles.header}>
-        <h1 className={styles.title}>لوحة تحكم المنصة</h1>
+      <header className={styles.header}>
+        <div className={styles.headerText}>
+          <span className={styles.kicker}>لوحة المنصة</span>
+          <h1 className={styles.title}>لوحة تحكم المنصة</h1>
+          <p className={styles.subtitle}>
+            نظرةٌ شاملةٌ على نبض جينات: الحضور المباشر، نموّ المساحات،
+            الاستخدام، وصحّة الخدمات الأساسية.
+          </p>
+        </div>
         <div className={styles.headerActions}>
           <span className={styles.lastRefresh}>
             آخر تحديث: {formatRelative(lastRefresh)}
@@ -147,7 +154,7 @@ export default function AdminDashboardClient() {
             {isLoading ? 'جارٍ التحديث…' : 'تحديث'}
           </button>
         </div>
-      </div>
+      </header>
 
       <PresenceSection state={presence} />
       <GrowthSection state={growth} />
@@ -158,15 +165,43 @@ export default function AdminDashboardClient() {
 }
 
 // ---------------------------------------------------------------------------
+// Section header — shared
+// ---------------------------------------------------------------------------
+
+function SectionHead({
+  kicker,
+  title,
+  meta,
+}: {
+  kicker: string;
+  title: string;
+  meta?: string;
+}) {
+  return (
+    <div className={styles.sectionHead}>
+      <div>
+        <span className={styles.sectionKicker}>{kicker}</span>
+        <h2 className={styles.sectionTitle}>{title}</h2>
+      </div>
+      {meta ? <span className={styles.sectionMeta}>{meta}</span> : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Growth
 // ---------------------------------------------------------------------------
 
 function GrowthSection({ state }: { state: SectionState<GrowthMetrics> }) {
   return (
     <section className={styles.section} aria-labelledby="growth-heading">
-      <h2 id="growth-heading" className={styles.sectionTitle}>
-        النمو
-      </h2>
+      <div id="growth-heading">
+        <SectionHead
+          kicker="النمو"
+          title="مساحاتٌ تتّسع، أعضاءٌ يلتحقون"
+          meta="إحصائيّات تراكميّة"
+        />
+      </div>
       {state.status === 'loading' || state.status === 'idle' ? (
         <div className={styles.loading}>جارٍ التحميل…</div>
       ) : state.status === 'error' ? (
@@ -230,9 +265,13 @@ function EngagementSection({
 }) {
   return (
     <section className={styles.section} aria-labelledby="engagement-heading">
-      <h2 id="engagement-heading" className={styles.sectionTitle}>
-        الاستخدام
-      </h2>
+      <div id="engagement-heading">
+        <SectionHead
+          kicker="الاستخدام"
+          title="نَبضُ النّشاط في المساحات"
+          meta="نوافذ ٧ و٣٠ يومًا"
+        />
+      </div>
       {state.status === 'loading' || state.status === 'idle' ? (
         <div className={styles.loading}>جارٍ التحميل…</div>
       ) : state.status === 'error' ? (
@@ -256,9 +295,9 @@ function EngagementSection({
               secondary="آخر ٣٠ يومًا"
             />
             <Card
-              label="متوسط التعديلات لكل مساحة نشطة"
+              label="متوسط التعديلات"
               value={formatAvg(state.data.avgEditsPerActiveWorkspace)}
-              secondary="آخر ٧ أيام"
+              secondary="لكل مساحة نشطة (٧ أيام)"
             />
             <Card
               label="مساحات متعددة الأعضاء"
@@ -272,31 +311,35 @@ function EngagementSection({
             />
           </div>
 
-          <table className={styles.topTable}>
-            <caption>أكثر المساحات نشاطًا (آخر ٧ أيام)</caption>
-            <thead>
-              <tr>
-                <th>المساحة</th>
-                <th>عدد التعديلات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.data.topActiveWorkspaces7d.length === 0 ? (
+          <div className={styles.tableWrap}>
+            <span className={styles.tableCaption}>
+              أكثر المساحات نشاطًا (آخر ٧ أيام)
+            </span>
+            <table className={styles.topTable}>
+              <thead>
                 <tr>
-                  <td colSpan={2} className={styles.empty}>
-                    لا توجد بيانات كافية
-                  </td>
+                  <th>المساحة</th>
+                  <th style={{ textAlign: 'end' }}>عدد التعديلات</th>
                 </tr>
-              ) : (
-                state.data.topActiveWorkspaces7d.map((w) => (
-                  <tr key={w.workspaceId}>
-                    <td>{w.name}</td>
-                    <td>{w.editCount}</td>
+              </thead>
+              <tbody>
+                {state.data.topActiveWorkspaces7d.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className={styles.empty}>
+                      لا توجد بيانات كافية
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  state.data.topActiveWorkspaces7d.map((w) => (
+                    <tr key={w.workspaceId}>
+                      <td className={styles.colName}>{w.name}</td>
+                      <td className={styles.colNumber}>{w.editCount}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </section>
@@ -310,41 +353,47 @@ function EngagementSection({
 function HealthSection({ state }: { state: SectionState<HealthMetrics> }) {
   return (
     <section className={styles.section} aria-labelledby="health-heading">
-      <h2 id="health-heading" className={styles.sectionTitle}>
-        الصحة
-      </h2>
+      <div id="health-heading">
+        <SectionHead
+          kicker="الصحّة"
+          title="ركائزُ الخدمة في حالةٍ سليمة"
+          meta="فحوصاتٌ مباشرة"
+        />
+      </div>
       {state.status === 'loading' || state.status === 'idle' ? (
         <div className={styles.loading}>جارٍ التحميل…</div>
       ) : state.status === 'error' ? (
         <div className={styles.error}>تعذر تحميل المقاييس: {state.message}</div>
       ) : (
         <>
-          <HealthDot
-            label="قاعدة البيانات"
-            ok={state.data.db.ok}
-            error={state.data.db.error}
-          />
-          <HealthDot
-            label="خدمة المصادقة (GoTrue)"
-            ok={state.data.gotrue.ok}
-            status={state.data.gotrue.status}
-            error={state.data.gotrue.error}
-          />
-          <HealthDot
-            label="البريد الإلكتروني"
-            ok={state.data.mail.ok}
-            error={state.data.mail.error}
-          />
-          <HealthDot
-            label="مفتاح التشفير محمّل"
-            ok={state.data.encryption.masterKeyLoaded}
-            error={
-              state.data.encryption.masterKeyLoaded
-                ? undefined
-                : 'master-key-missing'
-            }
-          />
-          <div className={styles.grid} style={{ marginTop: '1rem' }}>
+          <ul className={styles.healthList}>
+            <HealthDot
+              label="قاعدة البيانات"
+              ok={state.data.db.ok}
+              error={state.data.db.error}
+            />
+            <HealthDot
+              label="خدمة المصادقة (GoTrue)"
+              ok={state.data.gotrue.ok}
+              status={state.data.gotrue.status}
+              error={state.data.gotrue.error}
+            />
+            <HealthDot
+              label="البريد الإلكتروني"
+              ok={state.data.mail.ok}
+              error={state.data.mail.error}
+            />
+            <HealthDot
+              label="مفتاح التشفير محمّل"
+              ok={state.data.encryption.masterKeyLoaded}
+              error={
+                state.data.encryption.masterKeyLoaded
+                  ? undefined
+                  : 'master-key-missing'
+              }
+            />
+          </ul>
+          <div className={styles.grid} style={{ marginTop: '20px' }}>
             <Card
               label="سعة الوسائط المستخدمة"
               value={formatBytes(state.data.storage.totalMediaBytes)}
@@ -375,19 +424,19 @@ function HealthDot({
 }) {
   const dotClass = ok ? styles.dotOk : styles.dotBad;
   return (
-    <div className={styles.healthRow}>
-      <span className={`${styles.dot} ${dotClass}`} />
+    <li className={styles.healthRow}>
+      <span className={`${styles.dot} ${dotClass}`} aria-hidden />
       <span className={styles.healthLabel}>{label}</span>
       <span
         className={`${styles.healthStatus} ${ok ? '' : styles.healthStatusBad}`}
       >
         {ok
           ? status !== undefined
-            ? `سليم (${status})`
+            ? `سليم · ${status}`
             : 'سليم'
           : error ?? 'خلل'}
       </span>
-    </div>
+    </li>
   );
 }
 
@@ -395,16 +444,22 @@ function Card({
   label,
   value,
   secondary,
+  variant,
 }: {
   label: string;
   value: number | string;
   secondary?: string;
+  variant?: 'lead';
 }) {
+  const className =
+    variant === 'lead' ? `${styles.card} ${styles.cardLead}` : styles.card;
   return (
-    <div className={styles.card}>
+    <div className={className}>
       <span className={styles.cardLabel}>{label}</span>
       <span className={styles.cardValue}>{value}</span>
       {secondary ? <span className={styles.cardSecondary}>{secondary}</span> : null}
     </div>
   );
 }
+
+export { Card };

@@ -27,9 +27,13 @@ type SectionState =
 export function PresenceSection({ state }: { state: SectionState }) {
   return (
     <section className={styles.section} aria-labelledby="presence-heading">
-      <h2 id="presence-heading" className={styles.sectionTitle}>
-        الحضور المباشر
-      </h2>
+      <div id="presence-heading">
+        <SectionHead
+          kicker="الحضور المباشر"
+          title="من في المنصّة الآن"
+          meta="بيانات تتجدّد مع كل تحديث"
+        />
+      </div>
       {state.status === 'loading' || state.status === 'idle' ? (
         <div className={styles.loading}>جارٍ التحميل…</div>
       ) : state.status === 'error' ? (
@@ -37,64 +41,79 @@ export function PresenceSection({ state }: { state: SectionState }) {
       ) : (
         <>
           <div className={styles.presenceHero}>
-            <PresenceCard
-              label="نشطون الآن (دقيقة)"
+            <LeadCard
+              label="نشطون الآن"
               value={state.data.active1m}
               secondary="آخر ٦٠ ثانية"
             />
-            <PresenceCard
-              label="نشطون (٥ دقائق)"
+            <LeadCard
+              label="نشطون · ٥ دقائق"
               value={state.data.active5m}
               secondary="نافذة الـ ٥ دقائق"
             />
-            <PresenceCard
+            <LeadCard
               label="مساحات نشطة"
               value={state.data.activeWorkspaces}
-              secondary="تتضمن المتجمعة"
+              secondary="تتضمّن المتجمّعة"
             />
           </div>
 
-          <table className={styles.topTable}>
-            <caption>توزيع النشاط الحالي حسب المساحة</caption>
-            <thead>
-              <tr>
-                <th>المساحة</th>
-                <th>النشطون</th>
-                <th>النوع السائد</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.data.perWorkspace.length === 0 ? (
+          <div className={styles.tableWrap}>
+            <span className={styles.tableCaption}>
+              توزيع النشاط الحالي حسب المساحة
+            </span>
+            <table className={styles.topTable}>
+              <thead>
                 <tr>
-                  <td colSpan={3} className={styles.empty}>
-                    لا توجد بيانات كافية
-                  </td>
+                  <th>المساحة</th>
+                  <th style={{ textAlign: 'end' }}>النشطون</th>
+                  <th style={{ textAlign: 'end' }}>النوع السائد</th>
                 </tr>
-              ) : (
-                state.data.perWorkspace.map((w) => (
-                  <tr key={w.workspaceId}>
-                    <td>{w.name}</td>
-                    <td>{w.activeCount}</td>
-                    <td>
-                      {w.dominantCategory === 'editing' ? 'تعديل' : 'مشاهدة'}
+              </thead>
+              <tbody>
+                {state.data.perWorkspace.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className={styles.empty}>
+                      لا توجد بيانات كافية
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  state.data.perWorkspace.map((w) => (
+                    <tr key={w.workspaceId}>
+                      <td className={styles.colName}>{w.name}</td>
+                      <td className={styles.colNumber}>{w.activeCount}</td>
+                      <td style={{ textAlign: 'end' }}>
+                        <span
+                          className={`${styles.tag} ${
+                            w.dominantCategory === 'editing'
+                              ? styles.tagGold
+                              : styles.tagEmerald
+                          }`}
+                        >
+                          {w.dominantCategory === 'editing' ? 'تعديل' : 'مشاهدة'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {state.data.smallWorkspacesRollup ? (
             <div className={styles.presenceRollup}>
-              مساحات صغيرة (أقل من ٥ أعضاء):{' '}
-              {state.data.smallWorkspacesRollup.workspaceCount} مساحة،{' '}
-              {state.data.smallWorkspacesRollup.activeCount} مستخدم نشط
+              مساحاتٌ صغيرة (أقل من ٥ أعضاء):{' '}
+              <strong>{state.data.smallWorkspacesRollup.workspaceCount}</strong>{' '}
+              مساحة،{' '}
+              <strong>{state.data.smallWorkspacesRollup.activeCount}</strong>{' '}
+              مستخدمٌ نشط
             </div>
           ) : null}
 
           <PresenceHeatmap grid={state.data.heatmap} />
+
           <div className={styles.peakLine}>
-            الذروة المسجلة: {state.data.peak.count}
+            الذروة المسجّلة: <strong>{state.data.peak.count}</strong>
             {state.data.peak.recordedAt
               ? ` — ${new Date(state.data.peak.recordedAt).toLocaleString('ar')}`
               : ''}
@@ -114,7 +133,27 @@ export function PresenceSection({ state }: { state: SectionState }) {
   );
 }
 
-function PresenceCard({
+function SectionHead({
+  kicker,
+  title,
+  meta,
+}: {
+  kicker: string;
+  title: string;
+  meta?: string;
+}) {
+  return (
+    <div className={styles.sectionHead}>
+      <div>
+        <span className={styles.sectionKicker}>{kicker}</span>
+        <h2 className={styles.sectionTitle}>{title}</h2>
+      </div>
+      {meta ? <span className={styles.sectionMeta}>{meta}</span> : null}
+    </div>
+  );
+}
+
+function LeadCard({
   label,
   value,
   secondary,
@@ -124,11 +163,11 @@ function PresenceCard({
   secondary?: string;
 }) {
   return (
-    <div className={styles.presenceCard}>
-      <span className={styles.presenceLabel}>{label}</span>
-      <div className={styles.presenceValue}>{value}</div>
+    <div className={`${styles.card} ${styles.cardLead}`}>
+      <span className={styles.cardLabel}>{label}</span>
+      <span className={styles.cardValue}>{value}</span>
       {secondary ? (
-        <div className={styles.presenceValueSubtle}>{secondary}</div>
+        <span className={styles.cardSecondary}>{secondary}</span>
       ) : null}
     </div>
   );
